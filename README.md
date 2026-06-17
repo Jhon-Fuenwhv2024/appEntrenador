@@ -1,2 +1,6 @@
 # appEntrenador
 Esta va ser la aplicacion para los entrenadores
+
+Realizada por Jhon Fuentes 
+
+
