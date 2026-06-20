@@ -46,3 +46,12 @@ CREATE TABLE ejercicios (
     peso DECIMAL(6,2) NOT NULL,           -- DECIMAL permite cálculos exactos y números como 62.50
     FOREIGN KEY (rutina_id) REFERENCES rutinas(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+--- 6. TABLA DE INVITACIONES PARA REGISTRO
+
+CREATE TABLE invitaciones (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    token VARCHAR(64) UNIQUE NOT NULL,
+    usado BOOLEAN DEFAULT FALSE,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
