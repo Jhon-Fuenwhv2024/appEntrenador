@@ -1,0 +1,36 @@
+/* src/assets/login.css */
+
+.login-wrapper {
+  height: 100vh;        /* Cambiamos min-height por height estricto */
+  width: 100%;          /* Usamos 100% en lugar de 100vw para evitar desbordes */
+  margin: 0;
+  padding: 0;           /* Quitamos el padding que empujaba la caja */
+  overflow: hidden;     /* ¡Esta es la clave para ocultar el scroll! */
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Fondo de gimnasio con filtro oscuro */
+  background: linear-gradient(rgba(18, 18, 18, 0.85), rgba(18, 18, 18, 0.95)),
+              url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1920&auto=format&fit=crop');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.login-card {
+  border-radius: 16px !important;
+  background-color: rgba(30, 30, 30, 0.75) !important;
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 229, 255, 0.15);
+}
+
+/* src/assets/login.css */
+
+.login-title {
+  text-align: center;  /* Centra el texto horizontalmente */
+  width: 100%;         /* Asegura que ocupe todo el ancho disponible para centrar bien */
+  margin-top: 6px;     /* Margen superior (lo que antes era mt-2) */
+  margin-bottom: 15px; /* Margen inferior (lo que antes era mb-5) */
+}

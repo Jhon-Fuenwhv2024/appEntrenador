@@ -1,0 +1,62 @@
+/* src/assets/dashboard.css */
+
+.dashboard-wrapper {
+  min-height: 100vh;
+  background-color: #121212;
+  color: #ffffff;
+  padding: 24px;
+}
+
+.stat-card {
+  border-radius: 12px !important;
+  background-color: rgba(30, 30, 30, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.2s ease;
+}
+
+.client-item {
+  background-color: #1E1E1E !important;
+  border-radius: 8px !important;
+  margin-bottom: 8px;
+  border-left: 4px solid #00E5FF;
+}
+
+/* ================= NUEVOS ESTILOS PARA LA TABLA DE RUTINAS ================= */
+
+.custom-routine-table {
+  background-color: transparent !important;
+}
+
+/* Formateo de las cabeceras de la tabla */
+.header-cell {
+  background-color: rgba(20, 20, 20, 0.8) !important;
+  text-transform: uppercase;
+  font-size: 0.75rem !important;
+  letter-spacing: 1px;
+  border-bottom: 2px solid rgba(0, 229, 255, 0.3) !important;
+}
+
+/* Bordes internos de las celdas para asimilarse al diseño solicitado */
+.custom-routine-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+  padding: 14px 16px !important;
+}
+
+.custom-routine-table td:last-child {
+  border-right: none !important;
+}
+
+/* Resaltado sutil al pasar el cursor sobre las filas */
+.table-row:hover {
+  background-color: rgba(0, 229, 255, 0.03) !important;
+}
+
+/* Formato de texto específico */
+.font-mono {
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.italic-notes {
+  font-style: italic;
+}

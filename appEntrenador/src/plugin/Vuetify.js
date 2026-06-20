@@ -1,40 +1,32 @@
-import Vue from 'vue'
-import Vuetify from 'vuetify/lib'
+// Importamos solo lo necesario de vuetify para optimizar el rendimiento de la aplicación. Además, configuramos el tema oscuro con colores personalizados para una mejor experiencia visual.
+import { createVuetify } from 'vuetify'
+import * as components from 'vuetify/components'
+import * as directives from 'vuetify/directives'
+import { aliases, mdi } from 'vuetify/iconsets/mdi'
 
-Vue.use(Vuetify)
-
-export default new Vuetify({
+export default createVuetify({
+  components,
+  directives,
   icons: {
-    iconfont: 'mdi',
+    defaultSet: 'mdi',
+    aliases,
+    sets: {
+      mdi,
+    },
   },
   theme: {
-    dark: true, // Empezaremos con oscuro por defecto, ¡es más moderno!
+    defaultTheme: 'dark', // Empezamos en modo oscuro
     themes: {
-      light: {
-        primary: '#00E5FF',
-        secondary: '#2D3436',
-        accent: '#FF4081', // Un toque de rosa vibrante para llamadas a la acción
-        background: '#F5F5F5',
-        surface: '#FFFFFF',
-        info: '#2196F3',
-        success: '#00C853',
-        warning: '#FFAB00',
-        error: '#FF5252',
-      },
       dark: {
-        primary: '#00E5FF',     // Cian eléctrico
-        secondary: '#2D3436',   // Grafito oscuro
-        accent: '#FF4081',      // Fucsia vibrante
-        background: '#121212',  // Negro profundo
-        surface: '#1E1E1E',     // Tarjetas oscuras
-        info: '#448AFF',
-        success: '#00E676',
-        warning: '#FFD740',
-        error: '#FF5252',
+        colors: {
+          primary: '#00E5FF',
+          secondary: '#2D3436',
+          surface: '#1E1E1E',
+          background: '#121212',
+          error: '#FF5252',
+          success: '#00E676',
+        }
       }
-    },
-    options: { 
-      customProperties: true,
-    },
-  },
+    }
+  }
 })

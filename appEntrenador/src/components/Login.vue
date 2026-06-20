@@ -1,51 +1,44 @@
 <template>
-  <v-container class="fill-height" fluid>
-    <v-row align="center" justify="center">
-      <v-col cols="12" sm="8" md="4">
-        <v-card class="elevation-12 pa-5" color="surface">
-          <v-card-title class="text-center">
-            <h2 class="primary--text">Iniciar Sesión</h2>
-          </v-card-title>
+  <div class="login-wrapper">
+    <v-card class="elevation-24 pa-8 login-card" width="100%" max-width="420" color="surface">
+        <h2 class="text-primary font-weight-bold login-title">Iniciar Sesión</h2>
+      
+      <v-card-text>
+        <v-form @submit.prevent="handleLogin">
+          <v-text-field 
+            v-model="username" 
+            label="Nombre de Usuario" 
+            prepend-icon="mdi-account" 
+            color="primary"
+            required
+            density="compact" 
+            class="mb-2"
+          >
+          </v-text-field>
           
-          <v-card-text>
-            <v-form @submit.prevent="handleLogin">
-              <v-text-field
-                v-model="username"
-                label="Nombre de Usuario"
-                prepend-icon="mdi-account"
-                color="primary"
-                outlined
-                required
-              />
-              
-              <v-text-field
-                v-model="password"
-                label="Contraseña"
-                prepend-icon="mdi-lock"
-                type="password"
-                color="primary"
-                outlined
-                required
-              />
-              
-              <v-btn
-                type="submit"
-                block
-                color="primary"
-                class="mt-4"
-                large
-              >
-                Entrar
-              </v-btn>
-            </v-form>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-  </v-container>
+          <v-text-field 
+            v-model="password" 
+            label="Contraseña" 
+            prepend-icon="mdi-lock" 
+            type="password" 
+            color="primary"
+            required
+            density="compact"
+          >
+          </v-text-field>
+          
+          <v-btn type="submit" block color="primary" class="mt-6 text-black font-weight-bold" size="large">
+            Entrar
+          </v-btn>
+        </v-form>
+      </v-card-text>
+    </v-card>
+  </div>
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router';
+const router = useRouter();
 import { ref } from 'vue';
 
 const username = ref('');
@@ -53,12 +46,10 @@ const password = ref('');
 
 const handleLogin = () => {
   console.log('Usuario:', username.value, 'Contraseña:', password.value);
+
+  router.push('/dashboard');
+
 };
 </script>
 
-<style scoped>
-/* Vuetify maneja gran parte del diseño, esto es solo extra */
-.v-card {
-  border-radius: 16px !important;
-}
-</style>
+<style src="../assets/login.css" scoped></style>

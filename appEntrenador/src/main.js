@@ -1,8 +1,11 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import router from './router' // Importamos nuestro archivo de rutas
+import vuetify from './plugin/vuetify'
+import router from './router'
+import '@mdi/font/css/materialdesignicons.css' // ¡Importante para los iconos!
 
 const app = createApp(App)
 
-app.use(router) // Le decimos a la app que use el router
+app.use(vuetify)
+app.use(router)
 app.mount('#app')
