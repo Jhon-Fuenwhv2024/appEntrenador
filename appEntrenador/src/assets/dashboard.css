@@ -1,62 +1,102 @@
 /* src/assets/dashboard.css */
 
-.dashboard-wrapper {
-  min-height: 100vh;
-  background-color: #121212;
+.dashboard-bg {
+  height: 100vh;
+  background-color: #0d0f12; /* Un fondo oscuro un poco más profundo */
   color: #ffffff;
-  padding: 24px;
+  display: flex;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden; /* Evita que toda la página haga scroll, solo las secciones internas */
 }
 
-.stat-card {
-  border-radius: 12px !important;
-  background-color: rgba(30, 30, 30, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: transform 0.2s ease;
+/* ================= 1. MENÚ LATERAL FLOTANTE ================= */
+.sidebar-pill {
+  width: 80px;
+  background-color: #16181d;
+  border-radius: 28px;
+  margin: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 0;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 229, 255, 0.05);
+  z-index: 10;
+}
+
+.nav-item {
+  margin-bottom: 32px;
+  color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 12px;
+  border-radius: 16px;
+}
+
+.nav-item:hover, .nav-item.active {
+  color: #00E5FF;
+  background-color: rgba(0, 229, 255, 0.05);
+  transform: translateY(-2px);
+}
+
+.nav-bottom {
+  margin-top: auto;
+  color: rgba(255, 82, 82, 0.7);
+}
+.nav-bottom:hover {
+  color: #ff5252;
+  background-color: rgba(255, 82, 82, 0.1);
+}
+
+/* ================= 2. TARJETAS (CARDS) ================= */
+.glass-card {
+  background-color: #16181d !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(0, 229, 255, 0.15);
+}
+
+.accent-card {
+  background: linear-gradient(145deg, #16181d 0%, rgba(0, 229, 255, 0.05) 100%) !important;
+  border: 1px solid rgba(0, 229, 255, 0.2) !important;
+}
+
+/* ================= 3. PANEL DERECHO (ALUMNOS) ================= */
+.right-panel {
+  background-color: #121418;
+  border-left: 1px solid rgba(255, 255, 255, 0.03);
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .client-item {
-  background-color: #1E1E1E !important;
-  border-radius: 8px !important;
-  margin-bottom: 8px;
-  border-left: 4px solid #00E5FF;
-}
-
-/* ================= NUEVOS ESTILOS PARA LA TABLA DE RUTINAS ================= */
-
-.custom-routine-table {
   background-color: transparent !important;
+  border-radius: 16px !important;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+  padding: 8px !important;
 }
 
-/* Formateo de las cabeceras de la tabla */
-.header-cell {
-  background-color: rgba(20, 20, 20, 0.8) !important;
-  text-transform: uppercase;
-  font-size: 0.75rem !important;
-  letter-spacing: 1px;
-  border-bottom: 2px solid rgba(0, 229, 255, 0.3) !important;
+.client-item:hover {
+  background-color: rgba(255, 255, 255, 0.03) !important;
 }
 
-/* Bordes internos de las celdas para asimilarse al diseño solicitado */
-.custom-routine-table td {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
-  padding: 14px 16px !important;
+/* Scrollbar invisible pero funcional */
+::-webkit-scrollbar {
+  width: 4px;
 }
-
-.custom-routine-table td:last-child {
-  border-right: none !important;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
-
-/* Resaltado sutil al pasar el cursor sobre las filas */
-.table-row:hover {
-  background-color: rgba(0, 229, 255, 0.03) !important;
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
 }
-
-/* Formato de texto específico */
-.font-mono {
-  font-family: 'Courier New', Courier, monospace;
-}
-
-.italic-notes {
-  font-style: italic;
+::-webkit-scrollbar-thumb:hover {
+  background: #00E5FF;
 }
