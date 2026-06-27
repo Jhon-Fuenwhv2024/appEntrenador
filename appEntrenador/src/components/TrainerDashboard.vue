@@ -2,9 +2,9 @@
   <div class="dashboard-bg">
     
     <nav class="sidebar-pill">
-      <v-avatar color="rgba(0, 229, 255, 0.05)" size="48" class="mb-8 logo-avatar">
-        <v-icon icon="mdi-dumbbell" color="#00E5FF" size="24"></v-icon>
-      </v-avatar>
+      <div class="logo-wrap">
+        <v-icon icon="mdi-dumbbell" color="#00E5FF" size="22"></v-icon>
+      </div>
       
       <div class="nav-item active">
         <v-icon icon="mdi-view-dashboard-outline" size="24"></v-icon>
@@ -24,322 +24,201 @@
       </div>
     </nav>
 
-    <main class="main-content flex-grow-1 pa-8">
-      
-      <div class="d-flex justify-space-between align-start mb-8 mt-2">
-        <div>
-          <div class="text-caption text-grey-lighten-1 mb-1 d-flex align-center">
-            <v-icon icon="mdi-calendar-blank-outline" size="16" class="mr-2"></v-icon>
+    <main class="main-content flex-grow-1">
+      <header class="dashboard-header">
+        <div class="header-left">
+          <div class="header-date">
+            <v-icon icon="mdi-calendar-blank-outline" size="14"></v-icon>
             {{ fechaActual }}
           </div>
-          <h1 class="text-h4 font-weight-bold mb-1 text-white">Dashboard</h1>
-          <p class="text-grey-lighten-1 text-subtitle-2 font-weight-regular">
-            Bienvenido de vuelta, <span style="color: #00E5FF;">{{ userName }}</span>
+          <h1 class="header-title">Dashboard</h1>
+          <p class="header-greeting">
+            Bienvenido de vuelta, <span class="text-cyan">{{ userName }}</span>
           </p>
         </div>
 
-        <div class="d-flex align-center">
-          <v-badge content="3" color="#00E5FF" text-color="black" offset-x="5" offset-y="5">
-            <v-btn icon="mdi-bell-outline" variant="outlined" color="grey-darken-2" class="mr-4 rounded-circle bg-card" size="small"></v-btn>
+        <div class="header-right">
+          <v-badge content="3" color="#00E5FF" text-color="#0B0D12" offset-x="4" offset-y="4">
+            <button type="button" class="notification-btn" aria-label="Notificaciones">
+              <v-icon icon="mdi-bell-outline" size="20" color="#8B929E"></v-icon>
+            </button>
           </v-badge>
-          
-          <div class="profile-pill d-flex align-center bg-card px-2 py-1 rounded-pill border-subtle">
-            <v-avatar color="#00E5FF" size="32" class="mr-3">
-              <span class="text-black font-weight-bold text-caption">{{ obtenerIniciales(userName) }}</span>
-            </v-avatar>
-            <div class="mr-3">
-              <div class="text-white text-caption font-weight-bold lh-1">{{ userName }}</div>
-              <div class="text-grey text-caption lh-1 mt-1" style="font-size: 10px !important;">Entrenador</div>
+
+          <div class="profile-pill">
+            <div class="profile-avatar">{{ obtenerIniciales(userName) }}</div>
+            <div class="profile-info">
+              <div class="profile-name">{{ userName }}</div>
+              <div class="profile-role">Entrenador</div>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       <div v-if="userRole === 'trainer'">
         
-        <v-row class="mb-6" align="stretch">
-          
-          <v-col cols="12" sm="6" md="3">
-            <v-card class="pa-5 bg-card border-subtle h-100 rounded-xl stat-card">
-              <div class="d-flex flex-column h-100">
-                <v-avatar color="rgba(0, 229, 255, 0.1)" size="40" class="mb-4 rounded-lg">
-                  <v-icon icon="mdi-account-group-outline" color="#00E5FF" size="20"></v-icon>
-                </v-avatar>
-                <div class="text-h4 font-weight-bold text-white mb-1">{{ alumnos.length }}</div>
-                <div class="text-caption text-grey">Total Alumnos</div>
-              </div>
-            </v-card>
-          </v-col>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-cyan">
+              <v-icon icon="mdi-account-group-outline" size="20" color="#00E5FF"></v-icon>
+            </div>
+            <div class="stat-value">{{ alumnos.length }}</div>
+            <div class="stat-label">Total Alumnos</div>
+          </div>
 
-          <v-col cols="12" sm="6" md="3">
-            <v-card class="pa-5 bg-card border-subtle h-100 rounded-xl stat-card">
-              <div class="d-flex flex-column h-100">
-                <v-avatar color="rgba(76, 175, 80, 0.1)" size="40" class="mb-4 rounded-lg">
-                  <v-icon icon="mdi-clipboard-text-outline" color="#4CAF50" size="20"></v-icon>
-                </v-avatar>
-                <div class="text-h4 font-weight-bold text-white mb-1">24</div>
-                <div class="text-caption text-grey">Rutinas Activas</div>
-              </div>
-            </v-card>
-          </v-col>
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-green">
+              <v-icon icon="mdi-clipboard-text-outline" size="20" color="#4CAF50"></v-icon>
+            </div>
+            <div class="stat-value">24</div>
+            <div class="stat-label">Rutinas Activas</div>
+          </div>
 
-          <v-col cols="12" sm="6" md="3">
-            <v-card class="pa-5 bg-card border-subtle h-100 rounded-xl stat-card">
-              <div class="d-flex flex-column h-100">
-                <v-avatar color="rgba(255, 152, 0, 0.1)" size="40" class="mb-4 rounded-lg">
-                  <v-icon icon="mdi-food-apple-outline" color="#FF9800" size="20"></v-icon>
-                </v-avatar>
-                <div class="text-h4 font-weight-bold text-white mb-1">18</div>
-                <div class="text-caption text-grey">Dietas Activas</div>
-              </div>
-            </v-card>
-          </v-col>
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-orange">
+              <v-icon icon="mdi-food-apple-outline" size="20" color="#FF9800"></v-icon>
+            </div>
+            <div class="stat-value">18</div>
+            <div class="stat-label">Dietas Activas</div>
+          </div>
 
-          <v-col cols="12" sm="6" md="3">
-            <v-card class="pa-5 bg-card border-subtle h-100 rounded-xl stat-card">
-              <div class="d-flex flex-column h-100">
-                <div class="d-flex justify-space-between align-start mb-4">
-                  <v-avatar color="rgba(156, 39, 176, 0.1)" size="40" class="rounded-lg">
-                    <v-icon icon="mdi-trending-up" color="#9C27B0" size="20"></v-icon>
-                  </v-avatar>
-                  <v-chip color="rgba(76, 175, 80, 0.2)" text-color="#4CAF50" size="small" class="font-weight-bold rounded-lg border-0">+12%</v-chip>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon stat-icon-purple">
+                <v-icon icon="mdi-trending-up" size="20" color="#A855F7"></v-icon>
+              </div>
+              <span class="growth-badge">+12%</span>
+            </div>
+            <div class="stat-value">12%</div>
+            <div class="stat-label">Crecimiento</div>
+          </div>
+        </div>
+
+        <div class="content-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="section-title">Actividad Mensual</h3>
+                <p class="section-subtitle">Crecimiento de alumnos y planes activos</p>
+              </div>
+              <div class="chart-legend">
+                <span class="legend-item"><span class="dot bg-cyan"></span>Alumnos</span>
+                <span class="legend-item"><span class="dot bg-green"></span>Rutinas</span>
+                <span class="legend-item"><span class="dot bg-orange"></span>Dietas</span>
+              </div>
+            </div>
+
+            <div class="chart-container">
+              <div class="y-axis">
+                <span>28</span>
+                <span>21</span>
+                <span>14</span>
+                <span>7</span>
+              </div>
+              <svg viewBox="0 0 620 220" preserveAspectRatio="none" class="chart-svg">
+                <defs>
+                  <linearGradient id="cyan-gradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.35"/>
+                    <stop offset="100%" stop-color="#00E5FF" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <line x1="0" y1="55" x2="620" y2="55" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+                <line x1="0" y1="110" x2="620" y2="110" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+                <line x1="0" y1="165" x2="620" y2="165" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+                <path d="M0,155 Q80,145 160,135 T320,120 T480,95 T620,75" fill="none" stroke="#FF9800" stroke-width="2" stroke-linecap="round"/>
+                <path d="M0,145 Q80,130 160,118 T320,105 T480,78 T620,58" fill="none" stroke="#4CAF50" stroke-width="2" stroke-linecap="round"/>
+                <path d="M0,130 Q80,115 160,100 T320,82 T480,52 T620,32" fill="none" stroke="#00E5FF" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M0,130 Q80,115 160,100 T320,82 T480,52 T620,32 L620,220 L0,220 Z" fill="url(#cyan-gradient)"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="quick-actions">
+            <div class="quick-actions-header">
+              <h3 class="section-title">Acciones Rápidas</h3>
+              <p class="section-subtitle">Gestiona tus herramientas</p>
+            </div>
+
+            <div class="invite-card">
+              <div class="invite-card-top">
+                <div class="invite-icon invite-icon-cyan">
+                  <v-icon icon="mdi-link-variant" size="20" color="#00E5FF"></v-icon>
                 </div>
-                <div class="text-h4 font-weight-bold text-white mb-1">12%</div>
-                <div class="text-caption text-grey">Crecimiento</div>
-              </div>
-            </v-card>
-          </v-col>
-        </v-row>
-
-        <v-row align="stretch">
-          
-          <v-col cols="12" md="8">
-            <v-card class="pa-6 bg-card border-subtle h-100 rounded-xl d-flex flex-column overflow-hidden" elevation="0">
-              <div class="d-flex justify-space-between align-start mb-6">
                 <div>
-                  <h3 class="text-subtitle-1 font-weight-bold text-white mb-0">Actividad Mensual</h3>
-                  <p class="text-caption text-grey mb-0">Crecimiento de alumnos y planes activos</p>
-                </div>
-                <div class="d-flex gap-3 text-caption">
-                  <div class="d-flex align-center"><span class="dot bg-cyan mr-2"></span> Alumnos</div>
-                  <div class="d-flex align-center"><span class="dot bg-green mr-2"></span> Rutinas</div>
-                  <div class="d-flex align-center"><span class="dot bg-orange mr-2"></span> Dietas</div>
+                  <div class="invite-title">Nueva Invitación</div>
+                  <div class="invite-desc">Genera un link de acceso único para tus clientes</div>
                 </div>
               </div>
-              
-              <div class="chart-container flex-grow-1 position-relative mt-4">
-                 <svg viewBox="0 0 700 260" class="chart-svg">
-                    <path d="M0,140 Q50,130 100,120 T200,100 T300,110 T400,60 T500,40" fill="none" stroke="#FF9800" stroke-width="2" />
-                    <path d="M0,130 Q50,110 100,100 T200,90 T300,100 T400,40 T500,20" fill="none" stroke="#4CAF50" stroke-width="2" />
-                    <path d="M0,110 Q50,90 100,80 T200,85 T300,60 T400,30 T500,10" fill="none" stroke="#00E5FF" stroke-width="3" />
-                    <path d="M0,110 Q50,90 100,80 T200,85 T300,60 T400,30 T500,10 L500,150 L0,150 Z" fill="url(#cyan-gradient)" opacity="0.3" />
-                    
-                    <defs>
-                      <linearGradient id="cyan-gradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.8"/>
-                        <stop offset="100%" stop-color="#00E5FF" stop-opacity="0"/>
-                      </linearGradient>
-                    </defs>
-                 </svg>
-                 <div class="y-axis">
-                   <span>28</span>
-                   <span>21</span>
-                   <span>14</span>
-                   <span>7</span>
-                 </div>
+              <button
+                type="button"
+                class="generate-link-btn"
+                @click="generarEnlace"
+                :disabled="cargandoLink"
+              >
+                <v-progress-circular v-if="cargandoLink" indeterminate size="18" width="2" color="#0B0D12" class="mr-2"></v-progress-circular>
+                <v-icon v-else icon="mdi-link-variant" size="18" class="mr-2"></v-icon>
+                Generar Link
+              </button>
+            </div>
+
+            <div class="action-link-card">
+              <div class="action-link-content">
+                <div class="invite-icon invite-icon-green">
+                  <v-icon icon="mdi-dumbbell" size="20" color="#4CAF50"></v-icon>
+                </div>
+                <div>
+                  <div class="invite-title">Asignar Rutinas</div>
+                  <div class="invite-desc">Gestiona planes de entrenamiento personalizados</div>
+                </div>
               </div>
-            </v-card>
-          </v-col>
+              <v-icon icon="mdi-chevron-right" size="20" color="#6B7280"></v-icon>
+            </div>
 
-          <v-col cols="12" md="4">
-  <div class="mb-4">
-    <h3 class="text-subtitle-1 font-weight-bold text-white mb-0">
-      Acciones Rápidas
-    </h3>
-    <p class="text-caption text-grey mb-0">
-      Gestiona tus herramientas
-    </p>
-  </div>
-
-<v-card
-class="pa-5 bg-card border-subtle rounded-xl mb-4"
-elevation="0"
-
->
-
-
-<div class="d-flex align-start mb-4">
-
-
-
-  <v-avatar
-    color="rgba(0,229,255,.1)"
-    size="42"
-    class="mr-3"
-  >
-    <v-icon
-      icon="mdi-link-variant"
-      color="#00E5FF"
-    />
-  </v-avatar>
-
-  <div>
-    <div class="text-white font-weight-bold">
-      Nueva Invitación
-    </div>
-
-    <div class="text-grey text-caption">
-      Genera un link para tus clientes
-    </div>
-  </div>
-</div>
-
-<v-btn
-  block
-  color="#00E5FF"
-  class="text-black font-weight-bold rounded-lg"
-  @click="generarEnlace"
-  :loading="cargandoLink"
->
-  <v-icon icon="mdi-link-variant" class="mr-2"></v-icon> Generar Link
-</v-btn>
-
-
-  </v-card>
-
-<v-card
-class="pa-4 bg-card border-subtle rounded-xl mb-4"
-elevation="0"
-
->
-
-
-<div class="d-flex align-center justify-space-between w-100">
-  <div class="d-flex align-center">
-    <v-avatar
-      color="rgba(76,175,80,.1)"
-      size="42"
-      class="mr-3"
-    >
-      <v-icon
-        icon="mdi-dumbbell"
-        color="#4CAF50"
-      />
-    </v-avatar>
-
-    <div>
-      <div class="text-white font-weight-bold">
-        Asignar Rutinas
-      </div>
-
-      <div class="text-grey text-caption">
-        Gestiona planes de entrenamiento personalizados
-      </div>
-    </div>
-  </div>
-  <v-icon icon="mdi-chevron-right" color="grey"></v-icon>
-</div>
-
-
-  </v-card>
-
-<v-card
-class="pa-4 bg-card border-subtle rounded-xl"
-elevation="0"
-
->
-
-
-<div class="d-flex align-center justify-space-between w-100">
-  <div class="d-flex align-center">
-    <v-avatar
-      color="rgba(255,152,0,.1)"
-      size="42"
-      class="mr-3"
-    >
-      <v-icon
-        icon="mdi-food-apple"
-        color="#FF9800"
-      />
-    </v-avatar>
-
-    <div>
-      <div class="text-white font-weight-bold">
-        Planes de Dieta
-      </div>
-
-      <div class="text-grey text-caption">
-        Configura planes nutricionales a medida
-      </div>
-    </div>
-  </div>
-  <v-icon icon="mdi-chevron-right" color="grey"></v-icon>
-</div>
-
-
-  </v-card>
-</v-col>
-
-        </v-row>
-        <v-row class="mt-6">
-  <v-col cols="12">
-    <v-card
-      class="pa-6 bg-card border-subtle rounded-xl"
-      elevation="0"
-    >
-      <div class="d-flex justify-space-between">
-        <div>
-          <h3 class="text-subtitle-1 font-weight-bold text-white">
-            Actividad Reciente
-          </h3>
-
-
-      <p class="text-caption text-grey mb-0">
-        Últimas acciones en tu dashboard
-      </p>
-    </div>
-
-    <span class="text-grey text-caption">
-      Hoy
-    </span>
-  </div>
-</v-card>
-
-
-  </v-col>
-</v-row>
+            <div class="action-link-card">
+              <div class="action-link-content">
+                <div class="invite-icon invite-icon-orange">
+                  <v-icon icon="mdi-food-apple" size="20" color="#FF9800"></v-icon>
+                </div>
+                <div>
+                  <div class="invite-title">Planes de Dieta</div>
+                  <div class="invite-desc">Configura planes nutricionales a medida</div>
+                </div>
+              </div>
+              <v-icon icon="mdi-chevron-right" size="20" color="#6B7280"></v-icon>
+            </div>
+          </div>
+        </div>
 
       </div>
     </main>
 
-    <aside v-if="userRole === 'trainer'" class="right-panel pa-6 d-flex flex-column bg-card border-left-subtle">
-      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 8px; margin-bottom: 4px;">
-        <h3 class="text-subtitle-1 font-weight-bold text-white" style="margin: 20px 20px 2px 20px;">Mis Alumnos</h3>
-        <v-icon icon="mdi-dots-horizontal" color="grey" size="small" style="cursor: pointer; margin-right: 12px;"></v-icon>
-      </div>
-        <p class="text-caption-alumnos">{{ alumnosFiltrados.length }} alumnos</p>
-       
+    <aside v-if="userRole === 'trainer'" class="right-panel">
+      <div class="students-panel-top">
+        <div class="students-panel-header">
+          <div>
+            <h3 class="students-panel-title">Mis Alumnos</h3>
+            <p class="text-caption-alumnos">{{ alumnosFiltrados.length }} alumnos</p>
+          </div>
+          <v-icon icon="mdi-dots-horizontal" color="#6B7280" size="18" class="students-menu-icon"></v-icon>
+        </div>
 
-      <v-text-field
-        v-model="busqueda"
-        density="comfortable"
-        variant="solo-filled"
-        bg-color="transparent"
-        placeholder="Buscar alumno..."
-        prepend-inner-icon="mdi-magnify"
-        hide-details
-        class="search-input"
-        rounded="pill"
-        flat
-      ></v-text-field>
-
-      <v-progress-linear v-if="loadingAlumnos" indeterminate color="#00E5FF" class="mt-4 mb-2"></v-progress-linear>
-
-      <div v-else-if="alumnosFiltrados.length === 0" class="text-center mt-10">
-        <p class="text-grey text-caption">No hay alumnos registrados.</p>
+        <div class="search-bar">
+          <v-icon icon="mdi-magnify" size="18" color="#6B7280" class="search-bar-icon"></v-icon>
+          <input
+            v-model="busqueda"
+            type="text"
+            class="search-bar-input"
+            placeholder="Buscar alumno..."
+          />
+        </div>
       </div>
 
-      <div v-else class="flex-grow-1 list-scroll students-list">
+      <v-progress-linear v-if="loadingAlumnos" indeterminate color="#00E5FF" class="students-loader"></v-progress-linear>
+
+      <div v-else-if="alumnosFiltrados.length === 0" class="students-empty">
+        <p>No hay alumnos registrados.</p>
+      </div>
+
+      <div v-else class="students-list-scroll">
         <div
           v-for="alumno in alumnosFiltrados"
           :key="alumno.id"
@@ -394,8 +273,14 @@ const loadingAlumnos = ref(true);
 // Fecha actual dinámica en formato "Domingo, 21 de Junio de 2026"
 const fechaActual = computed(() => {
   const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  let fecha = new Date().toLocaleDateString('es-ES', opciones);
-  return fecha.charAt(0).toUpperCase() + fecha.slice(1); // Capitaliza la primera letra
+  const fecha = new Date().toLocaleDateString('es-ES', opciones);
+  return fecha
+    .split(', ')
+    .map((part, index) => {
+      if (index === 0) return part.charAt(0).toUpperCase() + part.slice(1);
+      return part.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    })
+    .join(', ');
 });
 
 // Datos de alumnos (con estado simulado para coincidir con el diseño)
@@ -422,14 +307,6 @@ const obtenerIniciales = (nombre) => {
     return (partes[0][0] + partes[1][0]).toUpperCase();
   }
   return nombre.substring(0, 2).toUpperCase();
-};
-
-const getStatusColor = (status) => {
-  const estado = status ? status.toLowerCase() : 'activo';
-  if (estado === 'activo') return '#4CAF50'; 
-  if (estado === 'pendiente') return '#FF9800';
-  if (estado === 'inactivo') return '#F44336';
-  return '#4CAF50';
 };
 
 onMounted(() => {
