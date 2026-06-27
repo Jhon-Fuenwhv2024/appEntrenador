@@ -1,6 +1,12 @@
 <template>
   <div class="login-wrapper">
     <v-card class="elevation-24 pa-8 login-card" width="100%" max-width="420" color="surface">
+      <div class="app-brand">
+        <div class="app-brand-icon">
+          <AppLogo size="lg" />
+        </div>
+        <span class="app-brand-name">{{ APP_NAME }}</span>
+      </div>
       <h2 class="text-primary font-weight-bold login-title text-center mb-2">Crear Cuenta</h2>
       <p class="text-body-2 text-center mb-6 text-grey">Completa tus datos para unirte.</p>
       
@@ -63,6 +69,8 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
+import { APP_NAME } from '../config/app.js';
+import AppLogo from './AppLogo.vue';
 
 // Usamos useRoute para leer la URL y useRouter para cambiar de pantalla
 const route = useRoute();

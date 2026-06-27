@@ -44,6 +44,8 @@ SIDEBAR
   justify-content: center;
   margin-bottom: 32px;
   box-shadow: 0 0 20px rgba(0, 229, 255, 0.12);
+  overflow: hidden;
+  padding: 6px;
 }
 
 .nav-item {
@@ -797,4 +799,35 @@ RESPONSIVE
     flex-direction: column;
     gap: 20px;
   }
+}
+
+/* ===========================
+CLIENT DASHBOARD
+=========================== */
+
+.client-empty-card {
+  background: #13161D;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 18px;
+  padding: 28px 32px;
+  min-height: 180px;
+}
+
+.client-empty-icon {
+  margin-bottom: 16px;
+}
+
+.client-empty-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0 0 10px;
+}
+
+.client-empty-desc {
+  font-size: 14px;
+  color: #8B929E;
+  margin: 0;
+  max-width: 520px;
+  line-height: 1.5;
 }

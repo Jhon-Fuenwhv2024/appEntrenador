@@ -3,7 +3,7 @@
     
     <nav class="sidebar-pill">
       <div class="logo-wrap">
-        <v-icon icon="mdi-dumbbell" color="#00E5FF" size="22"></v-icon>
+        <AppLogo size="md" />
       </div>
       
       <div class="nav-item active">
@@ -258,6 +258,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
+import AppLogo from './AppLogo.vue';
 
 const API_BASE_URL = 'http://localhost:3000/api';
 const router = useRouter();

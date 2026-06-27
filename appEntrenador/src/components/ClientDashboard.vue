@@ -1,11 +1,10 @@
 <template>
   <div class="dashboard-bg">
-    
     <nav class="sidebar-pill">
-      <v-avatar color="rgba(0, 229, 255, 0.05)" size="48" class="mb-8 logo-avatar">
-        <v-icon icon="mdi-dumbbell" color="#00E5FF" size="24"></v-icon>
-      </v-avatar>
-      
+      <div class="logo-wrap">
+        <AppLogo size="md" />
+      </div>
+
       <div class="nav-item active">
         <v-icon icon="mdi-view-dashboard-outline" size="24"></v-icon>
       </div>
@@ -24,47 +23,41 @@
       </div>
     </nav>
 
-    <main class="main-content flex-grow-1 pa-8">
-      
-      <div class="d-flex justify-space-between align-start mb-8 mt-2">
-        <div>
-          <div class="text-caption text-grey-lighten-1 mb-1 d-flex align-center">
-            <v-icon icon="mdi-calendar-blank-outline" size="16" class="mr-2"></v-icon>
+    <main class="main-content flex-grow-1">
+      <header class="dashboard-header">
+        <div class="header-left">
+          <div class="header-date">
+            <v-icon icon="mdi-calendar-blank-outline" size="14"></v-icon>
             {{ fechaActual }}
           </div>
-          <h1 class="text-h4 font-weight-bold mb-1 text-white">Dashboard Cliente</h1>
-          <p class="text-grey-lighten-1 text-subtitle-2 font-weight-regular">
-            Bienvenido, <span style="color: #00E5FF;">{{ userName }}</span>
+          <h1 class="header-title">{{ APP_NAME }}</h1>
+          <p class="header-greeting">
+            Bienvenido, <span class="text-cyan">{{ userName }}</span>
           </p>
         </div>
 
-        <div class="d-flex align-center">
-          <v-badge content="0" color="#00E5FF" text-color="black" offset-x="5" offset-y="5">
-            <v-btn icon="mdi-bell-outline" variant="outlined" color="grey-darken-2" class="mr-4 rounded-circle bg-card" size="small"></v-btn>
+        <div class="header-right">
+          <v-badge content="0" color="#00E5FF" text-color="#0B0D12" offset-x="4" offset-y="4">
+            <button type="button" class="notification-btn" aria-label="Notificaciones">
+              <v-icon icon="mdi-bell-outline" size="20" color="#8B929E"></v-icon>
+            </button>
           </v-badge>
-          
-          <div class="profile-pill d-flex align-center bg-card px-2 py-1 rounded-pill border-subtle">
-            <v-avatar color="#00E5FF" size="32" class="mr-3">
-              <span class="text-black font-weight-bold text-caption">{{ obtenerInicial(userName) }}</span>
-            </v-avatar>
-            <div class="mr-3">
-              <div class="text-white text-caption font-weight-bold lh-1">{{ userName }}</div>
-              <div class="text-grey text-caption lh-1 mt-1" style="font-size: 10px !important;">Cliente</div>
+
+          <div class="profile-pill">
+            <div class="profile-avatar">{{ obtenerIniciales(userName) }}</div>
+            <div class="profile-info">
+              <div class="profile-name">{{ userName }}</div>
+              <div class="profile-role">Cliente</div>
             </div>
           </div>
         </div>
+      </header>
+
+      <div class="client-empty-card">
+        <v-icon icon="mdi-rocket-launch-outline" size="28" color="#8B929E" class="client-empty-icon"></v-icon>
+        <h2 class="client-empty-title">¡Pronto verás tu progreso aquí!</h2>
+        <p class="client-empty-desc">Tu entrenador está preparando tus planes de entrenamiento y dieta.</p>
       </div>
-
-      <v-row>
-        <v-col cols="12">
-          <v-card class="pa-6 bg-card border-subtle rounded-xl text-center" elevation="0">
-            <v-icon icon="mdi-rocket-launch-outline" size="48" color="grey" class="mb-4"></v-icon>
-            <h3 class="text-h5 text-white mb-2">¡Pronto verás tu progreso aquí!</h3>
-            <p class="text-grey">Tu entrenador está preparando tus planes de entrenamiento y dieta.</p>
-          </v-card>
-        </v-col>
-      </v-row>
-
     </main>
   </div>
 </template>
@@ -72,36 +65,48 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { APP_NAME } from '../config/app.js';
+import AppLogo from './AppLogo.vue';
 
 const router = useRouter();
-
 const userName = ref('');
-const userRole = ref('');
 
 const fechaActual = computed(() => {
   const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  let fecha = new Date().toLocaleDateString('es-ES', opciones);
-  return fecha.charAt(0).toUpperCase() + fecha.slice(1);
+  const fecha = new Date().toLocaleDateString('es-ES', opciones);
+  return fecha
+    .split(', ')
+    .map((part, index) => {
+      if (index === 0) return part.charAt(0).toUpperCase() + part.slice(1);
+      return part.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    })
+    .join(', ');
 });
 
-const obtenerInicial = (nombre) => nombre ? nombre.substring(0, 2).toUpperCase() : '??';
+const obtenerIniciales = (nombre) => {
+  if (!nombre) return '??';
+  const partes = nombre.trim().split(/\s+/);
+  if (partes.length >= 2) {
+    return (partes[0][0] + partes[1][0]).toUpperCase();
+  }
+  return nombre.substring(0, 2).toUpperCase();
+};
 
 onMounted(() => {
   const storedRole = localStorage.getItem('userRole');
   const storedName = localStorage.getItem('userName');
 
   if (!storedRole) {
-    router.push('/'); 
+    router.push('/');
     return;
   }
 
-  userRole.value = storedRole;
   userName.value = storedName;
 });
 
 const handleLogout = () => {
-  localStorage.clear(); 
-  router.push('/');     
+  localStorage.clear();
+  router.push('/');
 };
 </script>
 

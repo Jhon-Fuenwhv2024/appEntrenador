@@ -1,6 +1,12 @@
 <template>
   <div class="login-wrapper">
     <v-card class="elevation-24 pa-8 login-card" width="100%" max-width="420" color="surface">
+      <div class="app-brand">
+        <div class="app-brand-icon">
+          <AppLogo size="lg" />
+        </div>
+        <span class="app-brand-name">{{ APP_NAME }}</span>
+      </div>
       <h2 class="text-primary font-weight-bold login-title">Iniciar Sesión</h2>
       
       <v-card-text>
@@ -51,6 +57,8 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
+import { APP_NAME } from '../config/app.js';
+import AppLogo from './AppLogo.vue';
 
 const username = ref('');
 const password = ref('');
