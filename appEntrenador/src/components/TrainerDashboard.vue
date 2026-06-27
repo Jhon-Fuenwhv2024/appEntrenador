@@ -45,7 +45,7 @@
           
           <div class="profile-pill d-flex align-center bg-card px-2 py-1 rounded-pill border-subtle">
             <v-avatar color="#00E5FF" size="32" class="mr-3">
-              <span class="text-black font-weight-bold text-caption">{{ obtenerInicial(userName) }}</span>
+              <span class="text-black font-weight-bold text-caption">{{ obtenerIniciales(userName) }}</span>
             </v-avatar>
             <div class="mr-3">
               <div class="text-white text-caption font-weight-bold lh-1">{{ userName }}</div>
@@ -322,33 +322,41 @@ elevation="0"
 
       <v-text-field
         v-model="busqueda"
-        density="compact"
-        variant="solo"
+        density="comfortable"
+        variant="solo-filled"
         bg-color="transparent"
         placeholder="Buscar alumno..."
         prepend-inner-icon="mdi-magnify"
         hide-details
-        class="mb-4 search-input"
+        class="search-input"
         rounded="pill"
+        flat
       ></v-text-field>
 
-      <v-progress-linear v-if="loadingAlumnos" indeterminate color="#00E5FF" class="mb-4"></v-progress-linear>
+      <v-progress-linear v-if="loadingAlumnos" indeterminate color="#00E5FF" class="mt-4 mb-2"></v-progress-linear>
 
       <div v-else-if="alumnosFiltrados.length === 0" class="text-center mt-10">
         <p class="text-grey text-caption">No hay alumnos registrados.</p>
       </div>
 
-      <div v-else class="flex-grow-1 list-scroll d-flex flex-column w-100">
-        <div v-for="alumno in alumnosFiltrados" :key="alumno.id" class="student-item d-flex align-center pa-2 rounded-lg">
-          <v-avatar color="#0F2C31" size="42" class="mr-4 flex-shrink-0">
-            <span class="text-white font-weight-bold" style="font-size: 14px;">{{ obtenerInicial(alumno.nombre) }}</span>
-          </v-avatar>
-          
-          <div class="flex-grow-1" style="min-width: 0;">
-            <div class="text-white font-weight-bold text-body-2 mb-1 text-truncate">{{ alumno.nombre }}</div>
-            <div class="d-flex align-center">
-              <span class="text-grey text-caption mr-2 text-truncate">@{{ alumno.username }}</span>
-              <span class="status-chip" :class="'chip-' + (alumno.status ? alumno.status.toLowerCase() : 'activo')">
+      <div v-else class="flex-grow-1 list-scroll students-list">
+        <div
+          v-for="alumno in alumnosFiltrados"
+          :key="alumno.id"
+          class="student-item"
+        >
+          <div class="student-avatar">
+            {{ obtenerIniciales(alumno.nombre) }}
+          </div>
+
+          <div class="student-info">
+            <div class="student-name">{{ alumno.nombre }}</div>
+            <div class="student-meta">
+              <span class="student-username">@{{ alumno.username }}</span>
+              <span
+                class="status-chip"
+                :class="'chip-' + (alumno.status ? alumno.status.toLowerCase() : 'activo')"
+              >
                 {{ alumno.status || 'Activo' }}
               </span>
             </div>
@@ -407,7 +415,14 @@ const mostrarNotificacion = (texto, color = 'success') => {
   snackbar.value = { show: true, text: texto, color };
 };
 
-const obtenerInicial = (nombre) => nombre ? nombre.substring(0, 2).toUpperCase() : '??';
+const obtenerIniciales = (nombre) => {
+  if (!nombre) return '??';
+  const partes = nombre.trim().split(/\s+/);
+  if (partes.length >= 2) {
+    return (partes[0][0] + partes[1][0]).toUpperCase();
+  }
+  return nombre.substring(0, 2).toUpperCase();
+};
 
 const getStatusColor = (status) => {
   const estado = status ? status.toLowerCase() : 'activo';

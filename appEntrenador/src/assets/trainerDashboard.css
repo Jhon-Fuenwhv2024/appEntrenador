@@ -263,41 +263,57 @@ PANEL DERECHO
 BUSCADOR
 =========================== */
 
+.search-input {
+  margin: 8px 16px 20px;
+  flex-shrink: 0;
+}
+
 .search-input :deep(.v-field) {
-  margin-left: 12px !important;
-  margin-right: 12px !important;
-  border-radius: 18px !important;
+  border-radius: 999px !important;
   background: #171B23 !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  box-shadow: none !important;
+  min-height: 44px !important;
+}
+
+.search-input :deep(.v-field__input) {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  font-size: 14px !important;
+  color: #FFFFFF !important;
 }
 
 .search-input :deep(input) {
-  font-weight: 200 !important;
+  font-weight: 400 !important;
 }
 
 .search-input :deep(input::placeholder) {
-  font-weight: 20px !important;
-  color: rgba(255, 255, 255, 0.4) !important;
+  color: #6B7280 !important;
+  opacity: 1 !important;
+}
+
+.search-input :deep(.v-field__prepend-inner) {
+  padding-inline-start: 16px !important;
 }
 
 .search-input :deep(.v-field__prepend-inner .v-icon) {
-  color: rgba(255, 255, 255, 0.4) !important;
-  font-size: 20px !important;
-  opacity: 20 !important;
+  color: #6B7280 !important;
+  font-size: 18px !important;
+  opacity: 1 !important;
 }
 
-.search-input :deep(.v-field__outline) {
-  display: none !important;
-}
-
-:deep(.v-field__overlay) {
+.search-input :deep(.v-field__outline),
+.search-input :deep(.v-field__overlay) {
   display: none !important;
 }
 
 /* ===========================
 LISTA DE ALUMNOS Y CHIPS
 =========================== */
+
+.students-list {
+  padding: 0 16px 16px;
+}
 
 .list-scroll {
   overflow-y: auto;
@@ -323,39 +339,91 @@ LISTA DE ALUMNOS Y CHIPS
 }
 
 .student-item {
-  transition: background 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 4px;
   cursor: pointer;
-  margin-bottom: 12px;
+  transition: background 0.2s ease;
 }
 
 .student-item:hover {
   background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+}
+
+.student-avatar {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  background: #0F2C31;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.student-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.student-name {
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.student-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.student-username {
+  color: #8B929E;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .status-chip {
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 10px;
-  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .chip-activo {
-  background: rgba(76, 175, 80, 0.15);
-  color: #4CAF50;
+  background: #0F2A18;
+  color: #22C55E;
 }
 
 .chip-pendiente {
-  background: rgba(255, 152, 0, 0.15);
-  color: #FF9800;
+  background: #2A1F0F;
+  color: #F59E0B;
 }
 
 .chip-inactivo {
-  background: rgba(244, 67, 54, 0.15);
-  color: #F44336;
+  background: #2A1212;
+  color: #EF4444;
 }
 
 .text-caption-alumnos {
