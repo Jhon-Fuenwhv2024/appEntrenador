@@ -50,7 +50,7 @@ exports.login = async (req, res) => {
     }
 };
 
-// 🎟️ 2. NUEVA FUNCIÓN: GENERAR TOKEN DE INVITACIÓN (Solo para ti, el entrenador)
+// 🎟️ 2. NUEVA FUNCIÓN: GENERAR TOKEN DE INVITACIÓN (Solo puede generar el entrenador, el alumno no puede generar el token)
 exports.generateInvitation = async (req, res) => {
     try {
         // Genera un texto aleatorio de 16 caracteres (ej: 8f2a9b...)
@@ -63,7 +63,7 @@ exports.generateInvitation = async (req, res) => {
             success: true,
             message: 'Token generado con éxito',
             token: token,
-            link_invitacion: `http://localhost:5173/registro?token=${token}` // Este es el link que le enviarás por WhatsApp
+            link_invitacion: `http://localhost:5173/registro?token=${token}` // Este es el link que a enviar a la persona por WhatsApp
         });
     } catch (error) {
         console.error('Error generando token:', error);
