@@ -1,16 +1,11 @@
-<template>
-  <TrainerDashboard v-if="userRole === 'trainer'" />
-  <ClientDashboard v-else-if="userRole === 'client'" />
-</template>
-
 <script setup>
-import { ref, onMounted } from 'vue';
+import { onMounted, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
-import TrainerDashboard from './TrainerDashboard.vue';
+import TrainerDashboardView from '../features/trainer/TrainerDashboardView.vue';
 import ClientDashboard from './ClientDashboard.vue';
 
 const router = useRouter();
-const userRole = ref('');
+const userRole = shallowRef('');
 
 onMounted(() => {
   const storedRole = localStorage.getItem('userRole');
@@ -23,3 +18,8 @@ onMounted(() => {
   userRole.value = storedRole;
 });
 </script>
+
+<template>
+  <TrainerDashboardView v-if="userRole === 'trainer'" />
+  <ClientDashboard v-else-if="userRole === 'client'" />
+</template>

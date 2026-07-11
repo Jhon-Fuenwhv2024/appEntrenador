@@ -493,6 +493,38 @@ QUICK ACTIONS
   cursor: not-allowed;
 }
 
+.invite-generated-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid rgba(0, 229, 255, 0.16);
+  border-radius: 10px;
+  background: rgba(0, 229, 255, 0.06);
+}
+
+.invite-generated-link-text {
+  min-width: 0;
+  flex: 1;
+  color: #DDE6F3;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invite-copy-btn {
+  border: none;
+  border-radius: 8px;
+  background: rgba(0, 229, 255, 0.14);
+  color: #00E5FF;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 8px;
+}
+
 /* ===========================
 PANEL DERECHO — MIS ALUMNOS
 =========================== */

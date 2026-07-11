@@ -1,25 +1,23 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import Login from './components/Login.vue';
-import Dashboard from './components/Dashboard.vue'
-import Register from './components/Register.vue';
+import LoginView from './features/auth/LoginView.vue';
+import Dashboard from './components/Dashboard.vue';
+import RegisterView from './features/auth/RegisterView.vue';
 
-// Aquí definimos las páginas (rutas)
 const routes = [
-  { path: '/',
-    component: 
-    Login 
-},
-{
+  {
+    path: '/',
+    component: LoginView,
+  },
+  {
     path: '/registro',
     name: 'Registro',
-    component: Register
-},
-{
-  path: '/dashboard',
-  name: 'Dashboard',
-  component: Dashboard
-},
-  // Agregaremos más rutas aquí, por ejemplo: { path: '/panel', component: Panel }
+    component: RegisterView,
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: Dashboard,
+  },
 ];
 
 const router = createRouter({
