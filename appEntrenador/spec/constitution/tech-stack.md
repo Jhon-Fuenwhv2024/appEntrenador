@@ -4,7 +4,7 @@
 
 - **Lenguaje:** JavaScript (ES modules en frontend; CommonJS en backend). TypeScript es migración futura, no bloqueante.
 - **Frontend:** Vue 3.5 + Vite 8 + Vue Router 4 + Vuetify 4 + Axios. Sin Pinia por defecto (añadir solo si el estado cruza varias vistas).
-- **Backend:** Node + Express 5 (API REST en puerto 3000).
+- **Backend:** Node + Express 5 (API REST en puerto 3000) + `bcrypt` para hashes de contraseña.
 - **Base de datos:** MySQL (`coach_db`) vía `mysql2` (pool de promesas). Schema en `backend/db/script_db.sql`.
 - **Tests:** aún no hay suite; validar con arranque local (Vite + Express) y criterios de aceptación de la feature.
 - **Despliegue:** pendiente de definir (Netlify skills disponibles en el IDE; el repo aún no tiene `netlify.toml`).

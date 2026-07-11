@@ -38,6 +38,8 @@ Respuesta exitosa:
 
 Registra un cliente usando una invitación válida no usada. El servidor fuerza `rol = "client"`.
 
+El registro corre en una **transacción MySQL**: el token se consume de forma atómica (`UPDATE ... SET usado = TRUE WHERE token = ? AND usado = FALSE`) y solo si ese update afecta 1 fila se crea el usuario. Si el username ya existe o falla el insert, se hace `ROLLBACK` y el token vuelve a quedar disponible.
+
 Body:
 
 ```json
@@ -48,6 +50,13 @@ Body:
   "token": "token-invitacion"
 }
 ```
+
+Errores relevantes:
+
+| Código | Cuándo |
+|--------|--------|
+| `400` | Falta el token, o el username ya está en uso |
+| `403` | Token inexistente o ya utilizado |
 
 ### `POST /generate-token`
 

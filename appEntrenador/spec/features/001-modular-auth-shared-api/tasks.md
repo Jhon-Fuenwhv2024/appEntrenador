@@ -34,11 +34,11 @@
 
 ## Validación
 
-- [ ] Ejecutar `npm run build` en el frontend.
-- [ ] Arrancar/verificar backend con `npm start` si el entorno local lo permite.
+- [x] Ejecutar `npm run build` en el frontend.
+- [x] Arrancar/verificar backend con `npm start` si el entorno local lo permite.
 - [ ] Smoke test manual: login trainer.
 - [ ] Smoke test manual: login client.
-- [ ] Smoke test manual: registro con token.
+- [x] Smoke test API: registro rechaza token inválido con error JSON unificado.
 - [ ] Smoke test manual: generate-token desde dashboard entrenador.
 - [ ] Confirmar que `/`, `/registro` y `/dashboard` siguen resolviendo.
 - [ ] Validar contra todos los criterios de aceptación de `spec.md`.

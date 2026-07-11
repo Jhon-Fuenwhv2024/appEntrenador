@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref, shallowRef } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import AppLogo from '../../components/AppLogo.vue';
 import { getApiErrorMessage } from '../../shared/api/http.js';
@@ -9,6 +9,9 @@ import ClientsList from './components/ClientsList.vue';
 import InviteClientAction from './components/InviteClientAction.vue';
 import TrainerStatsSummary from './components/TrainerStatsSummary.vue';
 
+/** Tiempo que el link permanece visible antes de ocultarse solo. */
+const INVITE_LINK_VISIBLE_MS = 60_000;
+
 const router = useRouter();
 
 const userName = shallowRef('');
@@ -17,6 +20,7 @@ const isGeneratingInvitation = shallowRef(false);
 const searchQuery = shallowRef('');
 const loadingClients = shallowRef(true);
 const clients = ref([]);
+let inviteLinkHideTimer = null;
 
 const snackbar = reactive({
   show: false,
@@ -87,32 +91,79 @@ const loadClients = async () => {
   }
 };
 
+const buildInvitationLink = (payload = {}) => {
+  // Prefer current frontend origin so the link matches the running app (port/host).
+  if (payload.token) {
+    return `${window.location.origin}/registro?token=${payload.token}`;
+  }
+  return payload.link_invitacion || '';
+};
+
+const clearInviteLinkHideTimer = () => {
+  if (inviteLinkHideTimer) {
+    clearTimeout(inviteLinkHideTimer);
+    inviteLinkHideTimer = null;
+  }
+};
+
+const scheduleInviteLinkHide = () => {
+  clearInviteLinkHideTimer();
+  inviteLinkHideTimer = setTimeout(() => {
+    invitationLink.value = '';
+    inviteLinkHideTimer = null;
+  }, INVITE_LINK_VISIBLE_MS);
+};
+
+const copyInvitationLink = async ({ silent = false } = {}) => {
+  if (!invitationLink.value) return false;
+
+  try {
+    await navigator.clipboard.writeText(invitationLink.value);
+    if (!silent) {
+      showNotification('Copiado al portapapeles', 'info');
+    }
+    return true;
+  } catch (error) {
+    console.error('Error al copiar invitación:', error);
+    if (!silent) {
+      showNotification('No se pudo copiar el link', 'error');
+    }
+    return false;
+  }
+};
+
 const handleGenerateInvite = async () => {
   try {
     isGeneratingInvitation.value = true;
     const response = await generateInvitationLink();
 
-    if (response.data.success) {
-      invitationLink.value = response.data.link_invitacion;
-      showNotification('Link generado', 'success');
+    if (!response.data.success) {
+      showNotification('No se pudo generar el link', 'error');
+      return;
     }
+
+    const link = buildInvitationLink(response.data);
+
+    if (!link) {
+      showNotification('El servidor no devolvió un link de invitación', 'error');
+      return;
+    }
+
+    invitationLink.value = link;
+    scheduleInviteLinkHide();
+
+    const copied = await copyInvitationLink({ silent: true });
+    showNotification(
+      copied
+        ? 'Link generado y copiado al portapapeles'
+        : 'Link generado. Usa el botón Copiar si hace falta',
+      copied ? 'success' : 'info',
+    );
   } catch (error) {
     console.error('Error al generar invitación:', error);
     showNotification(getApiErrorMessage(error, 'Error al generar'), 'error');
   } finally {
     isGeneratingInvitation.value = false;
-  }
-};
-
-const copyInvitationLink = async () => {
-  if (!invitationLink.value) return;
-
-  try {
-    await navigator.clipboard.writeText(invitationLink.value);
-    showNotification('Copiado al portapapeles', 'info');
-  } catch (error) {
-    console.error('Error al copiar invitación:', error);
-    showNotification('No se pudo copiar el link', 'error');
   }
 };
 
@@ -137,6 +188,10 @@ onMounted(() => {
 
   userName.value = storedName || '';
   loadClients();
+});
+
+onUnmounted(() => {
+  clearInviteLinkHideTimer();
 });
 </script>
 

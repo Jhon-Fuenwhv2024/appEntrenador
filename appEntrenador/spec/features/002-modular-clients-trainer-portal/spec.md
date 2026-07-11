@@ -1,6 +1,6 @@
 # 002 · Modularizar clientes y portal entrenador
 
-**Estado:** implementada; pendiente validación local manual
+**Estado:** implementada; build y smoke API OK; pendiente prueba manual en navegador
 
 ## Qué hace
 

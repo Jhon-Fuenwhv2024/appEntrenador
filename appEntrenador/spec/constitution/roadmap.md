@@ -15,7 +15,6 @@
 
 - **Perfil alumno (`alumnos_info`)** — API y UI de datos extendidos.
 - **Config por entorno** — `.env` para DB y `VITE_API_URL`; quitar credenciales hardcodeadas.
-- **Corregir dependencia `bcrypt`** — mover al `backend/package.json`.
 - **Pinia / TypeScript** — solo si el estado o el tamaño del equipo lo justifican.
 
 > Cada feature nueva se crea como `features/NNN-nombre-feature/` con `spec.md`, `plan.md` y `tasks.md` antes de tocar código.

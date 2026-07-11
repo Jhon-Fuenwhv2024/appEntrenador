@@ -39,10 +39,10 @@
 
 ## Validación
 
-- [ ] Ejecutar `npm run build` en frontend.
-- [ ] Arrancar/verificar backend con `npm start` si el entorno local lo permite.
+- [x] Ejecutar `npm run build` en frontend.
+- [x] Arrancar/verificar backend con `npm start` si el entorno local lo permite.
 - [ ] Smoke test manual: entrar como trainer.
-- [ ] Smoke test manual: cargar listado de alumnos.
+- [x] Smoke test API: cargar listado de alumnos (`GET /api/clients`).
 - [ ] Smoke test manual: estado vacío si no hay alumnos.
 - [ ] Smoke test manual: error visible si falla `/api/clients`.
 - [ ] Smoke test manual: generar invitación desde el portal entrenador.

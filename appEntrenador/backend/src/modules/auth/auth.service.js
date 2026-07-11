@@ -45,29 +45,49 @@ async function generateInvitation() {
 }
 
 async function register({ username, password, nombre, token }) {
-  const [tokenRows] = await db.query(
-    'SELECT id FROM invitaciones WHERE token = ? AND usado = FALSE',
-    [token],
-  );
+  const invitationToken = typeof token === 'string' ? token.trim() : '';
 
-  if (tokenRows.length === 0) {
-    throw createHttpError('El enlace de invitación es inválido o ya expiró.', 403);
-  }
-
-  const [existingUser] = await db.query('SELECT id FROM usuarios WHERE username = ?', [username]);
-
-  if (existingUser.length > 0) {
-    throw createHttpError('El nombre de usuario ya está en uso.', 400);
+  if (!invitationToken) {
+    throw createHttpError('Falta el token de invitación.', 400);
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
+  const connection = await db.getConnection();
 
-  await db.query(
-    'INSERT INTO usuarios (username, password, nombre, rol) VALUES (?, ?, ?, ?)',
-    [username, hashedPassword, nombre, 'client'],
-  );
+  try {
+    await connection.beginTransaction();
 
-  await db.query('UPDATE invitaciones SET usado = TRUE WHERE token = ?', [token]);
+    // Consume the invite atomically so it cannot be reused (single-use).
+    const [consumeResult] = await connection.query(
+      'UPDATE invitaciones SET usado = TRUE WHERE token = ? AND usado = FALSE',
+      [invitationToken],
+    );
+
+    if (consumeResult.affectedRows !== 1) {
+      throw createHttpError('El enlace de invitación es inválido o ya fue utilizado.', 403);
+    }
+
+    const [existingUser] = await connection.query(
+      'SELECT id FROM usuarios WHERE username = ?',
+      [username],
+    );
+
+    if (existingUser.length > 0) {
+      throw createHttpError('El nombre de usuario ya está en uso.', 400);
+    }
+
+    await connection.query(
+      'INSERT INTO usuarios (username, password, nombre, rol) VALUES (?, ?, ?, ?)',
+      [username, hashedPassword, nombre, 'client'],
+    );
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 module.exports = {

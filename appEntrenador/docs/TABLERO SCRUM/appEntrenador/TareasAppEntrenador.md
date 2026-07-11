@@ -7,7 +7,6 @@ kanban-plugin: board
 ## POR HACER
 
 - [ ] [[Token_invalido]]
-- [ ] [[No se esta mostrando el link de invitacion]]
 
 
 ## EN PROCESO
@@ -16,6 +15,7 @@ kanban-plugin: board
 
 ## COMPLETADAS
 
+- [ ] [[No se esta mostrando el link de invitacion]]
 
 
 
