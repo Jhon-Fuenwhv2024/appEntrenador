@@ -15,6 +15,8 @@ defineProps({
   },
 });
 
+const emit = defineEmits(['selectClient']);
+
 const getInitials = (name) => {
   if (!name) return '??';
 
@@ -60,7 +62,11 @@ const getInitials = (name) => {
       <div
         v-for="client in clients"
         :key="client.id"
-        class="student-item"
+        class="student-item student-item--clickable"
+        role="button"
+        tabindex="0"
+        @click="emit('selectClient', client)"
+        @keydown.enter="emit('selectClient', client)"
       >
         <div class="student-avatar">
           {{ getInitials(client.nombre) }}
@@ -84,3 +90,13 @@ const getInitials = (name) => {
 </template>
 
 <style src="../../../assets/trainerDashboard.css" scoped></style>
+
+<style scoped>
+.student-item--clickable {
+  cursor: pointer;
+}
+
+.student-item--clickable:hover {
+  background: rgba(0, 229, 255, 0.06);
+}
+</style>

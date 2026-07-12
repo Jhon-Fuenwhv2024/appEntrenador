@@ -16,12 +16,21 @@ function sendError(res, error, context) {
 
 async function login(req, res) {
   try {
-    const user = await authService.login(req.body);
+    const result = await authService.login(req.body);
+
+    if (!result?.token || !result?.user) {
+      const error = new Error(
+        'No se pudo emitir el token de sesión. Reinicia el backend con el código actualizado.',
+      );
+      error.code = 500;
+      throw error;
+    }
 
     return res.json({
       success: true,
       message: '¡Login correcto!',
-      user,
+      user: result.user,
+      token: result.token,
     });
   } catch (error) {
     return sendError(res, error, 'Error en login:');
@@ -30,7 +39,7 @@ async function login(req, res) {
 
 async function generateInvitation(req, res) {
   try {
-    const invitation = await authService.generateInvitation();
+    const invitation = await authService.generateInvitation(req.user.id);
 
     return res.json({
       success: true,

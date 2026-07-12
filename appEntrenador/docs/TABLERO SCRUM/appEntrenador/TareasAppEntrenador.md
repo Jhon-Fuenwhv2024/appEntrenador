@@ -6,7 +6,8 @@ kanban-plugin: board
 
 ## POR HACER
 
-- [ ] [[Token_invalido]]
+- [ ] [[plantilla de progresion]]
+- [ ] [[catalogo de ejercicios]]
 
 
 ## EN PROCESO
@@ -15,6 +16,7 @@ kanban-plugin: board
 
 ## COMPLETADAS
 
+- [ ] [[Token_invalido]]
 - [ ] [[No se esta mostrando el link de invitacion]]
 
 

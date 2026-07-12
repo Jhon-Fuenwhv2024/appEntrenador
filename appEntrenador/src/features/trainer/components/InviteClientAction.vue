@@ -10,7 +10,7 @@ defineProps({
   },
 });
 
-defineEmits(['generateInvite', 'copyInvite']);
+defineEmits(['generateInvite', 'copyInvite', 'openRoutinesHint']);
 </script>
 
 <template>
@@ -63,14 +63,20 @@ defineEmits(['generateInvite', 'copyInvite']);
       </div>
     </div>
 
-    <div class="action-link-card">
+    <div
+      class="action-link-card"
+      role="button"
+      tabindex="0"
+      @click="$emit('openRoutinesHint')"
+      @keydown.enter="$emit('openRoutinesHint')"
+    >
       <div class="action-link-content">
         <div class="invite-icon invite-icon-green">
           <v-icon icon="mdi-dumbbell" size="20" color="#4CAF50"></v-icon>
         </div>
         <div>
           <div class="invite-title">Asignar Rutinas</div>
-          <div class="invite-desc">Gestiona planes de entrenamiento personalizados</div>
+          <div class="invite-desc">Elige un alumno de la lista para gestionar su plan</div>
         </div>
       </div>
       <v-icon icon="mdi-chevron-right" size="20" color="#6B7280"></v-icon>

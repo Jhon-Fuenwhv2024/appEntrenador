@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, reactive, ref, shallowRef } from 'vue
 import { useRouter } from 'vue-router';
 import AppLogo from '../../components/AppLogo.vue';
 import { getApiErrorMessage } from '../../shared/api/http.js';
+import { clearSession } from '../../shared/auth/session.js';
 import { getClients } from './api/clientsApi.js';
 import { generateInvitationLink } from './api/invitationsApi.js';
 import ClientsList from './components/ClientsList.vue';
@@ -168,15 +169,21 @@ const handleGenerateInvite = async () => {
 };
 
 const handleLogout = () => {
-  localStorage.clear();
+  clearSession();
   router.push('/');
+};
+
+const openClientRoutines = (client) => {
+  if (!client?.id) return;
+  router.push(`/trainer/clients/${client.id}`);
 };
 
 onMounted(() => {
   const storedRole = localStorage.getItem('userRole');
   const storedName = localStorage.getItem('userName');
+  const storedToken = localStorage.getItem('authToken');
 
-  if (!storedRole) {
+  if (!storedRole || !storedToken) {
     router.push('/');
     return;
   }
@@ -296,6 +303,7 @@ onUnmounted(() => {
           :invitation-link="invitationLink"
           @generate-invite="handleGenerateInvite"
           @copy-invite="copyInvitationLink"
+          @open-routines-hint="showNotification('Selecciona un alumno en la lista de la derecha para asignar rutinas', 'info')"
         />
       </div>
     </main>
@@ -304,6 +312,7 @@ onUnmounted(() => {
       v-model:search-query="searchQuery"
       :clients="filteredClients"
       :loading="loadingClients"
+      @select-client="openClientRoutines"
     />
 
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top right">

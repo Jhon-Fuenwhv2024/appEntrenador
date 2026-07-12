@@ -11,14 +11,20 @@
             "id": "4e48989233069810",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "kanban",
               "state": {
-                "file": "TABLERO SCRUM/No se esta mostrando el link de invitacion.md",
-                "mode": "source",
-                "source": false
+                "file": "TABLERO SCRUM/appEntrenador/TareasAppEntrenador.md",
+                "kanbanViewState": {
+                  "kanban-plugin": "board",
+                  "list-collapse": [
+                    false,
+                    false,
+                    false
+                  ]
+                }
               },
-              "icon": "lucide-file",
-              "title": "No se esta mostrando el link de invitacion"
+              "icon": "lucide-trello",
+              "title": "TareasAppEntrenador"
             }
           }
         ]
@@ -94,7 +100,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "TABLERO SCRUM/No se esta mostrando el link de invitacion.md",
+                "file": "TABLERO SCRUM/appEntrenador/TareasAppEntrenador.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +110,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Enlaces entrantes de No se esta mostrando el link de invitacion"
+              "title": "Enlaces entrantes de TareasAppEntrenador"
             }
           },
           {
@@ -113,12 +119,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "TABLERO SCRUM/No se esta mostrando el link de invitacion.md",
+                "file": "TABLERO SCRUM/appEntrenador/TareasAppEntrenador.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Enlaces salientes de No se esta mostrando el link de invitacion"
+              "title": "Enlaces salientes de TareasAppEntrenador"
             }
           },
           {
@@ -156,13 +162,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "TABLERO SCRUM/No se esta mostrando el link de invitacion.md",
+                "file": "TABLERO SCRUM/appEntrenador/TareasAppEntrenador.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Esquema de No se esta mostrando el link de invitacion"
+              "title": "Esquema de TareasAppEntrenador"
             }
           }
         ]
@@ -186,10 +192,13 @@
   },
   "active": "4e48989233069810",
   "lastOpenFiles": [
+    "catalogo de ejercicios.md",
     "TABLERO SCRUM/appEntrenador/TareasAppEntrenador.md",
+    "plantillas de rutinas y memoria de progresión.md",
+    "data-flows.md",
     "TABLERO SCRUM/Token_invalido.md",
+    "TABLERO SCRUM/No se esta mostrando el link de invitacion.md",
     "architecture.md",
-    "api.md",
-    "TABLERO SCRUM/No se esta mostrando el link de invitacion.md"
+    "api.md"
   ]
 }

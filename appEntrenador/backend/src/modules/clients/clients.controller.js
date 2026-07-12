@@ -1,25 +1,47 @@
 const clientsService = require('./clients.service');
 
+function sendError(res, error, context) {
+  const code = error.code || 500;
+  const message = error.message || 'Error interno del servidor';
+
+  console.error(context, error);
+
+  return res.status(code).json({
+    success: false,
+    error: message,
+    message,
+    code,
+  });
+}
+
 async function getClients(req, res) {
   try {
-    const clients = await clientsService.getClients();
+    const clients = await clientsService.getClientsForTrainer(req.user.id);
 
     return res.json({
       success: true,
       clients,
     });
   } catch (error) {
-    console.error('Error al consultar clientes:', error);
+    return sendError(res, error, 'Error al consultar clientes:');
+  }
+}
 
-    return res.status(500).json({
-      success: false,
-      error: 'Error interno del servidor',
-      message: 'Error interno del servidor',
-      code: 500,
+async function getClientById(req, res) {
+  try {
+    const clientId = Number(req.params.clientId);
+    const client = await clientsService.getClientOwnedByTrainer(clientId, req.user.id);
+
+    return res.json({
+      success: true,
+      data: client,
     });
+  } catch (error) {
+    return sendError(res, error, 'Error al consultar cliente:');
   }
 }
 
 module.exports = {
   getClients,
+  getClientById,
 };

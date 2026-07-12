@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { APP_NAME } from '../../config/app.js';
 import AppLogo from '../../components/AppLogo.vue';
 import { getApiErrorMessage } from '../../shared/api/http.js';
+import { clearSession } from '../../shared/auth/session.js';
 import { registerClient } from './api/authApi.js';
 
 const route = useRoute();
@@ -18,6 +19,9 @@ const alertMessage = shallowRef('');
 const alertType = shallowRef('error');
 
 onMounted(() => {
+  // Invite registration is a guest flow: never inherit a trainer/client session from another tab.
+  clearSession();
+
   if (route.query.token) {
     token.value = route.query.token;
     return;
@@ -47,6 +51,7 @@ const handleRegister = async () => {
     if (response.data.success) {
       alertType.value = 'success';
       alertMessage.value = response.data.message;
+      clearSession();
 
       setTimeout(() => {
         router.push('/');

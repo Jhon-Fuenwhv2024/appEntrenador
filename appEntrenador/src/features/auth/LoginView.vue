@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { APP_NAME } from '../../config/app.js';
 import AppLogo from '../../components/AppLogo.vue';
 import { getApiErrorMessage } from '../../shared/api/http.js';
+import { setSession } from '../../shared/auth/session.js';
 import { login } from './api/authApi.js';
 
 const router = useRouter();
@@ -22,13 +23,18 @@ const handleLogin = async () => {
       password: password.value,
     });
 
-    if (response.data.success) {
-      localStorage.setItem('userRole', response.data.user.rol);
-      localStorage.setItem('userName', response.data.user.nombre);
-      localStorage.setItem('userId', response.data.user.id);
+    const { success, user, token } = response.data || {};
 
+    if (success && token && user) {
+      setSession({ user, token });
       router.push('/dashboard');
+      return;
     }
+
+    errorMessage.value = success
+      ? 'El servidor no devolvió JWT. Reinicia el backend (`cd backend && npm start`) y vuelve a intentar.'
+      : 'No se pudo iniciar sesión.';
+    console.error('Login incompleto. Claves recibidas:', Object.keys(response.data || {}));
   } catch (error) {
     errorMessage.value = getApiErrorMessage(
       error,

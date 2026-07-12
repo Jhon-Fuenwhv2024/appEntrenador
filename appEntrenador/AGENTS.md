@@ -42,6 +42,7 @@ Stack: Vue 3 + Vite + Vuetify (frontend), Express + MySQL (backend).
 6. Implementar solo lo pedido; sin refactors colaterales.
 7. Mantener documentación actualizada en `docs/` cuando cambien arquitectura, APIs, flujos de datos o decisiones técnicas.
 8. Si se pide realizar o sugerir un commit, usar Conventional Commits (`feat: añade login de entrenador`, `fix: corrige validación de cliente`, `docs: actualiza arquitectura en docs/`).
+9. Siempre validar las nuevas implementacion ejecutando build o npm run dev para el frontend y npm start en el backend, y comprobrar que funciona correctamente
 
 ### Macro vs micro (gestión de tareas)
 

@@ -1,0 +1,6 @@
+- [ ] `[FEAT-007]` **Plantillas de Rutinas y Memoria de Progresión (Pesos)**
+  **Descripción:** Implementar un sistema donde las rutinas creadas por el entrenador se guarden en una biblioteca personal para ser reutilizadas. Al reasignar una rutina a un cliente (semanas o meses después), el sistema debe cargar los ejercicios base, mostrar el historial del último peso levantado, y permitir registrar los nuevos pesos sin alterar la plantilla original.
+  **Requisitos Técnicos (Agente):**
+  - **Base de Datos (MySQL):** Diseñar esquema que separe `RoutineTemplates` (catálogo) de `ClientWorkouts` / `WorkoutLogs` (ejecución histórica y pesos).
+  - **Backend (Express):** Crear endpoints para guardar en biblioteca, asignar plantilla a cliente, y un endpoint de "historial" que recupere el peso anterior del cliente para un ejercicio específico.
+  - **Frontend (Vue):** Interfaz para "Guardar en Biblioteca", asignar rutina desde la biblioteca, y un formulario de ejecución donde el cliente/entrenador pueda ver el peso anterior e ingresar el nuevo.

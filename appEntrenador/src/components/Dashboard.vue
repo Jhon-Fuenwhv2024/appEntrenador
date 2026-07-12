@@ -2,24 +2,24 @@
 import { onMounted, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import TrainerDashboardView from '../features/trainer/TrainerDashboardView.vue';
-import ClientDashboard from './ClientDashboard.vue';
+import ClientDashboardView from '../features/client/ClientDashboardView.vue';
+import { getSessionUser, isAuthenticated } from '../shared/auth/session.js';
 
 const router = useRouter();
 const userRole = shallowRef('');
 
 onMounted(() => {
-  const storedRole = localStorage.getItem('userRole');
-
-  if (!storedRole) {
-    router.push('/'); 
+  if (!isAuthenticated()) {
+    router.push('/');
     return;
   }
 
-  userRole.value = storedRole;
+  const user = getSessionUser();
+  userRole.value = user?.rol || '';
 });
 </script>
 
 <template>
   <TrainerDashboardView v-if="userRole === 'trainer'" />
-  <ClientDashboard v-else-if="userRole === 'client'" />
+  <ClientDashboardView v-else-if="userRole === 'client'" />
 </template>

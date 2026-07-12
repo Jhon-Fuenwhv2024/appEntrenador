@@ -2,13 +2,15 @@
 
 Base local por defecto: `http://localhost:3000/api`.
 
-El frontend consume la API mediante `src/shared/api/http.js`, que permite configurar `VITE_API_URL` y normaliza errores con el formato `{ success: false, error, message, code }`.
+El frontend consume la API mediante `src/shared/api/http.js`, que permite configurar `VITE_API_URL`, adjunta `Authorization: Bearer <token>` y normaliza errores con el formato `{ success: false, error, message, code }`.
+
+Secretos del backend: copiar `backend/.env.example` a `backend/.env` (`JWT_SECRET`, `JWT_EXPIRES_IN`, `PORT`).
 
 ## Auth
 
 ### `POST /login`
 
-Autentica un usuario trainer o client.
+Autentica un usuario trainer o client y emite un JWT.
 
 Body:
 
@@ -30,15 +32,14 @@ Respuesta exitosa:
     "username": "usuario",
     "nombre": "Nombre",
     "rol": "trainer"
-  }
+  },
+  "token": "<jwt>"
 }
 ```
 
 ### `POST /register`
 
-Registra un cliente usando una invitación válida no usada. El servidor fuerza `rol = "client"`.
-
-El registro corre en una **transacción MySQL**: el token se consume de forma atómica (`UPDATE ... SET usado = TRUE WHERE token = ? AND usado = FALSE`) y solo si ese update afecta 1 fila se crea el usuario. Si el username ya existe o falla el insert, se hace `ROLLBACK` y el token vuelve a quedar disponible.
+Registra un cliente usando una invitación válida no usada. El servidor fuerza `rol = "client"` y asigna `trainer_id` del creador de la invitación.
 
 Body:
 
@@ -56,11 +57,13 @@ Errores relevantes:
 | Código | Cuándo |
 |--------|--------|
 | `400` | Falta el token, o el username ya está en uso |
-| `403` | Token inexistente o ya utilizado |
+| `403` | Token inexistente, ya utilizado, o sin trainer vinculado |
 
-### `POST /generate-token`
+### `POST /generate-token` (trainer + JWT)
 
-Genera un token y link de invitación para registrar clientes.
+Genera un token y link de invitación vinculado al trainer autenticado.
+
+Headers: `Authorization: Bearer <token>`
 
 Respuesta exitosa:
 
@@ -73,23 +76,50 @@ Respuesta exitosa:
 }
 ```
 
-## Clientes
+## Clientes (trainer + JWT)
 
 ### `GET /clients`
 
-Devuelve usuarios con rol `client` para el portal del entrenador.
+Devuelve solo los clientes con `trainer_id = req.user.id`.
 
-Respuesta exitosa:
+### `GET /clients/:clientId`
+
+Detalle de un cliente propio.
+
+## Rutinas
+
+### `GET /clients/:clientId/routines` (trainer)
+
+Lista rutinas + ejercicios del cliente propio.
+
+### `POST /clients/:clientId/routines` (trainer)
+
+Crea rutina con ejercicios (transacción).
 
 ```json
 {
-  "success": true,
-  "clients": [
+  "dia_semana": "Lunes",
+  "nombre_rutina": "Empuje",
+  "ejercicios": [
     {
-      "id": 1,
-      "nombre": "Cliente",
-      "username": "cliente"
+      "nombre": "Press banca",
+      "series": 4,
+      "repeticiones": 10,
+      "peso": 60,
+      "indicaciones": "Controlar la bajada"
     }
   ]
 }
 ```
+
+### `PUT /routines/:routineId` (trainer)
+
+Reemplaza día, nombre y ejercicios de una rutina propia.
+
+### `DELETE /routines/:routineId` (trainer)
+
+Elimina la rutina (cascade a ejercicios).
+
+### `GET /me/routines` (client)
+
+Lista las rutinas del cliente autenticado.

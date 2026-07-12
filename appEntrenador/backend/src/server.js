@@ -1,20 +1,21 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
+const { PORT } = require('./config/env');
 const authRoutes = require('./modules/auth/auth.routes');
 const clientsRoutes = require('./modules/clients/clients.routes');
+const routinesRoutes = require('./modules/routines/routines.routes');
 
 const app = express();
-const PORT = 3000;
 
-// Middleware de seguridad y lectura de datos JSON
 app.use(cors());
 app.use(express.json());
 
-// Registro modular de rutas (todas empezarán con /api)
 app.use('/api', authRoutes);
 app.use('/api', clientsRoutes);
+app.use('/api', routinesRoutes);
 
-// Encender el backend
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor API modular corriendo en http://localhost:${PORT}`);
+  console.log(`Servidor API modular (JWT) corriendo en http://localhost:${PORT}`);
 });
