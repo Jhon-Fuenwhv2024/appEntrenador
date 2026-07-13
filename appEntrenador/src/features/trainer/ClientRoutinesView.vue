@@ -120,7 +120,8 @@ const removeExerciseRow = (index) => {
 };
 
 const loadCatalog = async () => {
-  const res = await getExercises();
+  // Autocomplete needs a wider set than the catalog page (max API limit = 100).
+  const res = await getExercises({ limit: 100 });
   catalogExercises.value = res.data.data ?? [];
 };
 

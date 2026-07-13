@@ -107,27 +107,72 @@ async function assertNameAvailable(name, trainerId, excludeId = null) {
   }
 }
 
+const DEFAULT_LIST_LIMIT = 6;
+const MAX_LIST_LIMIT = 100;
+
+function parseListLimit(raw) {
+  if (raw == null || raw === '') {
+    return DEFAULT_LIST_LIMIT;
+  }
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 1) {
+    return DEFAULT_LIST_LIMIT;
+  }
+  return Math.min(Math.floor(n), MAX_LIST_LIMIT);
+}
+
+function parseListPage(raw) {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 1) {
+    return 1;
+  }
+  return Math.floor(n);
+}
+
 /**
  * Lists global exercises + those owned by the trainer.
- * Optional `q` filters by name (LIKE).
+ * Optional `q` filters by name (LIKE). Paginated with page + limit (default 10, max 100).
+ * @returns {{ items: object[], total: number, limit: number, page: number, totalPages: number }}
  */
-async function listExercisesForTrainer(trainerId, q) {
+async function listExercisesForTrainer(trainerId, q, limitRaw, pageRaw) {
+  const limit = parseListLimit(limitRaw);
+  const pageRequested = parseListPage(pageRaw);
   const params = [trainerId];
-  let sql = `
-    SELECT id, name, description, target_muscle, media_type, media_url, created_by_trainer_id
-    FROM exercises
+  let whereSql = `
     WHERE (created_by_trainer_id IS NULL OR created_by_trainer_id = ?)
   `;
 
   if (q && String(q).trim()) {
-    sql += ' AND name LIKE ?';
+    whereSql += ' AND name LIKE ?';
     params.push(`%${String(q).trim()}%`);
   }
 
-  sql += ' ORDER BY name ASC';
+  const [countRows] = await db.query(
+    `SELECT COUNT(*) AS total FROM exercises ${whereSql}`,
+    params,
+  );
+  const total = Number(countRows[0]?.total) || 0;
+  const totalPages = total === 0 ? 1 : Math.ceil(total / limit);
+  const page = Math.min(pageRequested, totalPages);
+  const offset = (page - 1) * limit;
 
-  const [rows] = await db.query(sql, params);
-  return rows.map(mapExerciseRow);
+  // limit/offset are sanitized integers (not user strings) — safe to embed.
+  const [rows] = await db.query(
+    `SELECT id, name, description, target_muscle, media_type, media_url, created_by_trainer_id
+     FROM exercises
+     ${whereSql}
+     ORDER BY name ASC
+     LIMIT ${limit} OFFSET ${offset}`,
+    params,
+  );
+
+  return {
+    items: rows.map(mapExerciseRow),
+    total,
+    limit,
+    page,
+    totalPages,
+  };
 }
 
 /**

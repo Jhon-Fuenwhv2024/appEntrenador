@@ -126,13 +126,17 @@ Lista las rutinas del cliente autenticado.
 
 ## Catálogo de ejercicios (Features 008–009)
 
-Tabla MySQL `exercises` (diccionario híbrido). Seed: `npm run seed:exercises` desde `backend/`.
+Tabla MySQL `exercises` (diccionario híbrido). Seed desde clone wrkout: `npm run seed:exercises` en `backend/` (ver [`database-schema.md`](database-schema.md)).
 
 ### `GET /exercises` (trainer)
 
 Lista ejercicios globales (`created_by_trainer_id IS NULL`) y los del trainer autenticado.
 
-Query opcional: `?q=press` (filtro por nombre).
+Query:
+
+- `?q=press` — filtro por nombre (LIKE)
+- `?limit=6` — tamaño de página (default **6**, máximo **100**)
+- `?page=1` — página actual (1-based)
 
 Respuesta:
 
@@ -150,7 +154,14 @@ Respuesta:
       "created_by_trainer_id": null,
       "is_global": true
     }
-  ]
+  ],
+  "meta": {
+    "total": 897,
+    "limit": 6,
+    "page": 1,
+    "totalPages": 150,
+    "returned": 6
+  }
 }
 ```
 

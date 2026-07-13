@@ -1,132 +1,260 @@
 /**
- * Seed global exercises into `exercises` catalog from a local JSON file.
+ * Seed global exercises into `exercises` from a local clone of wrkout/exercises.json.
  *
  * Prerequisites:
- *   1. Apply the CREATE TABLE exercises DDL (see backend/db/script_db.sql) after review.
+ *   1. Table `exercises` exists (see backend/db/script_db.sql or createExercisesTable.js).
  *   2. MySQL reachable with the same credentials as backend/src/config/db.js.
+ *   3. Clone the dataset (gitignored):
+ *        git clone --depth 1 https://github.com/wrkout/exercises.json.git backend/data/wrkout-exercises
  *
  * Usage (from backend/):
  *   node scripts/seedExercises.js
+ *   # or: npm run seed:exercises
  *
- * Does not call external APIs. Inserts with created_by_trainer_id = NULL (globals).
- * Skips rows whose name already exists as a global exercise (idempotent by name).
+ * Optional env:
+ *   WRKOUT_EXERCISES_DIR — absolute or relative path to the clone root
+ *     (must contain an `exercises/` folder with per-exercise subdirs).
+ *
+ * Media: stores media_type=image and media_url pointing at raw.githubusercontent.com
+ * (does not download or host JPG binaries). Idempotent by global `name`.
  */
 const fs = require('fs');
 const path = require('path');
 const pool = require('../src/config/db');
 
-const DATASET_PATH = path.join(__dirname, 'exercises_dataset.json');
-const ALLOWED_MEDIA_TYPES = new Set(['image', 'gif', 'youtube', 'video', 'none']);
+const DEFAULT_CLONE_DIR = path.join(__dirname, '..', 'data', 'wrkout-exercises');
+const RAW_BASE =
+  'https://raw.githubusercontent.com/wrkout/exercises.json/master/exercises';
+const BATCH_SIZE = 50;
+const NAME_MAX = 150;
+const MUSCLE_MAX = 100;
 
-function loadDataset() {
-  if (!fs.existsSync(DATASET_PATH)) {
-    throw new Error(
-      `No se encontró el dataset en ${DATASET_PATH}. Crea exercises_dataset.json antes de ejecutar el seed.`,
-    );
+function resolveCloneRoot() {
+  const fromEnv = process.env.WRKOUT_EXERCISES_DIR;
+  if (fromEnv && String(fromEnv).trim()) {
+    return path.resolve(String(fromEnv).trim());
   }
-
-  let raw;
-  try {
-    raw = fs.readFileSync(DATASET_PATH, 'utf8');
-  } catch (err) {
-    throw new Error(`No se pudo leer ${DATASET_PATH}: ${err.message}`);
-  }
-
-  let data;
-  try {
-    data = JSON.parse(raw);
-  } catch (err) {
-    throw new Error(`JSON inválido en exercises_dataset.json: ${err.message}`);
-  }
-
-  if (!Array.isArray(data) || data.length === 0) {
-    throw new Error('exercises_dataset.json debe ser un array no vacío de ejercicios.');
-  }
-
-  return data;
+  return DEFAULT_CLONE_DIR;
 }
 
-function normalizeExercise(row, index) {
-  const name = typeof row.name === 'string' ? row.name.trim() : '';
-  const targetMuscle =
-    typeof row.target_muscle === 'string' ? row.target_muscle.trim() : '';
-
-  if (!name) {
-    throw new Error(`Fila ${index}: "name" es obligatorio.`);
+function resolveExercisesDir(cloneRoot) {
+  const direct = path.join(cloneRoot, 'exercises');
+  if (fs.existsSync(direct) && fs.statSync(direct).isDirectory()) {
+    return direct;
   }
-  if (!targetMuscle) {
-    throw new Error(`Fila ${index} (${name}): "target_muscle" es obligatorio.`);
+  throw new Error(
+    `No se encontró la carpeta exercises/ en ${cloneRoot}. ` +
+      `Clona el repo:\n` +
+      `  git clone --depth 1 https://github.com/wrkout/exercises.json.git backend/data/wrkout-exercises\n` +
+      `O define WRKOUT_EXERCISES_DIR apuntando a la raíz del clone.`,
+  );
+}
+
+/**
+ * Prefer images/0.jpg, then 0.png, then first image file under images/.
+ * @returns {{ fileName: string } | null}
+ */
+function findPrimaryImage(exerciseDir) {
+  const imagesDir = path.join(exerciseDir, 'images');
+  if (!fs.existsSync(imagesDir) || !fs.statSync(imagesDir).isDirectory()) {
+    return null;
   }
 
-  const mediaTypeRaw =
-    typeof row.media_type === 'string' && row.media_type.trim()
-      ? row.media_type.trim().toLowerCase()
-      : 'none';
+  const preferred = ['0.jpg', '0.jpeg', '0.png', '0.webp'];
+  for (const fileName of preferred) {
+    const full = path.join(imagesDir, fileName);
+    if (fs.existsSync(full) && fs.statSync(full).isFile()) {
+      return { fileName };
+    }
+  }
 
-  if (!ALLOWED_MEDIA_TYPES.has(mediaTypeRaw)) {
-    throw new Error(
-      `Fila ${index} (${name}): media_type inválido "${row.media_type}". ` +
-        `Permitidos: ${[...ALLOWED_MEDIA_TYPES].join(', ')}`,
+  const files = fs
+    .readdirSync(imagesDir)
+    .filter((f) => /\.(jpe?g|png|webp|gif)$/i.test(f))
+    .sort();
+
+  if (files.length === 0) {
+    return null;
+  }
+  return { fileName: files[0] };
+}
+
+function buildDescription(row) {
+  if (Array.isArray(row.instructions) && row.instructions.length > 0) {
+    const joined = row.instructions
+      .filter((line) => typeof line === 'string' && line.trim())
+      .map((line) => line.trim())
+      .join('\n');
+    if (joined) return joined;
+  }
+  if (typeof row.description === 'string' && row.description.trim()) {
+    return row.description.trim();
+  }
+  return null;
+}
+
+function buildTargetMuscle(row) {
+  if (Array.isArray(row.primaryMuscles) && row.primaryMuscles.length > 0) {
+    const first = row.primaryMuscles.find(
+      (m) => typeof m === 'string' && m.trim(),
     );
+    if (first) {
+      const muscle = first.trim();
+      return muscle.length > MUSCLE_MAX ? muscle.slice(0, MUSCLE_MAX) : muscle;
+    }
+  }
+  return 'full body';
+}
+
+function normalizeFromWrkout(row, folderName, imageInfo) {
+  let name = typeof row.name === 'string' ? row.name.trim() : '';
+  if (!name) {
+    throw new Error(`Carpeta ${folderName}: "name" es obligatorio en exercise.json.`);
+  }
+  if (name.length > NAME_MAX) {
+    console.warn(
+      `[seedExercises] Nombre truncado (${name.length} → ${NAME_MAX}): ${name}`,
+    );
+    name = name.slice(0, NAME_MAX);
   }
 
-  const description =
-    typeof row.description === 'string' && row.description.trim()
-      ? row.description.trim()
-      : null;
+  const targetMuscle = buildTargetMuscle(row);
+  const description = buildDescription(row);
 
-  const mediaUrl =
-    typeof row.media_url === 'string' && row.media_url.trim()
-      ? row.media_url.trim()
-      : null;
+  let mediaType = 'none';
+  let mediaUrl = null;
+  if (imageInfo) {
+    mediaType = 'image';
+    // folderName and fileName come from the local filesystem (wrkout layout).
+    mediaUrl = `${RAW_BASE}/${folderName}/images/${imageInfo.fileName}`;
+    if (mediaUrl.length > 500) {
+      console.warn(
+        `[seedExercises] media_url demasiado largo para "${name}"; se omite media.`,
+      );
+      mediaType = 'none';
+      mediaUrl = null;
+    }
+  }
 
   return {
     name,
     description,
     target_muscle: targetMuscle,
-    media_type: mediaTypeRaw,
+    media_type: mediaType,
     media_url: mediaUrl,
   };
 }
 
+function loadWrkoutDataset(exercisesDir) {
+  const entries = fs.readdirSync(exercisesDir, { withFileTypes: true });
+  const dataset = [];
+  let skippedInvalid = 0;
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+
+    const folderName = entry.name;
+    const exerciseDir = path.join(exercisesDir, folderName);
+    const jsonPath = path.join(exerciseDir, 'exercise.json');
+
+    if (!fs.existsSync(jsonPath)) {
+      skippedInvalid += 1;
+      continue;
+    }
+
+    let row;
+    try {
+      row = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    } catch (err) {
+      console.warn(
+        `[seedExercises] JSON inválido en ${jsonPath}: ${err.message}`,
+      );
+      skippedInvalid += 1;
+      continue;
+    }
+
+    try {
+      const imageInfo = findPrimaryImage(exerciseDir);
+      dataset.push(normalizeFromWrkout(row, folderName, imageInfo));
+    } catch (err) {
+      console.warn(`[seedExercises] Omitido ${folderName}: ${err.message}`);
+      skippedInvalid += 1;
+    }
+  }
+
+  if (dataset.length === 0) {
+    throw new Error(
+      `No se encontró ningún exercise.json válido bajo ${exercisesDir}.`,
+    );
+  }
+
+  return { dataset, skippedInvalid };
+}
+
+async function loadExistingGlobalNames(connection) {
+  const [rows] = await connection.execute(
+    `SELECT name FROM exercises WHERE created_by_trainer_id IS NULL`,
+  );
+  return new Set(rows.map((r) => r.name));
+}
+
+async function insertBatch(connection, batch) {
+  if (batch.length === 0) return;
+
+  const placeholders = batch.map(() => '(?, ?, ?, ?, ?, NULL)').join(', ');
+  const values = [];
+  for (const exercise of batch) {
+    values.push(
+      exercise.name,
+      exercise.description,
+      exercise.target_muscle,
+      exercise.media_type,
+      exercise.media_url,
+    );
+  }
+
+  await connection.execute(
+    `INSERT INTO exercises
+      (name, description, target_muscle, media_type, media_url, created_by_trainer_id)
+     VALUES ${placeholders}`,
+    values,
+  );
+}
+
 async function seed() {
-  const dataset = loadDataset().map(normalizeExercise);
-  let inserted = 0;
-  let skipped = 0;
+  const cloneRoot = resolveCloneRoot();
+  const exercisesDir = resolveExercisesDir(cloneRoot);
+  const { dataset, skippedInvalid } = loadWrkoutDataset(exercisesDir);
 
   const connection = await pool.getConnection();
+  let inserted = 0;
+  let skippedExisting = 0;
 
   try {
-    for (const exercise of dataset) {
-      const [existing] = await connection.execute(
-        `SELECT id FROM exercises
-         WHERE name = ? AND created_by_trainer_id IS NULL
-         LIMIT 1`,
-        [exercise.name],
-      );
+    const existingNames = await loadExistingGlobalNames(connection);
+    const toInsert = [];
 
-      if (existing.length > 0) {
-        skipped += 1;
+    for (const exercise of dataset) {
+      if (existingNames.has(exercise.name)) {
+        skippedExisting += 1;
         continue;
       }
+      existingNames.add(exercise.name);
+      toInsert.push(exercise);
+    }
 
-      await connection.execute(
-        `INSERT INTO exercises
-          (name, description, target_muscle, media_type, media_url, created_by_trainer_id)
-         VALUES (?, ?, ?, ?, ?, NULL)`,
-        [
-          exercise.name,
-          exercise.description,
-          exercise.target_muscle,
-          exercise.media_type,
-          exercise.media_url,
-        ],
-      );
-      inserted += 1;
+    for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+      const batch = toInsert.slice(i, i + BATCH_SIZE);
+      await insertBatch(connection, batch);
+      inserted += batch.length;
     }
 
     console.log(
-      `[seedExercises] Completado. Insertados: ${inserted}. Omitidos (ya existían): ${skipped}. Total dataset: ${dataset.length}.`,
+      `[seedExercises] Completado. Insertados: ${inserted}. ` +
+        `Omitidos (ya existían): ${skippedExisting}. ` +
+        `Omitidos (inválidos): ${skippedInvalid}. ` +
+        `Total leídos: ${dataset.length}. ` +
+        `Fuente: ${exercisesDir}`,
     );
   } finally {
     connection.release();

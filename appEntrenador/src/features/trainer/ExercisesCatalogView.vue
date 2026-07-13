@@ -12,14 +12,22 @@ const formRef = ref(null);
 const editingExercise = shallowRef(null);
 
 const {
-  filteredExercises,
+  exercises,
+  totalCount,
+  currentPage,
+  totalPages,
+  canGoPrev,
+  canGoNext,
   loading,
   saving,
   searchQuery,
   errorMessage,
   globalCount,
   privateCount,
+  pageSize,
   loadExercises,
+  goPrevPage,
+  goNextPage,
   addExercise,
   saveExercise,
   removeExercise,
@@ -159,13 +167,21 @@ onMounted(async () => {
             <div class="functional-card">
               <ExerciseCatalogList
                 v-model:search-query="searchQuery"
-                :exercises="filteredExercises"
+                :exercises="exercises"
                 :loading="loading"
+                :total-count="totalCount"
+                :page-size="pageSize"
+                :current-page="currentPage"
+                :total-pages="totalPages"
+                :can-go-prev="canGoPrev"
+                :can-go-next="canGoNext"
                 :global-count="globalCount"
                 :private-count="privateCount"
                 :editing-id="editingExercise?.id ?? null"
                 @edit="handleEdit"
                 @delete="handleDelete"
+                @prev-page="goPrevPage"
+                @next-page="goNextPage"
               />
             </div>
           </v-col>

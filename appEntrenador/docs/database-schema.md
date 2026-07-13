@@ -134,15 +134,21 @@ Tokens de registro generados por un trainer (`trainer_id`).
 
 ## Seed del catálogo
 
-Tras crear la tabla `exercises` en MySQL (instancias existentes: `node scripts/createExercisesTable.js`):
+Fuente principal: clone local de [wrkout/exercises.json](https://github.com/wrkout/exercises.json) (gitignored en `backend/data/wrkout-exercises/`). El script recorre `exercises/*/exercise.json`, mapea a columnas Trainfit y guarda `media_url` apuntando a `raw.githubusercontent.com` (`images/0.jpg`); no hostea JPG.
+
+Mapeo: `name` ← `name`; `description` ← `instructions` unidos; `target_muscle` ← `primaryMuscles[0]`; `media_type`/`media_url` ← imagen local detectada → URL GitHub. Globales: `created_by_trainer_id = NULL`. Idempotente por `name`.
+
+El archivo `backend/scripts/exercises_dataset.json` (seed español corto) queda como referencia legacy; el seed ya no lo usa.
+
+Tras crear la tabla (`node scripts/createExercisesTable.js` si hace falta):
 
 ```bash
+git clone --depth 1 https://github.com/wrkout/exercises.json.git backend/data/wrkout-exercises
 cd backend
 node scripts/seedExercises.js
 # o: npm run seed:exercises
+# opcional: WRKOUT_EXERCISES_DIR=/ruta/al/clone
 ```
-
-Lee `backend/scripts/exercises_dataset.json` e inserta filas globales (`created_by_trainer_id = NULL`) con prepared statements. Omite nombres globales que ya existan (idempotente por `name`).
 
 ## Aplicar tablas de workout (instancias ya existentes)
 

@@ -16,14 +16,23 @@ function sendError(res, error, context) {
 
 async function list(req, res) {
   try {
-    const exercises = await exercisesService.listExercisesForTrainer(
+    const result = await exercisesService.listExercisesForTrainer(
       req.user.id,
       req.query.q,
+      req.query.limit,
+      req.query.page,
     );
 
     return res.json({
       success: true,
-      data: exercises,
+      data: result.items,
+      meta: {
+        total: result.total,
+        limit: result.limit,
+        page: result.page,
+        totalPages: result.totalPages,
+        returned: result.items.length,
+      },
     });
   } catch (error) {
     return sendError(res, error, 'Error listando catálogo de ejercicios:');

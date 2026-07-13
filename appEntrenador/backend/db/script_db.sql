@@ -65,6 +65,7 @@ CREATE TABLE invitaciones (
 -- 7. CATÁLOGO DE EJERCICIOS (diccionario híbrido: globales + por trainer)
 -- Distinto de `ejercicios` (líneas de una rutina con series/reps/peso).
 -- Globales: created_by_trainer_id IS NULL. Privados: ID del trainer en usuarios.
+-- Seed global: scripts/seedExercises.js (clone local wrkout/exercises.json; media_url = raw GitHub).
 CREATE TABLE exercises (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(150) NOT NULL,

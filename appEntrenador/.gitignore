@@ -27,3 +27,6 @@ backend/.env
 *.sln
 *.sw?
 datos usuarios appEntrenador.txt
+
+# Local clone of wrkout/exercises.json (seed source; do not vendor images)
+backend/data/wrkout-exercises/
