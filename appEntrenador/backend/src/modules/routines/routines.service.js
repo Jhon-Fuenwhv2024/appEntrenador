@@ -139,8 +139,87 @@ async function listRoutinesForClientAsTrainer(trainerId, clientId) {
   return fetchRoutinesWithExercises(clientId);
 }
 
+/**
+ * Attach media_type / media_url from catalog by case-insensitive name.
+ * Prefers the client's trainer private entries over globals.
+ */
+async function enrichRoutinesWithCatalogMedia(routines, clientId) {
+  if (!routines.length) return routines;
+
+  const names = new Set();
+  for (const routine of routines) {
+    for (const exercise of routine.ejercicios || []) {
+      if (exercise.nombre) names.add(exercise.nombre.trim().toLowerCase());
+    }
+  }
+
+  if (names.size === 0) {
+    return routines.map((routine) => ({
+      ...routine,
+      ejercicios: (routine.ejercicios || []).map((ex) => ({
+        ...ex,
+        media_type: 'none',
+        media_url: null,
+      })),
+    }));
+  }
+
+  const [userRows] = await db.query(
+    'SELECT trainer_id FROM usuarios WHERE id = ? LIMIT 1',
+    [clientId],
+  );
+  const trainerId = userRows[0]?.trainer_id ?? null;
+
+  const nameList = [...names];
+  const placeholders = nameList.map(() => '?').join(',');
+  const params = trainerId == null
+    ? [...nameList]
+    : [...nameList, trainerId];
+
+  const trainerClause = trainerId == null
+    ? 'created_by_trainer_id IS NULL'
+    : '(created_by_trainer_id IS NULL OR created_by_trainer_id = ?)';
+
+  const [catalogRows] = await db.query(
+    `SELECT name, media_type, media_url, created_by_trainer_id
+     FROM exercises
+     WHERE LOWER(TRIM(name)) IN (${placeholders})
+       AND ${trainerClause}`,
+    params,
+  );
+
+  const mediaByName = new Map();
+  for (const row of catalogRows) {
+    const key = String(row.name).trim().toLowerCase();
+    const existing = mediaByName.get(key);
+    const isTrainerOwned = trainerId != null
+      && row.created_by_trainer_id === trainerId;
+
+    if (!existing || isTrainerOwned) {
+      mediaByName.set(key, {
+        media_type: row.media_type || 'none',
+        media_url: row.media_url || null,
+      });
+    }
+  }
+
+  return routines.map((routine) => ({
+    ...routine,
+    ejercicios: (routine.ejercicios || []).map((ex) => {
+      const key = String(ex.nombre || '').trim().toLowerCase();
+      const media = mediaByName.get(key);
+      return {
+        ...ex,
+        media_type: media?.media_type || 'none',
+        media_url: media?.media_url || null,
+      };
+    }),
+  }));
+}
+
 async function listMyRoutines(clientId) {
-  return fetchRoutinesWithExercises(clientId);
+  const routines = await fetchRoutinesWithExercises(clientId);
+  return enrichRoutinesWithCatalogMedia(routines, clientId);
 }
 
 async function createRoutine(trainerId, clientId, payload) {

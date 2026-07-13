@@ -20,4 +20,11 @@
 
 1. Trainer abre `/trainer/clients/:id` y crea/edita rutinas vía API.
 2. Service valida ownership trainer↔cliente en cada escritura.
-3. Cliente autenticado `GET /me/routines` y el portal muestra plan del día / semana.
+3. Cliente autenticado `GET /me/routines` y el portal muestra plan del día / semana (con media del catálogo si hay match por nombre).
+
+## Ejecución de rutina (Workout Player)
+
+1. Cliente pulsa **Comenzar** en el dashboard → `/client/workout/:routineId`.
+2. Frontend orquesta con `useWorkoutSession` (serie, descanso, auto-avance).
+3. Al terminar, `POST /me/workout-sessions` persiste peso/reps por serie.
+4. Trainer consulta `GET /clients/:id/workout-sessions` y ve el historial en la ficha del alumno.

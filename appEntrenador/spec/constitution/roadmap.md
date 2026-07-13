@@ -10,11 +10,16 @@
 6. **005 · API CRUD rutinas y ejercicios** — módulo `routines` con ownership y transacciones.
 7. **006 · UI trainer de rutinas** — detalle de cliente y asignación de planes.
 8. **007 · Portal cliente con rutinas reales** — dashboard cliente consumiendo `/me/routines`.
+9. **008 · Catálogo de ejercicios (schema + seed)** — tabla `exercises` híbrida + seed local aplicado.
+10. **009 · API/UI catálogo de ejercicios** — `GET/POST /exercises`, vista `/trainer/exercises` y combobox en rutinas.
+11. **010 · Motor de ejecución de rutina** — composable `useWorkoutSession` (series, descanso, auto-avance).
+12. **011 · Workout Player UI** — modo Comenzar mobile-first con media y registro de peso/reps.
+13. **012 · Persistencia de sesión** — logs en DB + historial visible al trainer.
 
 ## Siguiente
 
+- **Plantillas de rutinas + memoria de progresión** — biblioteca reutilizable (el historial de pesos por sesión ya arranca en 012).
 - **Perfil alumno (`alumnos_info`)** — API y UI de datos extendidos.
-
 ## Backlog / ideas
 
 - **Config por entorno** — endurecer `.env` para DB; quitar credenciales hardcodeadas en `db.js`.

@@ -8,6 +8,7 @@ kanban-plugin: board
 
 - [ ] [[plantilla de progresion]]
 - [ ] [[catalogo de ejercicios]]
+- [ ] [[RESPONSIVE]]
 
 
 ## EN PROCESO

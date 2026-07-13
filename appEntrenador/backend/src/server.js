@@ -6,6 +6,8 @@ const { PORT } = require('./config/env');
 const authRoutes = require('./modules/auth/auth.routes');
 const clientsRoutes = require('./modules/clients/clients.routes');
 const routinesRoutes = require('./modules/routines/routines.routes');
+const exercisesRoutes = require('./modules/exercises/exercises.routes');
+const workoutSessionsRoutes = require('./modules/workout-sessions/workout-sessions.routes');
 
 const app = express();
 
@@ -15,6 +17,8 @@ app.use(express.json());
 app.use('/api', authRoutes);
 app.use('/api', clientsRoutes);
 app.use('/api', routinesRoutes);
+app.use('/api', exercisesRoutes);
+app.use('/api', workoutSessionsRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor API modular (JWT) corriendo en http://localhost:${PORT}`);

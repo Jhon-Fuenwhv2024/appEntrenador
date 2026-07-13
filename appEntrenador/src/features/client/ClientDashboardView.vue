@@ -162,7 +162,7 @@ onMounted(() => {
           <v-row>
             <v-col cols="12" md="8">
               <div v-if="sesionHoy" class="functional-card workout-card">
-                <div class="d-flex justify-space-between align-center mb-6">
+                <div class="d-flex justify-space-between align-center mb-6 flex-wrap ga-3">
                   <div>
                     <h3 class="card-section-title">
                       {{ sesionHoy.dia_semana === todayLabel ? 'Entrenamiento de Hoy' : 'Próxima sesión' }}
@@ -171,6 +171,15 @@ onMounted(() => {
                       {{ sesionHoy.dia_semana }} · {{ sesionHoy.nombre_rutina }}
                     </div>
                   </div>
+                  <v-btn
+                    color="#00E5FF"
+                    class="text-black font-weight-bold"
+                    size="large"
+                    prepend-icon="mdi-play"
+                    :to="{ name: 'WorkoutPlayer', params: { routineId: sesionHoy.id } }"
+                  >
+                    Comenzar
+                  </v-btn>
                 </div>
 
                 <div class="exercise-list">

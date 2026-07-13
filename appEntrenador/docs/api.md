@@ -123,3 +123,99 @@ Elimina la rutina (cascade a ejercicios).
 ### `GET /me/routines` (client)
 
 Lista las rutinas del cliente autenticado.
+
+## Catálogo de ejercicios (Features 008–009)
+
+Tabla MySQL `exercises` (diccionario híbrido). Seed: `npm run seed:exercises` desde `backend/`.
+
+### `GET /exercises` (trainer)
+
+Lista ejercicios globales (`created_by_trainer_id IS NULL`) y los del trainer autenticado.
+
+Query opcional: `?q=press` (filtro por nombre).
+
+Respuesta:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Press banca",
+      "description": "...",
+      "target_muscle": "Pecho",
+      "media_type": "none",
+      "media_url": null,
+      "created_by_trainer_id": null,
+      "is_global": true
+    }
+  ]
+}
+```
+
+### `POST /exercises` (trainer)
+
+Crea un ejercicio privado del trainer.
+
+Body:
+
+```json
+{
+  "name": "Mi variación",
+  "target_muscle": "Pecho",
+  "description": "Opcional",
+  "media_type": "none",
+  "media_url": null
+}
+```
+
+### `PUT /exercises/:id` (trainer)
+
+Actualiza un ejercicio visible (global o privado del trainer): nombre, descripción, músculo, `media_type` y `media_url` (GIF/YouTube/video/imagen).
+
+### `DELETE /exercises/:id` (trainer)
+
+Elimina un ejercicio visible (global o privado del trainer).
+
+Las rutinas siguen enviando `ejercicios[].nombre` como texto (copia del catálogo o libre). Sin FK aún.
+
+UI trainer: ruta `/trainer/exercises` (listar / buscar / crear / editar / borrar) y combobox en `/trainer/clients/:clientId`.
+
+### `GET /me/routines` — media enriquecida (cliente)
+
+Además de la prescripción, cada ejercicio incluye `media_type` y `media_url` resueltos por coincidencia de nombre contra el catálogo `exercises` (prioridad: privado del trainer del cliente, luego global).
+
+## Sesiones de entrenamiento (Feature 012)
+
+Ejecución histórica. No modifica `ejercicios.peso` prescrito.
+
+### `POST /me/workout-sessions` (client)
+
+Guarda una sesión completada (o abandonada) con sus series.
+
+Body:
+
+```json
+{
+  "routine_id": 12,
+  "routine_name": "Empuje",
+  "started_at": "2026-07-13T20:00:00.000Z",
+  "status": "completed",
+  "sets": [
+    {
+      "exercise_id": 30,
+      "exercise_name": "Press banca",
+      "set_number": 1,
+      "weight": 62.5,
+      "reps": 10
+    }
+  ]
+}
+```
+
+`client_id` siempre es `req.user.id`. `routine_id` debe pertenecer al cliente.
+
+### `GET /clients/:clientId/workout-sessions` (trainer)
+
+Historial del alumno propio (ownership). Incluye `sets[]` anidados.

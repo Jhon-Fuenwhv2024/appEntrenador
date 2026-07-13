@@ -5,14 +5,17 @@ import AppLogo from '../../components/AppLogo.vue';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
 import { getClientById } from './api/clientsApi.js';
+import { createExercise, getExercises } from './api/exercisesApi.js';
 import {
   createClientRoutine,
   deleteRoutine,
   getClientRoutines,
   updateRoutine,
 } from './api/routinesApi.js';
+import { getClientWorkoutSessions } from './api/workoutSessionsApi.js';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const DEFAULT_TARGET_MUSCLE = 'General';
 
 const route = useRoute();
 const router = useRouter();
@@ -20,9 +23,13 @@ const router = useRouter();
 const clientId = Number(route.params.clientId);
 const client = shallowRef(null);
 const routines = ref([]);
+const workoutSessions = ref([]);
+const catalogExercises = ref([]);
 const loading = shallowRef(true);
 const saving = shallowRef(false);
+const savingCatalogIndex = shallowRef(null);
 const editingId = shallowRef(null);
+const expandedSessionId = shallowRef(null);
 
 const form = reactive({
   dia_semana: 'Lunes',
@@ -42,10 +49,50 @@ const pageTitle = computed(() => (
   client.value ? `Rutinas de ${client.value.nombre}` : 'Rutinas del alumno'
 ));
 
+const catalogByName = computed(() => {
+  const map = new Map();
+  for (const item of catalogExercises.value) {
+    map.set(item.name.toLowerCase(), item);
+  }
+  return map;
+});
+
+/** String titles for combobox so free typing is not blocked by object items. */
+const catalogNames = computed(() => (
+  catalogExercises.value.map((item) => item.name)
+));
+
 const showNotification = (text, color = 'success') => {
   snackbar.show = true;
   snackbar.text = text;
   snackbar.color = color;
+};
+
+const isNameInCatalog = (nombre) => {
+  const key = (nombre || '').trim().toLowerCase();
+  return key ? catalogByName.value.has(key) : false;
+};
+
+const resolveExerciseName = (value) => {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') {
+    return value.name || value.title || value.value || '';
+  }
+  return String(value);
+};
+
+const onExerciseNameUpdate = (index, value) => {
+  const ex = form.ejercicios[index];
+  if (!ex) return;
+
+  const name = resolveExerciseName(value);
+  ex.nombre = name;
+
+  const match = catalogByName.value.get(name.trim().toLowerCase());
+  if (match && !ex.indicaciones?.trim() && match.description) {
+    ex.indicaciones = match.description;
+  }
 };
 
 const resetForm = () => {
@@ -72,6 +119,11 @@ const removeExerciseRow = (index) => {
   form.ejercicios.splice(index, 1);
 };
 
+const loadCatalog = async () => {
+  const res = await getExercises();
+  catalogExercises.value = res.data.data ?? [];
+};
+
 const loadData = async () => {
   try {
     loading.value = true;
@@ -87,6 +139,66 @@ const loadData = async () => {
     showNotification(getApiErrorMessage(error, 'No se pudo cargar el alumno'), 'error');
   } finally {
     loading.value = false;
+  }
+
+  try {
+    const sessionsRes = await getClientWorkoutSessions(clientId);
+    workoutSessions.value = sessionsRes.data.data ?? [];
+  } catch (error) {
+    console.error('Error cargando historial de entrenamientos:', error);
+    workoutSessions.value = [];
+    showNotification(
+      getApiErrorMessage(error, 'No se pudo cargar el historial de entrenamientos'),
+      'warning',
+    );
+  }
+
+  try {
+    await loadCatalog();
+  } catch (error) {
+    console.error('Error cargando catálogo de ejercicios:', error);
+    catalogExercises.value = [];
+    showNotification(
+      getApiErrorMessage(error, 'Catálogo no disponible; puedes escribir el nombre a mano'),
+      'warning',
+    );
+  }
+};
+
+const formatSessionDate = (value) => {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString('es-ES', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+};
+
+const toggleSession = (sessionId) => {
+  expandedSessionId.value = expandedSessionId.value === sessionId ? null : sessionId;
+};
+
+const saveExerciseToCatalog = async (index) => {
+  const ex = form.ejercicios[index];
+  const name = ex?.nombre?.trim();
+  if (!name || isNameInCatalog(name)) return;
+
+  try {
+    savingCatalogIndex.value = index;
+    await createExercise({
+      name,
+      target_muscle: DEFAULT_TARGET_MUSCLE,
+      description: ex.indicaciones?.trim() || null,
+      media_type: 'none',
+    });
+    await loadCatalog();
+    showNotification(`"${name}" guardado en el catálogo`);
+  } catch (error) {
+    console.error('Error guardando ejercicio en catálogo:', error);
+    showNotification(getApiErrorMessage(error, 'No se pudo guardar en el catálogo'), 'error');
+  } finally {
+    savingCatalogIndex.value = null;
   }
 };
 
@@ -182,8 +294,15 @@ onMounted(() => {
       <div class="nav-item" title="Dashboard" @click="router.push('/dashboard')">
         <v-icon icon="mdi-view-dashboard-outline" size="24"></v-icon>
       </div>
-      <div class="nav-item active">
+      <div
+        class="nav-item"
+        title="Catálogo de ejercicios"
+        @click="router.push('/trainer/exercises')"
+      >
         <v-icon icon="mdi-dumbbell" size="24"></v-icon>
+      </div>
+      <div class="nav-item active" title="Rutinas del alumno">
+        <v-icon icon="mdi-clipboard-text-outline" size="24"></v-icon>
       </div>
       <div class="nav-item nav-bottom mb-0" title="Cerrar Sesión" @click="handleLogout">
         <v-icon icon="mdi-logout-variant" size="24"></v-icon>
@@ -216,9 +335,19 @@ onMounted(() => {
           <v-row>
             <v-col cols="12" md="5">
               <div class="functional-card">
-                <h3 class="card-section-title mb-4">
+                <h3 class="card-section-title mb-1">
                   {{ editingId ? 'Editar rutina' : 'Nueva rutina' }}
                 </h3>
+                <v-btn
+                  variant="text"
+                  color="#00E5FF"
+                  size="small"
+                  class="mb-4 px-0"
+                  prepend-icon="mdi-dumbbell"
+                  @click="router.push('/trainer/exercises')"
+                >
+                  Abrir catálogo
+                </v-btn>
 
                 <v-select
                   v-model="form.dia_semana"
@@ -250,7 +379,35 @@ onMounted(() => {
                       @click="removeExerciseRow(index)"
                     />
                   </div>
-                  <v-text-field v-model="ex.nombre" label="Nombre" density="compact" class="mb-2" />
+                  <v-combobox
+                    v-model="ex.nombre"
+                    :items="catalogNames"
+                    label="Nombre (catálogo o texto libre)"
+                    density="compact"
+                    class="mb-2"
+                    clearable
+                    hide-no-data
+                    auto-select-first
+                    @update:model-value="(value) => onExerciseNameUpdate(index, value)"
+                  >
+                    <template #item="{ props, item }">
+                      <v-list-item
+                        v-bind="props"
+                        :subtitle="catalogByName.get(String(item.value ?? item.title ?? '').toLowerCase())?.target_muscle"
+                      />
+                    </template>
+                  </v-combobox>
+                  <v-btn
+                    v-if="ex.nombre?.trim() && !isNameInCatalog(ex.nombre)"
+                    size="small"
+                    variant="text"
+                    color="#00E5FF"
+                    class="mb-2 px-0"
+                    :loading="savingCatalogIndex === index"
+                    @click="saveExerciseToCatalog(index)"
+                  >
+                    Guardar en catálogo
+                  </v-btn>
                   <v-row dense>
                     <v-col cols="4">
                       <v-text-field v-model.number="ex.series" type="number" label="Series" density="compact" min="1" />
@@ -337,6 +494,56 @@ onMounted(() => {
               </div>
             </v-col>
           </v-row>
+
+          <div class="functional-card mt-6">
+            <h3 class="card-section-title mb-2">Historial de entrenamientos</h3>
+            <p class="text-caption text-medium-emphasis mb-4">
+              Sesiones completadas por el alumno (peso y reps reales).
+            </p>
+
+            <div v-if="workoutSessions.length === 0" class="text-medium-emphasis">
+              Aún no hay entrenamientos registrados.
+            </div>
+
+            <div
+              v-for="session in workoutSessions"
+              :key="session.id"
+              class="workout-history-item mb-3"
+            >
+              <button
+                type="button"
+                class="workout-history-header"
+                @click="toggleSession(session.id)"
+              >
+                <div>
+                  <div class="exercise-name">{{ session.routine_name }}</div>
+                  <div class="exercise-meta">
+                    {{ formatSessionDate(session.finished_at) }}
+                    · {{ session.sets?.length || 0 }} series
+                    · {{ session.status }}
+                  </div>
+                </div>
+                <v-icon
+                  :icon="expandedSessionId === session.id ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+                  size="20"
+                  color="#8B929E"
+                />
+              </button>
+
+              <div v-if="expandedSessionId === session.id" class="workout-history-sets mt-3">
+                <div
+                  v-for="set in session.sets"
+                  :key="set.id"
+                  class="workout-history-set"
+                >
+                  <span class="font-weight-medium">{{ set.exercise_name }}</span>
+                  <span class="exercise-meta">
+                    Serie {{ set.set_number }} · {{ set.reps }} reps · {{ set.weight }} kg
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </template>
       </div>
     </main>
@@ -402,5 +609,41 @@ onMounted(() => {
 .card-section-title {
   font-size: 1.1rem;
   font-weight: 700;
+}
+
+.workout-history-item {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.workout-history-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+}
+
+.workout-history-sets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 0.75rem;
+}
+
+.workout-history-set {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.9rem;
 }
 </style>

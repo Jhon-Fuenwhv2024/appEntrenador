@@ -1,0 +1,170 @@
+[
+  {
+    "name": "Press banca",
+    "description": "Press de pecho con barra en banco plano.",
+    "target_muscle": "Pecho",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Press banca inclinado",
+    "description": "Press con barra en banco inclinado para porción superior del pecho.",
+    "target_muscle": "Pecho",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Aperturas con mancuernas",
+    "description": "Aperturas en banco plano con mancuernas.",
+    "target_muscle": "Pecho",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Fondos en paralelas",
+    "description": "Fondos para pecho/tríceps en barras paralelas.",
+    "target_muscle": "Pecho",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Dominadas",
+    "description": "Dominadas con peso corporal, agarre prono.",
+    "target_muscle": "Espalda",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Remo con barra",
+    "description": "Remo pendiente con barra para dorsal y romboides.",
+    "target_muscle": "Espalda",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Jalón al pecho",
+    "description": "Jalón en polea alta hacia el pecho.",
+    "target_muscle": "Espalda",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Peso muerto",
+    "description": "Peso muerto convencional con barra.",
+    "target_muscle": "Espalda",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Press militar",
+    "description": "Press de hombros de pie con barra.",
+    "target_muscle": "Hombros",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Elevaciones laterales",
+    "description": "Elevaciones laterales con mancuernas.",
+    "target_muscle": "Hombros",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Face pulls",
+    "description": "Tirón a la cara en polea para deltoides posteriores.",
+    "target_muscle": "Hombros",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Sentadilla trasera",
+    "description": "Sentadilla con barra en la espalda.",
+    "target_muscle": "Piernas",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Prensa de piernas",
+    "description": "Prensa horizontal o 45° para cuádriceps y glúteos.",
+    "target_muscle": "Piernas",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Peso muerto rumano",
+    "description": "Peso muerto rumano con barra o mancuernas (isquiotibiales).",
+    "target_muscle": "Piernas",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Zancadas caminando",
+    "description": "Zancadas alternas caminando con o sin mancuernas.",
+    "target_muscle": "Piernas",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Curl de bíceps con barra",
+    "description": "Curl de bíceps de pie con barra.",
+    "target_muscle": "Bíceps",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Curl martillo",
+    "description": "Curl martillo con mancuernas.",
+    "target_muscle": "Bíceps",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Extensiones de tríceps en polea",
+    "description": "Pushdown de tríceps en polea alta.",
+    "target_muscle": "Tríceps",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Press cerrado",
+    "description": "Press banca con agarre cerrado para tríceps.",
+    "target_muscle": "Tríceps",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Plancha",
+    "description": "Plancha isométrica para core.",
+    "target_muscle": "Core",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Crunch en suelo",
+    "description": "Crunch abdominal básico en suelo.",
+    "target_muscle": "Core",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Elevación de piernas colgado",
+    "description": "Elevación de piernas en barra de dominadas.",
+    "target_muscle": "Core",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Hip thrust",
+    "description": "Empuje de cadera con barra para glúteos.",
+    "target_muscle": "Glúteos",
+    "media_type": "none",
+    "media_url": null
+  },
+  {
+    "name": "Gemelos de pie",
+    "description": "Elevación de gemelos de pie en máquina o con barra.",
+    "target_muscle": "Gemelos",
+    "media_type": "none",
+    "media_url": null
+  }
+]

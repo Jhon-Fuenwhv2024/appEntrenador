@@ -12,6 +12,12 @@ Necesito que diseñes y me muestres el query SQL para crear la tabla `Exercises`
 - `media_url` (VARCHAR para guardar el enlace de GitHub, YouTube o el hosting del entrenador).
 - `created_by_trainer_id` (Foreign Key opcional que apunte a la tabla de entrenadores. Si es NULL, es un ejercicio global del sistema. Si tiene ID, es privado de ese entrenador).
 
+repositorios: 
+https://github.com/wrkout/exercises.json.git
+
+https://github.com/seagomezar/Exercises-Compiled-Database.git
+
+
 ## 2. SCRIPT DE SEEDING (POBLACIÓN INICIAL)
 No vamos a depender de APIs externas. Vamos a descargar un archivo JSON de GitHub.
 - Crea un script en el backend (ej. `backend/scripts/seedExercises.js`).

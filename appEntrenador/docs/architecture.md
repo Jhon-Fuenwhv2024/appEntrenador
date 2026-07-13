@@ -20,7 +20,9 @@ El backend monta módulos bajo `/api` desde `backend/src/server.js`.
 - `backend/src/middleware/auth.js`: JWT (`authenticate`) y roles (`requireRole`).
 - `backend/src/modules/auth/`: login (emite JWT), registro por invitación y generación de invitaciones (trainer).
 - `backend/src/modules/clients/`: listado/detalle de clientes del trainer autenticado.
-- `backend/src/modules/routines/`: CRUD de rutinas/ejercicios con ownership.
+- `backend/src/modules/routines/`: CRUD de rutinas/ejercicios (líneas de rutina) con ownership.
+- `backend/src/modules/exercises/`: catálogo `exercises` — `GET/POST /api/exercises` (trainer: globales + propios). Seed en `backend/scripts/seedExercises.js`. Las rutinas copian `name` a `ejercicios.nombre` (sin FK). Ver [`docs/database-schema.md`](database-schema.md).
+- Frontend trainer: `ExercisesCatalogView` (`/trainer/exercises`) gestiona el catálogo; `ClientRoutinesView` usa combobox al crear/editar rutinas (`features/trainer/api/exercisesApi.js`, `composables/useExercisesCatalog.js`).
 
 Cada módulo sigue la forma `routes -> controller -> service`. Los services concentran consultas MySQL parametrizadas y los controllers traducen a respuestas JSON.
 

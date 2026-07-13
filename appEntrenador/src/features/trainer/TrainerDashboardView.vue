@@ -209,16 +209,20 @@ onUnmounted(() => {
         <AppLogo size="md" />
       </div>
 
-      <div class="nav-item active">
+      <div class="nav-item active" title="Dashboard">
         <v-icon icon="mdi-view-dashboard-outline" size="24"></v-icon>
       </div>
-      <div class="nav-item">
-        <v-icon icon="mdi-clipboard-text-outline" size="24"></v-icon>
+      <div
+        class="nav-item"
+        title="Catálogo de ejercicios"
+        @click="router.push('/trainer/exercises')"
+      >
+        <v-icon icon="mdi-dumbbell" size="24"></v-icon>
       </div>
-      <div class="nav-item">
+      <div class="nav-item" title="Próximamente">
         <v-icon icon="mdi-chart-line" size="24"></v-icon>
       </div>
-      <div class="nav-item">
+      <div class="nav-item" title="Próximamente">
         <v-icon icon="mdi-cog-outline" size="24"></v-icon>
       </div>
 
