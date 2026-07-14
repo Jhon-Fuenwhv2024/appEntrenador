@@ -15,6 +15,7 @@
 11. **010 · Motor de ejecución de rutina** — composable `useWorkoutSession` (series, descanso, auto-avance).
 12. **011 · Workout Player UI** — modo Comenzar mobile-first con media y registro de peso/reps.
 13. **012 · Persistencia de sesión** — logs en DB + historial visible al trainer.
+14. **013 · Contraste UI + responsive mobile** — tokens `on-primary`/`on-success`, CTAs legibles y pass mobile en vistas principales.
 
 ## Siguiente
 

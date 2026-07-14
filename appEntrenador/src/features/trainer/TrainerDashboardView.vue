@@ -1,13 +1,14 @@
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
-import AppLogo from '../../components/AppLogo.vue';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { clearSession } from '../../shared/auth/session.js';
-import { getClients } from './api/clientsApi.js';
+import AppShell from '../../shared/layout/AppShell.vue';
+import { getClients, getTrainerDashboard } from './api/clientsApi.js';
 import { generateInvitationLink } from './api/invitationsApi.js';
 import ClientsList from './components/ClientsList.vue';
 import InviteClientAction from './components/InviteClientAction.vue';
+import TrainerMonthlyActivityChart from './components/TrainerMonthlyActivityChart.vue';
 import TrainerStatsSummary from './components/TrainerStatsSummary.vue';
 
 /** Tiempo que el link permanece visible antes de ocultarse solo. */
@@ -21,6 +22,13 @@ const isGeneratingInvitation = shallowRef(false);
 const searchQuery = shallowRef('');
 const loadingClients = shallowRef(true);
 const clients = ref([]);
+const dashboardStats = reactive({
+  clientsCount: 0,
+  routinesCount: 0,
+  sessionsThisMonth: 0,
+  growthPercent: 0,
+  monthlyActivity: [],
+});
 let inviteLinkHideTimer = null;
 
 const snackbar = reactive({
@@ -42,17 +50,12 @@ const currentDateLabel = computed(() => {
     .join(', ');
 });
 
-const clientsWithStatus = computed(() => clients.value.map((client, index) => ({
-  ...client,
-  status: index % 4 === 0 ? 'Inactivo' : (index % 3 === 0 ? 'Pendiente' : 'Activo'),
-})));
-
 const filteredClients = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
 
-  if (!query) return clientsWithStatus.value;
+  if (!query) return clients.value;
 
-  return clientsWithStatus.value.filter((client) => (
+  return clients.value.filter((client) => (
     client.nombre.toLowerCase().includes(query)
     || client.username.toLowerCase().includes(query)
   ));
@@ -76,6 +79,35 @@ const showNotification = (text, color = 'success') => {
   snackbar.color = color;
 };
 
+const loadDashboard = async () => {
+  try {
+    const response = await getTrainerDashboard();
+    const data = response.data?.data || {};
+
+    dashboardStats.clientsCount = Number(data.clientsCount) || 0;
+    dashboardStats.routinesCount = Number(data.routinesCount) || 0;
+    dashboardStats.sessionsThisMonth = Number(data.sessionsThisMonth) || 0;
+    dashboardStats.growthPercent = Number(data.growthPercent) || 0;
+    dashboardStats.monthlyActivity = Array.isArray(data.monthlyActivity)
+      ? data.monthlyActivity
+      : [];
+  } catch (error) {
+    console.error('Error al cargar dashboard:', error);
+    // Fallback desde lista de alumnos ya cargada (evita mostrar 0 si el endpoint falla)
+    syncStatsFromClients();
+    showNotification(getApiErrorMessage(error, 'Error al cargar métricas'), 'error');
+  }
+};
+
+const syncStatsFromClients = () => {
+  const list = clients.value;
+  dashboardStats.clientsCount = list.length;
+  dashboardStats.routinesCount = list.reduce(
+    (sum, client) => sum + (Number(client.routines_count) || 0),
+    0,
+  );
+};
+
 const loadClients = async () => {
   try {
     loadingClients.value = true;
@@ -83,6 +115,10 @@ const loadClients = async () => {
 
     if (response.data.success) {
       clients.value = response.data.clients ?? [];
+      // Si el dashboard aún no llegó o falló, al menos reflejar alumnos/rutinas reales
+      if (dashboardStats.clientsCount === 0 && clients.value.length > 0) {
+        syncStatsFromClients();
+      }
     }
   } catch (error) {
     console.error('Error al cargar alumnos:', error);
@@ -115,20 +151,14 @@ const scheduleInviteLinkHide = () => {
   }, INVITE_LINK_VISIBLE_MS);
 };
 
-const copyInvitationLink = async ({ silent = false } = {}) => {
+const copyInvitationLink = async () => {
   if (!invitationLink.value) return false;
 
   try {
     await navigator.clipboard.writeText(invitationLink.value);
-    if (!silent) {
-      showNotification('Copiado al portapapeles', 'info');
-    }
     return true;
   } catch (error) {
-    console.error('Error al copiar invitación:', error);
-    if (!silent) {
-      showNotification('No se pudo copiar el link', 'error');
-    }
+    console.error('No se pudo copiar el link:', error);
     return false;
   }
 };
@@ -137,23 +167,11 @@ const handleGenerateInvite = async () => {
   try {
     isGeneratingInvitation.value = true;
     const response = await generateInvitationLink();
-
-    if (!response.data.success) {
-      showNotification('No se pudo generar el link', 'error');
-      return;
-    }
-
-    const link = buildInvitationLink(response.data);
-
-    if (!link) {
-      showNotification('El servidor no devolvió un link de invitación', 'error');
-      return;
-    }
-
-    invitationLink.value = link;
+    const payload = response.data?.data || response.data || {};
+    invitationLink.value = buildInvitationLink(payload);
     scheduleInviteLinkHide();
 
-    const copied = await copyInvitationLink({ silent: true });
+    const copied = await copyInvitationLink();
     showNotification(
       copied
         ? 'Link generado y copiado al portapapeles'
@@ -194,7 +212,7 @@ onMounted(() => {
   }
 
   userName.value = storedName || '';
-  loadClients();
+  Promise.all([loadClients(), loadDashboard()]);
 });
 
 onUnmounted(() => {
@@ -203,35 +221,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="dashboard-bg">
-    <nav class="sidebar-pill">
-      <div class="logo-wrap">
-        <AppLogo size="md" />
-      </div>
-
-      <div class="nav-item active" title="Dashboard">
-        <v-icon icon="mdi-view-dashboard-outline" size="24"></v-icon>
-      </div>
-      <div
-        class="nav-item"
-        title="Catálogo de ejercicios"
-        @click="router.push('/trainer/exercises')"
-      >
-        <v-icon icon="mdi-dumbbell" size="24"></v-icon>
-      </div>
-      <div class="nav-item" title="Próximamente">
-        <v-icon icon="mdi-chart-line" size="24"></v-icon>
-      </div>
-      <div class="nav-item" title="Próximamente">
-        <v-icon icon="mdi-cog-outline" size="24"></v-icon>
-      </div>
-
-      <div class="nav-item nav-bottom mb-0" title="Cerrar Sesión" @click="handleLogout">
-        <v-icon icon="mdi-logout-variant" size="24"></v-icon>
-      </div>
-    </nav>
-
-    <main class="main-content flex-grow-1">
+  <AppShell role="trainer" active="dashboard">
+    <main class="main-content flex-grow-1 trainer-dash-main">
       <header class="dashboard-header">
         <div class="header-left">
           <div class="header-date">
@@ -245,11 +236,9 @@ onUnmounted(() => {
         </div>
 
         <div class="header-right">
-          <v-badge content="3" color="#00E5FF" text-color="#0B0D12" offset-x="4" offset-y="4">
-            <button type="button" class="notification-btn" aria-label="Notificaciones">
-              <v-icon icon="mdi-bell-outline" size="20" color="#8B929E"></v-icon>
-            </button>
-          </v-badge>
+          <button type="button" class="notification-btn" aria-label="Notificaciones" disabled>
+            <v-icon icon="mdi-bell-outline" size="20" color="#8B929E"></v-icon>
+          </button>
 
           <div class="profile-pill">
             <div class="profile-avatar">{{ getInitials(userName) }}</div>
@@ -258,74 +247,115 @@ onUnmounted(() => {
               <div class="profile-role">Entrenador</div>
             </div>
           </div>
+
+          <button
+            type="button"
+            class="header-logout-btn"
+            title="Cerrar sesión"
+            aria-label="Cerrar sesión"
+            @click="handleLogout"
+          >
+            <v-icon icon="mdi-logout-variant" size="20" />
+          </button>
         </div>
       </header>
 
-      <TrainerStatsSummary :clients-count="clients.length" />
-
-      <div class="content-grid">
-        <div class="chart-card">
-          <div class="chart-header">
-            <div>
-              <h3 class="section-title">Actividad Mensual</h3>
-              <p class="section-subtitle">Crecimiento de alumnos y planes activos</p>
-            </div>
-            <div class="chart-legend">
-              <span class="legend-item"><span class="dot bg-cyan"></span>Alumnos</span>
-              <span class="legend-item"><span class="dot bg-green"></span>Rutinas</span>
-              <span class="legend-item"><span class="dot bg-orange"></span>Dietas</span>
-            </div>
-          </div>
-
-          <div class="chart-container">
-            <div class="y-axis">
-              <span>28</span>
-              <span>21</span>
-              <span>14</span>
-              <span>7</span>
-            </div>
-            <svg viewBox="0 0 620 220" preserveAspectRatio="none" class="chart-svg">
-              <defs>
-                <linearGradient id="cyan-gradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.35" />
-                  <stop offset="100%" stop-color="#00E5FF" stop-opacity="0" />
-                </linearGradient>
-              </defs>
-              <line x1="0" y1="55" x2="620" y2="55" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
-              <line x1="0" y1="110" x2="620" y2="110" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
-              <line x1="0" y1="165" x2="620" y2="165" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
-              <path d="M0,155 Q80,145 160,135 T320,120 T480,95 T620,75" fill="none" stroke="#FF9800" stroke-width="2" stroke-linecap="round" />
-              <path d="M0,145 Q80,130 160,118 T320,105 T480,78 T620,58" fill="none" stroke="#4CAF50" stroke-width="2" stroke-linecap="round" />
-              <path d="M0,130 Q80,115 160,100 T320,82 T480,52 T620,32" fill="none" stroke="#00E5FF" stroke-width="2.5" stroke-linecap="round" />
-              <path d="M0,130 Q80,115 160,100 T320,82 T480,52 T620,32 L620,220 L0,220 Z" fill="url(#cyan-gradient)" />
-            </svg>
-          </div>
+      <div class="trainer-dash-body">
+        <div class="stack-stats">
+          <TrainerStatsSummary
+            :clients-count="dashboardStats.clientsCount"
+            :routines-count="dashboardStats.routinesCount"
+            :sessions-this-month="dashboardStats.sessionsThisMonth"
+            :growth-percent="dashboardStats.growthPercent"
+          />
         </div>
 
-        <InviteClientAction
-          :loading="isGeneratingInvitation"
-          :invitation-link="invitationLink"
-          @generate-invite="handleGenerateInvite"
-          @copy-invite="copyInvitationLink"
-          @open-routines-hint="showNotification('Selecciona un alumno en la lista de la derecha para asignar rutinas', 'info')"
+        <ClientsList
+          v-model:search-query="searchQuery"
+          :clients="filteredClients"
+          :loading="loadingClients"
+          @select-client="openClientRoutines"
         />
+
+        <div class="stack-content content-grid">
+          <TrainerMonthlyActivityChart :months="dashboardStats.monthlyActivity" />
+
+          <InviteClientAction
+            :loading="isGeneratingInvitation"
+            :invitation-link="invitationLink"
+            @generate-invite="handleGenerateInvite"
+            @copy-invite="copyInvitationLink"
+            @open-routines-hint="showNotification('Selecciona un alumno en la lista de alumnos para asignar rutinas', 'info')"
+          />
+        </div>
       </div>
     </main>
+  </AppShell>
 
-    <ClientsList
-      v-model:search-query="searchQuery"
-      :clients="filteredClients"
-      :loading="loadingClients"
-      @select-client="openClientRoutines"
-    />
-
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top right">
-      {{ snackbar.text }}
-      <template v-slot:actions>
-        <v-btn variant="text" @click="snackbar.show = false">Cerrar</v-btn>
-      </template>
-    </v-snackbar>
-  </div>
+  <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top">
+    {{ snackbar.text }}
+    <template v-slot:actions>
+      <v-btn variant="text" @click="snackbar.show = false">Cerrar</v-btn>
+    </template>
+  </v-snackbar>
 </template>
 
 <style src="../../assets/trainerDashboard.css" scoped></style>
+
+<style scoped>
+.trainer-dash-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.trainer-dash-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 960px) {
+  :deep(.right-panel) {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    max-height: 42vh;
+    margin: 0;
+    border-radius: 16px;
+  }
+}
+
+@media (min-width: 961px) {
+  .trainer-dash-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 310px;
+    grid-template-rows: auto 1fr;
+    gap: 0 20px;
+    align-items: start;
+  }
+
+  .stack-stats {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .stack-content {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  :deep(.right-panel) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    width: 310px;
+    min-width: 310px;
+    height: calc(100vh - 160px);
+    max-height: calc(100dvh - 160px);
+    margin: 0;
+    position: sticky;
+    top: 0;
+  }
+}
+</style>

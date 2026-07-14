@@ -1,0 +1,126 @@
+/**
+ * Trainfit theme base — tokens + contraste global (menús, overlays, campos).
+ * Import once from main.js. Keep in sync with src/plugin/vuetify.js.
+ *
+ * CRÍTICO: Vuetify pinta `.v-list-item__overlay` / `.v-btn__overlay` con
+ * `background-color: currentColor` (blanco en dark). Si la opacidad sube,
+ * tapa el texto por completo. Nunca dejar que ese overlay sea opaco.
+ */
+
+:root {
+  --tf-bg: #121212;
+  --tf-surface: #1e1e1e;
+  --tf-surface-elevated: #2a2a2a;
+  --tf-surface-variant: #2a3038;
+  --tf-on-surface: #ffffff;
+  --tf-on-surface-muted: #8b929e;
+  --tf-primary: #00e5ff;
+  --tf-on-primary: #0b0d12;
+  --tf-success: #00e676;
+  --tf-on-success: #0b0d12;
+  --tf-error: #ff5252;
+  --tf-on-error: #ffffff;
+  --tf-border: rgba(255, 255, 255, 0.08);
+  --tf-menu-hover: rgba(0, 229, 255, 0.16);
+}
+
+/* ---- Overlays de estado: NUNCA opacos / NUNCA blanco sólido ---- */
+.v-list-item__overlay,
+.v-btn__overlay,
+.v-card__overlay,
+.v-chip__overlay,
+.v-field__overlay {
+  background-color: var(--tf-primary) !important;
+  opacity: 0 !important;
+}
+
+.v-list-item:hover > .v-list-item__overlay,
+.v-list-item:focus > .v-list-item__overlay,
+.v-list-item:focus-visible > .v-list-item__overlay,
+.v-list-item--active > .v-list-item__overlay,
+.v-list-item--active:hover > .v-list-item__overlay,
+.v-list-item--active:focus-visible > .v-list-item__overlay,
+.v-btn:hover > .v-btn__overlay,
+.v-btn:focus-visible > .v-btn__overlay,
+.v-btn--active > .v-btn__overlay {
+  opacity: 0 !important;
+}
+
+.v-list-item__underlay {
+  background-color: transparent !important;
+  opacity: 0 !important;
+}
+
+/* ---- Menús teleported (select / combobox / autocomplete) ---- */
+.tf-overlay-menu,
+.v-overlay-container .v-list {
+  --v-theme-overlay-multiplier: 0;
+  overflow-x: hidden !important;
+}
+
+.tf-overlay-menu .v-list,
+.v-overlay-container .v-list {
+  background: var(--tf-surface) !important;
+  background-color: var(--tf-surface) !important;
+  color: var(--tf-on-surface) !important;
+  padding: 4px 0 !important;
+}
+
+.tf-overlay-menu .v-list-item,
+.v-overlay-container .v-list-item {
+  color: var(--tf-on-surface) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  min-height: 40px;
+  opacity: 1 !important;
+}
+
+.tf-overlay-menu .v-list-item-title,
+.tf-overlay-menu .v-list-item-subtitle,
+.v-overlay-container .v-list-item-title,
+.v-overlay-container .v-list-item-subtitle {
+  color: var(--tf-on-surface) !important;
+  opacity: 1 !important;
+  z-index: 1;
+  position: relative;
+}
+
+.tf-overlay-menu .v-list-item:hover,
+.tf-overlay-menu .v-list-item--active,
+.tf-overlay-menu .v-list-item[aria-selected='true'],
+.v-overlay-container .v-list-item:hover,
+.v-overlay-container .v-list-item--active,
+.v-overlay-container .v-list-item[aria-selected='true'] {
+  background: var(--tf-menu-hover) !important;
+  background-color: var(--tf-menu-hover) !important;
+  color: var(--tf-on-surface) !important;
+}
+
+.tf-overlay-menu .v-list-item--active .v-list-item-title,
+.tf-overlay-menu .v-list-item[aria-selected='true'] .v-list-item-title,
+.v-overlay-container .v-list-item--active .v-list-item-title,
+.v-overlay-container .v-list-item[aria-selected='true'] .v-list-item-title {
+  color: var(--tf-primary) !important;
+  font-weight: 600;
+}
+
+/* Campos / botones outlined: evitar fondos blancos “fantasma” */
+.v-field {
+  --v-theme-surface: 30, 30, 30;
+}
+
+.v-btn.v-btn--variant-outlined,
+.v-btn.v-btn--variant-text {
+  color: var(--tf-on-surface-muted);
+}
+
+.v-btn.v-btn--variant-outlined {
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  background: transparent !important;
+}
+
+.v-btn.v-btn--variant-flat.bg-primary,
+.v-btn.v-btn--variant-elevated.bg-primary,
+.v-btn.bg-primary {
+  color: var(--tf-on-primary) !important;
+}

@@ -1,8 +1,8 @@
 <script setup>
 import { onMounted, reactive, ref, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
-import AppLogo from '../../components/AppLogo.vue';
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
+import AppShell from '../../shared/layout/AppShell.vue';
 import ExerciseCatalogForm from './components/ExerciseCatalogForm.vue';
 import ExerciseCatalogList from './components/ExerciseCatalogList.vue';
 import { useExercisesCatalog } from './composables/useExercisesCatalog.js';
@@ -114,22 +114,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="dashboard-bg">
-    <nav class="sidebar-pill">
-      <div class="logo-wrap">
-        <AppLogo size="md" />
-      </div>
-      <div class="nav-item" title="Dashboard" @click="router.push('/dashboard')">
-        <v-icon icon="mdi-view-dashboard-outline" size="24"></v-icon>
-      </div>
-      <div class="nav-item active" title="Catálogo de ejercicios">
-        <v-icon icon="mdi-dumbbell" size="24"></v-icon>
-      </div>
-      <div class="nav-item nav-bottom mb-0" title="Cerrar Sesión" @click="handleLogout">
-        <v-icon icon="mdi-logout-variant" size="24"></v-icon>
-      </div>
-    </nav>
-
+  <AppShell role="trainer" active="exercises">
     <main class="main-content flex-grow-1 overflow-y-auto">
       <header class="dashboard-header">
         <div class="header-left">
@@ -147,9 +132,20 @@ onMounted(async () => {
             Crea, edita (GIF/video/descripción) o elimina ejercicios del catálogo.
           </p>
         </div>
+        <div class="header-right">
+          <button
+            type="button"
+            class="header-logout-btn"
+            title="Cerrar sesión"
+            aria-label="Cerrar sesión"
+            @click="handleLogout"
+          >
+            <v-icon icon="mdi-logout-variant" size="20" />
+          </button>
+        </div>
       </header>
 
-      <div class="pa-8 pt-0">
+      <div class="content-panel pt-0">
         <v-row>
           <v-col cols="12" md="4">
             <div class="functional-card">
@@ -188,11 +184,11 @@ onMounted(async () => {
         </v-row>
       </div>
     </main>
+  </AppShell>
 
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top right">
-      {{ snackbar.text }}
-    </v-snackbar>
-  </div>
+  <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top">
+    {{ snackbar.text }}
+  </v-snackbar>
 </template>
 
 <style src="../../assets/trainerDashboard.css" scoped></style>
@@ -203,5 +199,11 @@ onMounted(async () => {
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
   padding: 1.5rem;
+}
+
+@media (max-width: 600px) {
+  .functional-card {
+    padding: 1rem;
+  }
 }
 </style>

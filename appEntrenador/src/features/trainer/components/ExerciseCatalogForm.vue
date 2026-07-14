@@ -122,6 +122,9 @@ defineExpose({ resetForm });
       label="Grupo muscular"
       density="compact"
       class="mb-3"
+      color="primary"
+      bg-color="surface"
+      :menu-props="{ contentClass: 'tf-overlay-menu', maxHeight: 280 }"
       :disabled="props.saving"
     />
 
@@ -143,6 +146,9 @@ defineExpose({ resetForm });
       label="Tipo de media"
       density="compact"
       class="mb-3"
+      color="primary"
+      bg-color="surface"
+      :menu-props="{ contentClass: 'tf-overlay-menu', maxHeight: 280 }"
       :disabled="props.saving"
     />
 
@@ -159,8 +165,8 @@ defineExpose({ resetForm });
 
     <v-btn
       type="submit"
-      color="#00E5FF"
-      class="text-black font-weight-bold"
+      color="primary"
+      class="font-weight-bold"
       block
       :loading="props.saving"
       :disabled="!form.name.trim()"

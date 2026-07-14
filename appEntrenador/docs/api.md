@@ -78,9 +78,37 @@ Respuesta exitosa:
 
 ## Clientes (trainer + JWT)
 
+### `GET /trainer/dashboard`
+
+Métricas del portal trainer (solo alumnos propios).
+
+Respuesta `data`:
+
+```json
+{
+  "clientsCount": 2,
+  "routinesCount": 5,
+  "sessionsThisMonth": 3,
+  "growthPercent": 100,
+  "clientsThisMonth": 1,
+  "clientsLastMonth": 0,
+  "monthlyActivity": [
+    { "month": "2026-02", "label": "feb", "clients": 1, "sessions": 0 },
+    { "month": "2026-07", "label": "jul", "clients": 2, "sessions": 3 }
+  ]
+}
+```
+
+- `routinesCount`: rutinas asignadas a alumnos del trainer.
+- `sessionsThisMonth`: sesiones `completed` del mes actual.
+- `growthPercent`: variación MoM de alumnos nuevos (`created_at`).
+- `monthlyActivity`: últimos 6 meses; `clients` = acumulado; `sessions` = del mes.
+
 ### `GET /clients`
 
 Devuelve solo los clientes con `trainer_id = req.user.id`.
+
+Cada ítem incluye `routines_count` y `status` (`Activo` si tiene ≥1 rutina, `Sin plan` si no).
 
 ### `GET /clients/:clientId`
 

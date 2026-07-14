@@ -28,6 +28,14 @@ const getInitials = (name) => {
 
   return name.substring(0, 2).toUpperCase();
 };
+
+const statusClass = (status) => {
+  const normalized = String(status || 'Activo').toLowerCase().trim();
+  if (normalized === 'sin plan') return 'sin-plan';
+  if (normalized === 'inactivo') return 'inactivo';
+  if (normalized === 'pendiente') return 'pendiente';
+  return 'activo';
+};
 </script>
 
 <template>
@@ -52,7 +60,7 @@ const getInitials = (name) => {
       </div>
     </div>
 
-    <v-progress-linear v-if="loading" indeterminate color="#00E5FF" class="students-loader"></v-progress-linear>
+    <v-progress-linear v-if="loading" indeterminate color="primary" class="students-loader"></v-progress-linear>
 
     <div v-else-if="clients.length === 0" class="students-empty">
       <p>No hay alumnos registrados.</p>
@@ -78,7 +86,7 @@ const getInitials = (name) => {
             <span class="student-username">@{{ client.username }}</span>
             <span
               class="status-chip"
-              :class="'chip-' + (client.status ? client.status.toLowerCase() : 'activo')"
+              :class="'chip-' + statusClass(client.status)"
             >
               {{ client.status || 'Activo' }}
             </span>

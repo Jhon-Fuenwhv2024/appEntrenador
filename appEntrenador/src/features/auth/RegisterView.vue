@@ -66,7 +66,7 @@ const handleRegister = async () => {
 
 <template>
   <div class="login-wrapper">
-    <v-card class="elevation-24 pa-8 login-card" width="100%" max-width="420" color="surface">
+    <v-card class="elevation-24 pa-8 login-card" color="surface">
       <div class="app-brand">
         <div class="app-brand-icon">
           <AppLogo size="lg" />
@@ -74,9 +74,9 @@ const handleRegister = async () => {
         <span class="app-brand-name">{{ APP_NAME }}</span>
       </div>
       <h2 class="text-primary font-weight-bold login-title text-center mb-2">Crear Cuenta</h2>
-      <p class="text-body-2 text-center mb-6 text-grey">Completa tus datos para unirte.</p>
+      <p class="text-body-2 text-center mb-4 text-grey">Completa tus datos para unirte.</p>
 
-      <v-card-text>
+      <v-card-text class="px-0 pb-0">
         <v-form @submit.prevent="handleRegister">
           <v-text-field
             v-model="nombre"
@@ -84,8 +84,9 @@ const handleRegister = async () => {
             prepend-icon="mdi-badge-account"
             color="primary"
             required
-            density="compact"
-            class="mb-2"
+            density="comfortable"
+            hide-details="auto"
+            class="mb-3"
           />
 
           <v-text-field
@@ -94,8 +95,9 @@ const handleRegister = async () => {
             prepend-icon="mdi-account"
             color="primary"
             required
-            density="compact"
-            class="mb-2"
+            density="comfortable"
+            hide-details="auto"
+            class="mb-3"
           />
 
           <v-text-field
@@ -106,7 +108,8 @@ const handleRegister = async () => {
             :type="showPassword ? 'text' : 'password'"
             color="primary"
             required
-            density="compact"
+            density="comfortable"
+            hide-details="auto"
             @click:append-inner="showPassword = !showPassword"
           />
 
@@ -119,7 +122,13 @@ const handleRegister = async () => {
             {{ alertMessage }}
           </v-alert>
 
-          <v-btn type="submit" block color="primary" class="mt-6 text-black font-weight-bold" size="large">
+          <v-btn
+            type="submit"
+            block
+            color="primary"
+            class="mt-6 font-weight-bold login-submit-btn"
+            size="large"
+          >
             Registrarse
           </v-btn>
         </v-form>

@@ -41,7 +41,21 @@ async function getClientById(req, res) {
   }
 }
 
+async function getDashboard(req, res) {
+  try {
+    const data = await clientsService.getDashboardStats(req.user.id);
+
+    return res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error al consultar dashboard del trainer:');
+  }
+}
+
 module.exports = {
   getClients,
   getClientById,
+  getDashboard,
 };

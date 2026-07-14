@@ -63,7 +63,7 @@ function mediaLabel(item) {
       />
     </div>
 
-    <v-progress-linear v-if="loading" indeterminate color="#00E5FF" class="mb-4" />
+    <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
 
     <p v-else-if="exercises.length === 0" class="text-medium-emphasis mb-0">
       No hay ejercicios que coincidan. Crea uno a la izquierda o ajusta la búsqueda.
@@ -120,7 +120,7 @@ function mediaLabel(item) {
             <v-btn
               size="small"
               variant="text"
-              color="#00E5FF"
+              color="primary"
               @click="$emit('edit', item)"
             >
               Editar
@@ -143,7 +143,7 @@ function mediaLabel(item) {
       >
         <v-btn
           variant="outlined"
-          color="#00E5FF"
+          color="primary"
           :disabled="!canGoPrev || loading"
           prepend-icon="mdi-chevron-left"
           @click="$emit('prevPage')"
@@ -155,7 +155,7 @@ function mediaLabel(item) {
         </span>
         <v-btn
           variant="outlined"
-          color="#00E5FF"
+          color="primary"
           :disabled="!canGoNext || loading"
           append-icon="mdi-chevron-right"
           @click="$emit('nextPage')"
@@ -176,12 +176,24 @@ function mediaLabel(item) {
 .search-field {
   max-width: 280px;
   min-width: 200px;
+  width: 100%;
 }
 
 .exercise-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 0.75rem;
+}
+
+@media (max-width: 600px) {
+  .search-field {
+    max-width: none;
+    min-width: 0;
+  }
+
+  .exercise-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .exercise-card {

@@ -1,0 +1,35 @@
+---
+description: Contraste y tema oscuro Trainfit (Vuetify tokens, menús, overlays)
+globs: src/**/*.{vue,js,css}
+alwaysApply: true
+---
+
+# UI contraste y tema Trainfit
+
+## Fuente de verdad
+
+- Tokens: `src/plugin/vuetify.js` (`dark: true`).
+- CSS base: `src/assets/theme-base.css` (importado en `main.js`).
+- ADR: `docs/decisions/ADR-0001-contrast-on-primary.md`.
+
+## Causa conocida del “blanco que tapa el texto”
+
+Vuetify usa `.v-list-item__overlay` / `.v-btn__overlay` con `background-color: currentColor`.
+En tema dark `currentColor` es blanco → si la opacidad sube, **el texto desaparece bajo un rectángulo blanco**.
+La corrección vive en `theme-base.css` (overlays a `opacity: 0`; hover/active con fondo cian suave).
+
+## Reglas obligatorias
+
+1. Primary/success claros: texto = `on-primary` / `on-success` (`#0B0D12`). Nunca texto claro sobre filled primary.
+2. CTAs filled: `color="primary"`, no hex `#00E5FF`.
+3. Tema dark siempre con `dark: true` y `surface-variant` **oscuro** (nunca `#c8c8c8`).
+4. Selects/combobox: `menu-props` con `contentClass: 'tf-overlay-menu'` (o defaults del plugin).
+5. **Nunca** reactivar overlays Vuetify opacos; si hace falta hover, usar `background` del item, no `__overlay`.
+6. No confiar en `text-black` como arreglo de contraste.
+
+## Checklist al tocar UI
+
+- [ ] CTA primary: texto oscuro legible
+- [ ] Select abierto: todos los días/opciones legibles (sin barras blancas)
+- [ ] Botones outlined: sin relleno blanco sólido
+- [ ] Móvil ~390px: menú sin overflow horizontal

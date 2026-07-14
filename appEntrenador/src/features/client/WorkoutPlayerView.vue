@@ -149,7 +149,7 @@ onMounted(() => {
       </div>
     </header>
 
-    <v-progress-linear v-if="loading" indeterminate color="#00E5FF" class="mx-4" />
+    <v-progress-linear v-if="loading" indeterminate color="primary" class="mx-4" />
 
     <v-alert v-else-if="loadError" type="error" variant="tonal" class="ma-4">
       {{ loadError }}
@@ -215,18 +215,18 @@ onMounted(() => {
     </main>
 
     <main v-else-if="phase === 'finished'" class="player-main player-main--done">
-      <v-icon icon="mdi-check-circle-outline" size="56" color="#00E5FF" class="mb-3" />
+      <v-icon icon="mdi-check-circle-outline" size="56" color="primary" class="mb-3" />
       <h1 class="player-title">¡Rutina terminada!</h1>
       <p class="player-rest-copy mb-4">
         Registraste {{ logs.length }} serie(s). Tu entrenador podrá ver el peso y las reps.
       </p>
-      <v-progress-linear v-if="saving" indeterminate color="#00E5FF" class="mb-4" />
+      <v-progress-linear v-if="saving" indeterminate color="primary" class="mb-4" />
       <v-alert v-if="saveError" type="error" variant="tonal" class="mb-4 text-left">
         {{ saveError }}
         <v-btn
-          class="mt-2"
           size="small"
-          color="#00E5FF"
+          color="primary"
+          class="font-weight-bold mt-2"
           :loading="saving"
           @click="persistSession"
         >
@@ -252,6 +252,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   font-family: 'Inter', system-ui, sans-serif;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .player-top {

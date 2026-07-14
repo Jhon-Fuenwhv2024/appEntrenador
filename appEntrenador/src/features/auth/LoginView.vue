@@ -47,7 +47,7 @@ const handleLogin = async () => {
 
 <template>
   <div class="login-wrapper">
-    <v-card class="elevation-24 pa-8 login-card" width="100%" max-width="420" color="surface">
+    <v-card class="elevation-24 pa-8 login-card" color="surface">
       <div class="app-brand">
         <div class="app-brand-icon">
           <AppLogo size="lg" />
@@ -56,7 +56,7 @@ const handleLogin = async () => {
       </div>
       <h2 class="text-primary font-weight-bold login-title">Iniciar Sesión</h2>
 
-      <v-card-text>
+      <v-card-text class="px-0 pb-0">
         <v-form @submit.prevent="handleLogin">
           <v-text-field
             v-model="username"
@@ -64,8 +64,9 @@ const handleLogin = async () => {
             prepend-icon="mdi-account"
             color="primary"
             required
-            density="compact"
-            class="mb-2"
+            density="comfortable"
+            hide-details="auto"
+            class="mb-3"
           />
 
           <v-text-field
@@ -76,7 +77,8 @@ const handleLogin = async () => {
             :type="showPassword ? 'text' : 'password'"
             color="primary"
             required
-            density="compact"
+            density="comfortable"
+            hide-details="auto"
             @click:append-inner="showPassword = !showPassword"
           />
 
@@ -89,7 +91,13 @@ const handleLogin = async () => {
             {{ errorMessage }}
           </v-alert>
 
-          <v-btn type="submit" block color="primary" class="mt-6 text-black font-weight-bold" size="large">
+          <v-btn
+            type="submit"
+            block
+            color="primary"
+            class="mt-6 font-weight-bold login-submit-btn"
+            size="large"
+          >
             Entrar
           </v-btn>
         </v-form>

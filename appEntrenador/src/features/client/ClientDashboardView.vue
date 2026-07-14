@@ -2,9 +2,9 @@
 import { computed, onMounted, ref, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { APP_NAME } from '../../config/app.js';
-import AppLogo from '../../components/AppLogo.vue';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
+import AppShell from '../../shared/layout/AppShell.vue';
 import { getMyRoutines } from './api/routinesApi.js';
 
 const DAY_ORDER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -95,30 +95,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="dashboard-bg">
-    <nav class="sidebar-pill">
-      <div class="logo-wrap">
-        <AppLogo size="md" />
-      </div>
-
-      <div class="nav-item active">
-        <v-icon icon="mdi-view-dashboard-outline" size="24"></v-icon>
-      </div>
-      <div class="nav-item">
-        <v-icon icon="mdi-calendar-check" size="24"></v-icon>
-      </div>
-      <div class="nav-item">
-        <v-icon icon="mdi-food-apple" size="24"></v-icon>
-      </div>
-      <div class="nav-item">
-        <v-icon icon="mdi-cog-outline" size="24"></v-icon>
-      </div>
-
-      <div class="nav-item nav-bottom mb-0" title="Cerrar Sesión" @click="handleLogout">
-        <v-icon icon="mdi-logout-variant" size="24"></v-icon>
-      </div>
-    </nav>
-
+  <AppShell role="client" active="dashboard">
     <main class="main-content flex-grow-1 overflow-y-auto">
       <header class="dashboard-header">
         <div class="header-left">
@@ -140,11 +117,21 @@ onMounted(() => {
               <div class="profile-role">Cliente</div>
             </div>
           </div>
+
+          <button
+            type="button"
+            class="header-logout-btn"
+            title="Cerrar sesión"
+            aria-label="Cerrar sesión"
+            @click="handleLogout"
+          >
+            <v-icon icon="mdi-logout-variant" size="20" />
+          </button>
         </div>
       </header>
 
-      <div class="pa-8 pt-0">
-        <v-progress-linear v-if="loading" indeterminate color="#00E5FF" class="mb-6" />
+      <div class="content-panel pt-0">
+        <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-6" />
 
         <v-alert v-else-if="loadError" type="error" variant="tonal" class="mb-6">
           {{ loadError }}
@@ -172,8 +159,8 @@ onMounted(() => {
                     </div>
                   </div>
                   <v-btn
-                    color="#00E5FF"
-                    class="text-black font-weight-bold"
+                    color="primary"
+                    class="font-weight-bold client-start-btn"
                     size="large"
                     prepend-icon="mdi-play"
                     :to="{ name: 'WorkoutPlayer', params: { routineId: sesionHoy.id } }"
@@ -229,7 +216,7 @@ onMounted(() => {
         </template>
       </div>
     </main>
-  </div>
+  </AppShell>
 </template>
 
 <style src="../../assets/clientDashboard.css" scoped></style>

@@ -4,6 +4,7 @@ import vuetify from './plugin/vuetify'
 import router from './router'
 import { APP_NAME, APP_FAVICON } from './config/app.js'
 import '@mdi/font/css/materialdesignicons.css'
+import './assets/theme-base.css'
 
 document.title = APP_NAME
 

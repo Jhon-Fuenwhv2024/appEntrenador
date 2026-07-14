@@ -740,6 +740,11 @@ LISTA DE ALUMNOS
   color: #F59E0B;
 }
 
+.chip-sin-plan {
+  background: #2A1F0F;
+  color: #F59E0B;
+}
+
 .chip-inactivo {
   background: #2A1212;
   color: #EF4444;
@@ -773,63 +778,133 @@ RESPONSIVE
 }
 
 @media (max-width: 960px) {
-  .dashboard-bg {
-    flex-direction: column;
-    height: auto;
-    min-height: 100vh;
-  }
-
-  .sidebar-pill {
-    width: 100%;
-    min-width: 100%;
-    height: auto;
-    flex-direction: row;
-    justify-content: space-around;
-    padding: 12px;
-    border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  }
-
-  .logo-wrap,
-  .nav-bottom {
-    display: none;
-  }
-
-  .nav-item {
-    margin-bottom: 0;
-  }
-
-  .nav-item.active::after {
-    display: none;
-  }
-
   .main-content {
     padding: 16px;
   }
 
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
   }
 
-  .right-panel {
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stat-card {
+    min-height: 0;
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .stat-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  .stat-card-top {
+    margin-bottom: 8px;
+  }
+
+  .growth-badge {
+    padding: 2px 6px;
+    font-size: 10px;
+  }
+
+  /* Clients list sits in the main flow on mobile */
+  .trainer-dash-body .right-panel {
     width: 100%;
-    min-width: 100%;
+    min-width: 0;
     height: auto;
-    margin: 0;
-    border-radius: 0;
-    border-left: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    max-height: 42vh;
+    margin: 0 0 12px;
+    border-radius: 16px;
+  }
+
+  .trainer-dash-body {
+    display: flex;
+    flex-direction: column;
   }
 }
 
 @media (max-width: 600px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
+  .dashboard-header {
+    margin-bottom: 12px;
   }
 
-  .dashboard-header {
-    flex-direction: column;
-    gap: 20px;
+  .header-title {
+    font-size: 22px;
+  }
+
+  .content-panel {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-bottom: 1rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Desktop: stats + chart left, alumnos right */
+@media (min-width: 961px) {
+  .trainer-dash-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 310px;
+    grid-template-rows: auto 1fr;
+    gap: 0 20px;
+    align-items: start;
+  }
+
+  .trainer-dash-body .stack-stats {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .trainer-dash-body .stack-content {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .trainer-dash-body .right-panel {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    width: 310px;
+    min-width: 310px;
+    height: calc(100vh - 160px);
+    max-height: calc(100dvh - 160px);
+    margin: 0;
+    position: sticky;
+    top: 0;
+  }
+}
+
+/* Content panels used by catalog / client routines (replace fixed pa-8) */
+.content-panel {
+  padding: 2rem;
+  padding-top: 0;
+}
+
+@media (max-width: 960px) {
+  .content-panel {
+    padding: 0.5rem 0 1rem;
   }
 }
 

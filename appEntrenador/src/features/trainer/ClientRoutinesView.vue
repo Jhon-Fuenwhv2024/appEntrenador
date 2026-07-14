@@ -1,9 +1,9 @@
 <script setup>
 import { computed, onMounted, reactive, ref, shallowRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import AppLogo from '../../components/AppLogo.vue';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
+import AppShell from '../../shared/layout/AppShell.vue';
 import { getClientById } from './api/clientsApi.js';
 import { createExercise, getExercises } from './api/exercisesApi.js';
 import {
@@ -287,29 +287,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="dashboard-bg">
-    <nav class="sidebar-pill">
-      <div class="logo-wrap">
-        <AppLogo size="md" />
-      </div>
-      <div class="nav-item" title="Dashboard" @click="router.push('/dashboard')">
-        <v-icon icon="mdi-view-dashboard-outline" size="24"></v-icon>
-      </div>
-      <div
-        class="nav-item"
-        title="Catálogo de ejercicios"
-        @click="router.push('/trainer/exercises')"
-      >
-        <v-icon icon="mdi-dumbbell" size="24"></v-icon>
-      </div>
-      <div class="nav-item active" title="Rutinas del alumno">
-        <v-icon icon="mdi-clipboard-text-outline" size="24"></v-icon>
-      </div>
-      <div class="nav-item nav-bottom mb-0" title="Cerrar Sesión" @click="handleLogout">
-        <v-icon icon="mdi-logout-variant" size="24"></v-icon>
-      </div>
-    </nav>
-
+  <AppShell role="trainer" active="routines">
     <main class="main-content flex-grow-1 overflow-y-auto">
       <header class="dashboard-header">
         <div class="header-left">
@@ -327,10 +305,21 @@ onMounted(() => {
             @{{ client.username }}
           </p>
         </div>
+        <div class="header-right">
+          <button
+            type="button"
+            class="header-logout-btn"
+            title="Cerrar sesión"
+            aria-label="Cerrar sesión"
+            @click="handleLogout"
+          >
+            <v-icon icon="mdi-logout-variant" size="20" />
+          </button>
+        </div>
       </header>
 
-      <div class="pa-8 pt-0">
-        <v-progress-linear v-if="loading" indeterminate color="#00E5FF" class="mb-6" />
+      <div class="content-panel pt-0">
+        <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-6" />
 
         <template v-else>
           <v-row>
@@ -341,7 +330,7 @@ onMounted(() => {
                 </h3>
                 <v-btn
                   variant="text"
-                  color="#00E5FF"
+                  color="primary"
                   size="small"
                   class="mb-4 px-0"
                   prepend-icon="mdi-dumbbell"
@@ -356,6 +345,10 @@ onMounted(() => {
                   label="Día de la semana"
                   density="compact"
                   class="mb-3"
+                  color="primary"
+                  bg-color="surface"
+                  :menu-props="{ contentClass: 'tf-overlay-menu', maxHeight: 280 }"
+                  :list-props="{ bgColor: 'surface', color: undefined }"
                 />
 
                 <v-text-field
@@ -402,7 +395,7 @@ onMounted(() => {
                     v-if="ex.nombre?.trim() && !isNameInCatalog(ex.nombre)"
                     size="small"
                     variant="text"
-                    color="#00E5FF"
+                    color="primary"
                     class="mb-2 px-0"
                     :loading="savingCatalogIndex === index"
                     @click="saveExerciseToCatalog(index)"
@@ -410,13 +403,13 @@ onMounted(() => {
                     Guardar en catálogo
                   </v-btn>
                   <v-row dense>
-                    <v-col cols="4">
+                    <v-col cols="12" sm="4">
                       <v-text-field v-model.number="ex.series" type="number" label="Series" density="compact" min="1" />
                     </v-col>
-                    <v-col cols="4">
+                    <v-col cols="12" sm="4">
                       <v-text-field v-model.number="ex.repeticiones" type="number" label="Reps" density="compact" min="1" />
                     </v-col>
-                    <v-col cols="4">
+                    <v-col cols="12" sm="4">
                       <v-text-field v-model.number="ex.peso" type="number" label="Peso (kg)" density="compact" min="0" step="0.5" />
                     </v-col>
                   </v-row>
@@ -429,14 +422,14 @@ onMounted(() => {
                   />
                 </div>
 
-                <v-btn variant="outlined" color="grey" class="mb-4" block @click="addExerciseRow">
+                <v-btn variant="outlined" class="mb-4 tf-btn-muted" block @click="addExerciseRow">
                   Añadir ejercicio
                 </v-btn>
 
-                <div class="d-flex ga-2">
+                <div class="d-flex ga-2 flex-wrap routine-form-actions">
                   <v-btn
-                    color="#00E5FF"
-                    class="text-black font-weight-bold flex-grow-1"
+                    color="primary"
+                    class="font-weight-bold flex-grow-1"
                     :loading="saving"
                     @click="handleSave"
                   >
@@ -459,13 +452,13 @@ onMounted(() => {
                 :key="routine.id"
                 class="functional-card mb-4"
               >
-                <div class="d-flex justify-space-between align-start mb-4">
-                  <div>
+                <div class="d-flex justify-space-between align-start mb-4 flex-wrap ga-2">
+                  <div class="min-w-0">
                     <div class="text-caption text-cyan mb-1">{{ routine.dia_semana }}</div>
                     <h3 class="card-section-title mb-0">{{ routine.nombre_rutina }}</h3>
                   </div>
-                  <div class="d-flex ga-1">
-                    <v-btn size="small" variant="text" color="#00E5FF" @click="startEdit(routine)">
+                  <div class="d-flex ga-1 flex-shrink-0">
+                    <v-btn size="small" variant="text" color="primary" @click="startEdit(routine)">
                       Editar
                     </v-btn>
                     <v-btn size="small" variant="text" color="error" @click="handleDelete(routine.id)">
@@ -548,11 +541,11 @@ onMounted(() => {
         </template>
       </div>
     </main>
+  </AppShell>
 
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top right">
-      {{ snackbar.text }}
-    </v-snackbar>
-  </div>
+  <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top">
+    {{ snackbar.text }}
+  </v-snackbar>
 </template>
 
 <style src="../../assets/trainerDashboard.css" scoped></style>
@@ -646,5 +639,23 @@ onMounted(() => {
   flex-direction: column;
   gap: 0.15rem;
   font-size: 0.9rem;
+}
+
+.min-w-0 {
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .functional-card {
+    padding: 1rem;
+  }
+
+  .routine-form-actions {
+    flex-direction: column;
+  }
+
+  .routine-form-actions .v-btn {
+    width: 100%;
+  }
 }
 </style>

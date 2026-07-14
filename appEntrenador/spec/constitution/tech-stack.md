@@ -50,6 +50,8 @@
 - Vuetify 4 con tema oscuro actual (`src/plugin/Vuetify.js`).
 - Branding **Trainfit** (`src/config/app.js`, `AppLogo.vue`).
 - Responsive / mobile-friendly; no rediseñar el tema global sin permiso.
+- Contraste: ver tokens `on-*` + `surface-variant` oscuro y regla `.cursor/rules/ui-contrast-theme.mdc` / `docs/decisions/ADR-0001-contrast-on-primary.md`.
+- CSS base: `src/assets/theme-base.css`.
 
 ## Límites duros
 

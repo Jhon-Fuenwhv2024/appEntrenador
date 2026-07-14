@@ -23,7 +23,7 @@ defineEmits(['generateInvite', 'copyInvite', 'openRoutinesHint']);
     <div class="invite-card">
       <div class="invite-card-top">
         <div class="invite-icon invite-icon-cyan">
-          <v-icon icon="mdi-link-variant" size="20" color="#00E5FF"></v-icon>
+          <v-icon icon="mdi-link-variant" size="20" color="primary"></v-icon>
         </div>
         <div>
           <div class="invite-title">Nueva Invitación</div>

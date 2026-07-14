@@ -7,3 +7,7 @@ export function getClients() {
 export function getClientById(clientId) {
   return http.get(`/clients/${clientId}`);
 }
+
+export function getTrainerDashboard() {
+  return http.get('/trainer/dashboard');
+}

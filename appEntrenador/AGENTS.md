@@ -131,6 +131,7 @@ Stack: Vue 3 + Vite + Vuetify (frontend), Express + MySQL (backend).
 - Logs: no ocultar errores con `console.log` vacíos ni `catch` silenciosos; registrar contexto útil sin exponer secretos.
 - Idioma: español en producto/docs de negocio; código en inglés o español consistente con el archivo tocado.
 - Responsive mobile-first.
+- Contraste UI: tema dark con `dark: true`, tokens `on-*`, `surface-variant` oscuro; CTAs con `color="primary"`; menús con `tf-overlay-menu` ([`.cursor/rules/ui-contrast-theme.mdc`](.cursor/rules/ui-contrast-theme.mdc)).
 
 ## Arquitectura objetivo
 
