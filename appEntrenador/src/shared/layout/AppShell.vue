@@ -10,7 +10,7 @@ const props = defineProps({
     required: true,
     validator: (value) => ['trainer', 'client'].includes(value),
   },
-  /** Active nav key for sidebar + bottom nav */
+  /** Active nav key: dashboard | clients | library | settings (trainer) */
   active: {
     type: String,
     default: 'dashboard',
@@ -50,7 +50,7 @@ const go = (path) => {
           type="button"
           class="nav-item"
           :class="{ active: active === 'dashboard' }"
-          title="Dashboard"
+          title="Inicio"
           @click="go('/dashboard')"
         >
           <v-icon icon="mdi-view-dashboard-outline" size="24" />
@@ -58,19 +58,29 @@ const go = (path) => {
         <button
           type="button"
           class="nav-item"
-          :class="{ active: active === 'exercises' }"
-          title="Catálogo de ejercicios"
-          @click="go('/trainer/exercises')"
+          :class="{ active: active === 'clients' }"
+          title="Alumnos"
+          @click="go('/trainer/clients')"
         >
-          <v-icon icon="mdi-dumbbell" size="24" />
+          <v-icon icon="mdi-account-group-outline" size="24" />
         </button>
         <button
-          v-if="active === 'routines'"
           type="button"
-          class="nav-item active"
-          title="Rutinas del alumno"
+          class="nav-item"
+          :class="{ active: active === 'library' }"
+          title="Biblioteca"
+          @click="go('/trainer/library')"
         >
-          <v-icon icon="mdi-clipboard-text-outline" size="24" />
+          <v-icon icon="mdi-bookshelf" size="24" />
+        </button>
+        <button
+          type="button"
+          class="nav-item"
+          :class="{ active: active === 'settings' }"
+          title="Ajustes"
+          @click="go('/trainer/settings')"
+        >
+          <v-icon icon="mdi-cog-outline" size="24" />
         </button>
       </template>
 

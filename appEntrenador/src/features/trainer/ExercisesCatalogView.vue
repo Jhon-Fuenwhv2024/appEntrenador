@@ -114,7 +114,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <AppShell role="trainer" active="exercises">
+  <AppShell role="trainer" active="library">
     <main class="main-content flex-grow-1 overflow-y-auto">
       <header class="dashboard-header">
         <div class="header-left">
@@ -123,9 +123,9 @@ onMounted(async () => {
             color="#8B929E"
             class="mb-2 px-0"
             prepend-icon="mdi-arrow-left"
-            @click="router.push('/dashboard')"
+            @click="router.push('/trainer/library')"
           >
-            Volver al dashboard
+            Volver a Biblioteca
           </v-btn>
           <h1 class="header-title">Catálogo de ejercicios</h1>
           <p class="header-greeting">

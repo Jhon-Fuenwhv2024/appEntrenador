@@ -8,7 +8,7 @@ const props = defineProps({
     required: true,
     validator: (value) => ['trainer', 'client'].includes(value),
   },
-  /** Override active key: dashboard | exercises | routines | home */
+  /** Override active key: dashboard | clients | library | settings */
   active: {
     type: String,
     default: '',
@@ -26,10 +26,22 @@ const trainerItems = [
     to: '/dashboard',
   },
   {
-    key: 'exercises',
-    label: 'Ejercicios',
-    icon: 'mdi-dumbbell',
-    to: '/trainer/exercises',
+    key: 'clients',
+    label: 'Alumnos',
+    icon: 'mdi-account-group-outline',
+    to: '/trainer/clients',
+  },
+  {
+    key: 'library',
+    label: 'Biblioteca',
+    icon: 'mdi-bookshelf',
+    to: '/trainer/library',
+  },
+  {
+    key: 'settings',
+    label: 'Ajustes',
+    icon: 'mdi-cog-outline',
+    to: '/trainer/settings',
   },
 ];
 
@@ -48,8 +60,11 @@ const resolvedActive = computed(() => {
   if (props.active) return props.active;
 
   const path = route.path;
-  if (path.startsWith('/trainer/exercises')) return 'exercises';
-  if (path.startsWith('/trainer/clients')) return 'routines';
+  if (path.startsWith('/trainer/clients')) return 'clients';
+  if (path.startsWith('/trainer/library') || path.startsWith('/trainer/exercises')) {
+    return 'library';
+  }
+  if (path.startsWith('/trainer/settings')) return 'settings';
   if (path === '/dashboard' || path === '/') return 'dashboard';
   return '';
 });

@@ -287,7 +287,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppShell role="trainer" active="routines">
+  <AppShell role="trainer" active="clients">
     <main class="main-content flex-grow-1 overflow-y-auto">
       <header class="dashboard-header">
         <div class="header-left">
