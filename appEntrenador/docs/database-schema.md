@@ -15,6 +15,8 @@ erDiagram
   usuarios ||--o{ workout_sessions : "client_id"
   rutinas ||--o{ workout_sessions : "routine_id"
   workout_sessions ||--o{ workout_set_logs : "contiene"
+  usuarios ||--o{ routine_templates : "trainer_id"
+  routine_templates ||--o{ template_exercises : "contiene"
 
   usuarios {
     int id PK
@@ -88,6 +90,24 @@ erDiagram
     boolean usado
     int trainer_id FK
   }
+
+  routine_templates {
+    int id PK
+    int trainer_id FK
+    string name
+    text notes
+  }
+
+  template_exercises {
+    int id PK
+    int template_id FK
+    string nombre
+    int series
+    int repeticiones
+    decimal peso
+    text indicaciones
+    int sort_order
+  }
 ```
 
 ## Tablas
@@ -131,6 +151,19 @@ Ejecución del alumno. `workout_sessions` agrupa una sesión; `workout_set_logs`
 ### `invitaciones`
 
 Tokens de registro generados por un trainer (`trainer_id`).
+
+### `routine_templates` / `template_exercises` (Feature 018)
+
+Biblioteca personal del trainer. `routine_templates.trainer_id` aísla ownership. Las líneas viven en `template_exercises` (sin FK al catálogo `exercises`).
+
+**Deep copy:** al asignar (`POST /templates/:id/assign`) se insertan filas nuevas en `rutinas` + `ejercicios` del alumno. No hay FK plantilla↔rutina; editar/borrar la plantilla no muta rutinas ya asignadas.
+
+Migración: [`backend/db/migrations/005_routine_templates.sql`](../backend/db/migrations/005_routine_templates.sql).
+
+```bash
+cd backend
+node scripts/createRoutineTemplatesTables.js
+```
 
 ## Seed del catálogo
 

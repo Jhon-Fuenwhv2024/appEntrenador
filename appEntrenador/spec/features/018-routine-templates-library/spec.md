@@ -1,6 +1,6 @@
 # 018 · Plantillas de rutinas (Biblioteca)
 
-**Estado:** pendiente
+**Estado:** hecha
 
 **Depende de:** 016 (slot Biblioteca); recomendable tras 017
 
@@ -10,14 +10,14 @@ Biblioteca personal del trainer: guardar rutinas como plantillas reutilizables y
 
 ## Criterios de aceptación
 
-- [ ] Schema: tablas de plantillas (p. ej. `routine_templates` + líneas de ejercicios) separadas de `rutinas`/`ejercicios` del alumno
-- [ ] Trainer puede crear/guardar plantilla (desde cero o desde una rutina de alumno existente)
-- [ ] Listar plantillas propias en `/trainer/library`
-- [ ] Asignar plantilla a un alumno → crea copia en `rutinas`/`ejercicios` del alumno (ownership validado)
-- [ ] Editar/borrar plantilla no muta rutinas ya asignadas
-- [ ] JWT + `requireRole('trainer')`; solo plantillas de `req.user.id`
-- [ ] Docs: `database-schema.md`, `api.md`, `data-flows.md`
-- [ ] Build frontend + API operativa local
+- [x] Schema: tablas de plantillas (p. ej. `routine_templates` + líneas de ejercicios) separadas de `rutinas`/`ejercicios` del alumno
+- [x] Trainer puede crear/guardar plantilla (desde cero o desde una rutina de alumno existente)
+- [x] Listar plantillas propias en `/trainer/library`
+- [x] Asignar plantilla a un alumno → crea copia en `rutinas`/`ejercicios` del alumno (ownership validado)
+- [x] Editar/borrar plantilla no muta rutinas ya asignadas
+- [x] JWT + `requireRole('trainer')`; solo plantillas de `req.user.id`
+- [x] Docs: `database-schema.md`, `api.md`, `data-flows.md`
+- [x] Build frontend + API operativa local
 
 ## Fuera de alcance
 

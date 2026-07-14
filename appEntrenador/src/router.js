@@ -5,7 +5,7 @@ import RegisterView from './features/auth/RegisterView.vue';
 import ClientRoutinesView from './features/trainer/ClientRoutinesView.vue';
 import ExercisesCatalogView from './features/trainer/ExercisesCatalogView.vue';
 import ClientsListView from './features/trainer/ClientsListView.vue';
-import TrainerLibraryView from './features/trainer/TrainerLibraryView.vue';
+import LibraryView from './features/trainer/LibraryView.vue';
 import TrainerSettingsView from './features/trainer/TrainerSettingsView.vue';
 import WorkoutPlayerView from './features/client/WorkoutPlayerView.vue';
 import { getSessionUser, isAuthenticated } from './shared/auth/session.js';
@@ -49,7 +49,7 @@ const routes = [
   {
     path: '/trainer/library',
     name: 'TrainerLibrary',
-    component: TrainerLibraryView,
+    component: LibraryView,
     meta: { requiresAuth: true, role: 'trainer' },
   },
   {

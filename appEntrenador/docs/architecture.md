@@ -11,7 +11,7 @@ Trainfit usa una migración modular gradual. La estructura actual mantiene compa
   - **Contexto (no ítem de barra):** ficha `/trainer/clients/:clientId` marca Alumnos; catálogo `/trainer/exercises` es herramienta de Biblioteca (sin slot propio).
   - **Client:** Inicio (sin cambios de IA en 016).
 - `src/features/auth/`: vistas de login/registro y llamadas de auth.
-- `src/features/trainer/`: portal del entrenador, clientes, invitaciones y asignación de rutinas (`ClientRoutinesView`). Lista dedicada en `ClientsListView` (`/trainer/clients`, filtro local). Placeholders: `TrainerLibraryView`, `TrainerSettingsView` (biblioteca en 018; ajustes en 024). Inicio (`TrainerDashboardView`) es hub de métricas + invitación + CTA a Alumnos.
+- `src/features/trainer/`: portal del entrenador, clientes, invitaciones, rutinas (`ClientRoutinesView`), lista de alumnos (`ClientsListView`), biblioteca de plantillas (`LibraryView` en `/trainer/library`), placeholder `TrainerSettingsView` (024). Inicio (`TrainerDashboardView`) es hub de métricas + invitación + CTA a Alumnos.
 - `src/features/client/`: portal del cliente con rutinas reales (`ClientDashboardView`).
 - `src/components/Dashboard.vue`: composición por rol; enruta a trainer o client sin contener lógica de feature.
 
@@ -32,8 +32,9 @@ El backend monta módulos bajo `/api` desde `backend/src/server.js`.
 - `backend/src/modules/auth/`: login (emite JWT), registro por invitación y generación de invitaciones (trainer).
 - `backend/src/modules/clients/`: listado/detalle de clientes del trainer autenticado.
 - `backend/src/modules/routines/`: CRUD de rutinas/ejercicios (líneas de rutina) con ownership.
+- `backend/src/modules/templates/`: CRUD de plantillas + `POST /templates/:id/assign` (deep copy a `rutinas`/`ejercicios`; Feature 018).
 - `backend/src/modules/exercises/`: catálogo `exercises` — `GET/POST /api/exercises` (trainer: globales + propios). Seed (`backend/scripts/seedExercises.js`) desde clone local de wrkout/exercises.json; `media_url` = raw GitHub. Las rutinas copian `name` a `ejercicios.nombre` (sin FK). Ver [`docs/database-schema.md`](database-schema.md).
-- Frontend trainer: `ExercisesCatalogView` (`/trainer/exercises`) gestiona el catálogo (acceso desde Biblioteca, no desde la barra principal); `ClientRoutinesView` usa combobox al crear/editar rutinas (`features/trainer/api/exercisesApi.js`, `composables/useExercisesCatalog.js`).
+- Frontend trainer: `LibraryView` gestiona plantillas; `ExercisesCatalogView` (`/trainer/exercises`) gestiona el catálogo (acceso desde Biblioteca); `ClientRoutinesView` usa combobox al crear/editar rutinas y puede guardar como plantilla.
 
 Cada módulo sigue la forma `routes -> controller -> service`. Los services concentran consultas MySQL parametrizadas y los controllers traducen a respuestas JSON.
 

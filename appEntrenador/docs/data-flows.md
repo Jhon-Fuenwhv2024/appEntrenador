@@ -22,6 +22,15 @@
 2. Service valida ownership trainer↔cliente en cada escritura.
 3. Cliente autenticado `GET /me/routines` y el portal muestra plan del día / semana (con media del catálogo si hay match por nombre).
 
+## Plantillas → deep copy al alumno (Feature 018)
+
+1. Trainer crea/edita plantillas en `/trainer/library` (`POST/PATCH /templates`) o guarda una rutina existente con “Guardar en Biblioteca”.
+2. Al asignar (`POST /templates/:id/assign` con `clientId` + `dia_semana?`):
+   - Valida plantilla propia (`trainer_id = req.user.id`) y ownership del alumno.
+   - En una transacción inserta una **nueva** fila en `rutinas` y copia cada línea a `ejercicios`.
+   - No se guarda FK hacia `routine_templates`: la copia es independiente.
+3. Editar o borrar la plantilla después **no** cambia las rutinas ya asignadas.
+
 ## Ejecución de rutina (Workout Player)
 
 1. Cliente pulsa **Comenzar** en el dashboard → `/client/workout/:routineId`.

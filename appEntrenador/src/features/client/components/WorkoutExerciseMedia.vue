@@ -92,11 +92,11 @@ const embedSrc = computed(() => (
 <style scoped>
 .workout-media {
   width: 100%;
-  aspect-ratio: 16 / 10;
-  max-height: 42vh;
+  aspect-ratio: 4 / 3;
+  max-height: min(42vh, 320px);
   border-radius: 16px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.04);
+  background: #000;
   border: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
@@ -106,7 +106,7 @@ const embedSrc = computed(() => (
 .workout-media__frame {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   border: 0;
   background: #000;
 }
@@ -117,8 +117,11 @@ const embedSrc = computed(() => (
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 24px;
+  padding: 24px 16px;
   text-align: center;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .workout-media__fallback-text {
@@ -126,6 +129,17 @@ const embedSrc = computed(() => (
   color: #8B929E;
   font-size: 0.9rem;
   line-height: 1.4;
-  max-width: 16rem;
+  max-width: 100%;
+  padding: 0 8px;
+}
+
+@media (min-width: 480px) {
+  .workout-media {
+    aspect-ratio: 16 / 10;
+  }
+
+  .workout-media__frame {
+    object-fit: contain;
+  }
 }
 </style>

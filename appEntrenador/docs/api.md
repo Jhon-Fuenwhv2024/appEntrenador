@@ -148,7 +148,59 @@ Reemplaza día, nombre y ejercicios de una rutina propia.
 
 ### `DELETE /routines/:routineId` (trainer)
 
-Elimina la rutina (cascade a ejercicios).
+Elimina la rutina (cascade de `ejercicios`).
+
+## Plantillas (Biblioteca · Feature 018)
+
+Todas requieren JWT + `requireRole('trainer')`. Solo plantillas con `trainer_id = req.user.id`.
+
+### `GET /templates`
+
+Lista plantillas del trainer con `exercises[]`.
+
+### `POST /templates`
+
+Crea plantilla + líneas (transacción).
+
+```json
+{
+  "name": "Empuje A",
+  "notes": "",
+  "exercises": [
+    {
+      "nombre": "Press banca",
+      "series": 4,
+      "repeticiones": 10,
+      "peso": 60,
+      "indicaciones": ""
+    }
+  ]
+}
+```
+
+### `GET /templates/:id`
+
+Detalle de una plantilla propia.
+
+### `PATCH /templates/:id`
+
+Actualiza nombre/notes y reemplaza ejercicios (transacción).
+
+### `DELETE /templates/:id`
+
+Borra la plantilla (cascade de líneas). **No** borra rutinas ya asignadas a alumnos.
+
+### `POST /templates/:id/assign`
+
+Deep copy a `rutinas` / `ejercicios` del alumno. Body:
+
+```json
+{ "clientId": 12, "dia_semana": "Lunes" }
+```
+
+`dia_semana` es opcional (default `Lunes`). Valida ownership del `clientId`. Respuesta `201` con la rutina creada (mismo shape que create de rutinas). Sin FK viva hacia la plantilla.
+
+UI: `/trainer/library` (`LibraryView`); “Guardar en Biblioteca” desde ficha de alumno.
 
 ### `GET /me/routines` (client)
 

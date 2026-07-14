@@ -12,6 +12,7 @@ import {
   getClientRoutines,
   updateRoutine,
 } from './api/routinesApi.js';
+import { createTemplate } from './api/templatesApi.js';
 import { getClientWorkoutSessions } from './api/workoutSessionsApi.js';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -28,6 +29,7 @@ const catalogExercises = ref([]);
 const loading = shallowRef(true);
 const saving = shallowRef(false);
 const savingCatalogIndex = shallowRef(null);
+const savingTemplateId = shallowRef(null);
 const editingId = shallowRef(null);
 const expandedSessionId = shallowRef(null);
 
@@ -269,6 +271,31 @@ const handleDelete = async (routineId) => {
   }
 };
 
+const handleSaveAsTemplate = async (routine) => {
+  if (!routine?.id) return;
+
+  try {
+    savingTemplateId.value = routine.id;
+    await createTemplate({
+      name: routine.nombre_rutina,
+      notes: '',
+      exercises: (routine.ejercicios || []).map((ex) => ({
+        nombre: ex.nombre,
+        series: Number(ex.series),
+        repeticiones: Number(ex.repeticiones),
+        peso: Number(ex.peso),
+        indicaciones: ex.indicaciones || '',
+      })),
+    });
+    showNotification(`"${routine.nombre_rutina}" guardada en Biblioteca`);
+  } catch (error) {
+    console.error('Error guardando plantilla:', error);
+    showNotification(getApiErrorMessage(error, 'No se pudo guardar como plantilla'), 'error');
+  } finally {
+    savingTemplateId.value = null;
+  }
+};
+
 const handleLogout = () => {
   clearSession();
   router.push('/');
@@ -296,9 +323,9 @@ onMounted(() => {
             color="#8B929E"
             class="mb-2 px-0"
             prepend-icon="mdi-arrow-left"
-            @click="router.push('/dashboard')"
+            @click="router.push('/trainer/clients')"
           >
-            Volver al dashboard
+            Volver a alumnos
           </v-btn>
           <h1 class="header-title">{{ pageTitle }}</h1>
           <p v-if="client" class="header-greeting">
@@ -457,7 +484,16 @@ onMounted(() => {
                     <div class="text-caption text-cyan mb-1">{{ routine.dia_semana }}</div>
                     <h3 class="card-section-title mb-0">{{ routine.nombre_rutina }}</h3>
                   </div>
-                  <div class="d-flex ga-1 flex-shrink-0">
+                  <div class="d-flex ga-1 flex-shrink-0 flex-wrap">
+                    <v-btn
+                      size="small"
+                      variant="text"
+                      color="primary"
+                      :loading="savingTemplateId === routine.id"
+                      @click="handleSaveAsTemplate(routine)"
+                    >
+                      Guardar en Biblioteca
+                    </v-btn>
                     <v-btn size="small" variant="text" color="primary" @click="startEdit(routine)">
                       Editar
                     </v-btn>

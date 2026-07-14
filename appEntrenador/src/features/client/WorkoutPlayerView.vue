@@ -159,47 +159,57 @@ onMounted(() => {
     </v-alert>
 
     <main v-else-if="phase === 'working' && currentExercise" class="player-main">
-      <p class="player-step">{{ exerciseCounter }}</p>
-      <h1 class="player-title">{{ currentExercise.nombre }}</h1>
-      <p class="player-set">{{ progressLabel }}</p>
+      <div class="player-scroll">
+        <p class="player-step">{{ exerciseCounter }}</p>
+        <h1 class="player-title">{{ currentExercise.nombre }}</h1>
+        <p class="player-set">{{ progressLabel }}</p>
 
-      <WorkoutExerciseMedia
-        class="mb-4"
-        :media-type="currentExercise.media_type"
-        :media-url="currentExercise.media_url"
-        :exercise-name="currentExercise.nombre"
-      />
+        <WorkoutExerciseMedia
+          class="player-media"
+          :media-type="currentExercise.media_type"
+          :media-url="currentExercise.media_url"
+          :exercise-name="currentExercise.nombre"
+        />
 
-      <p v-if="exerciseHint" class="player-hint">{{ exerciseHint }}</p>
+        <p v-if="exerciseHint" class="player-hint">{{ exerciseHint }}</p>
 
-      <div class="player-inputs">
-        <label class="player-field">
-          <span>Peso (kg)</span>
-          <input
-            v-model.number="actualWeight"
-            type="number"
-            min="0"
-            step="0.5"
-            inputmode="decimal"
-          >
-        </label>
-        <label class="player-field">
-          <span>Repeticiones</span>
-          <input
-            v-model.number="actualReps"
-            type="number"
-            min="1"
-            step="1"
-            inputmode="numeric"
-          >
-        </label>
+        <div class="player-inputs" role="group" aria-label="Registro de la serie">
+          <label class="player-field">
+            <span class="player-field__label">Peso</span>
+            <span class="player-field__unit">kg</span>
+            <input
+              v-model.number="actualWeight"
+              class="player-field__input"
+              type="number"
+              min="0"
+              step="0.5"
+              inputmode="decimal"
+              aria-label="Peso en kilogramos"
+            >
+          </label>
+          <label class="player-field">
+            <span class="player-field__label">Repeticiones</span>
+            <span class="player-field__unit">reps</span>
+            <input
+              v-model.number="actualReps"
+              class="player-field__input"
+              type="number"
+              min="1"
+              step="1"
+              inputmode="numeric"
+              aria-label="Repeticiones"
+            >
+          </label>
+        </div>
+
+        <p v-if="formError" class="player-error">{{ formError }}</p>
       </div>
 
-      <p v-if="formError" class="player-error">{{ formError }}</p>
-
-      <button type="button" class="player-cta" @click="onCompleteSet">
-        Completar serie
-      </button>
+      <div class="player-footer">
+        <button type="button" class="player-cta" @click="onCompleteSet">
+          Completar serie
+        </button>
+      </div>
     </main>
 
     <main v-else-if="phase === 'resting'" class="player-main player-main--rest">
@@ -245,8 +255,12 @@ onMounted(() => {
 
 <style scoped>
 .player-bg {
+  box-sizing: border-box;
   min-height: 100vh;
   min-height: 100dvh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
   background: #0B0D12;
   color: #fff;
   display: flex;
@@ -256,11 +270,18 @@ onMounted(() => {
   padding-top: env(safe-area-inset-top, 0px);
 }
 
+.player-bg *,
+.player-bg *::before,
+.player-bg *::after {
+  box-sizing: border-box;
+}
+
 .player-top {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 16px 8px;
+  padding: 12px 16px 8px;
+  flex-shrink: 0;
 }
 
 .player-back {
@@ -273,10 +294,12 @@ onMounted(() => {
   display: grid;
   place-items: center;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .player-top-text {
   min-width: 0;
+  flex: 1;
 }
 
 .player-eyebrow {
@@ -296,12 +319,21 @@ onMounted(() => {
 
 .player-main {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 8px 20px 28px;
-  max-width: 480px;
   width: 100%;
+  max-width: 560px;
   margin: 0 auto;
+  padding: 0;
+}
+
+.player-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 16px 12px;
 }
 
 .player-main--rest,
@@ -309,6 +341,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   text-align: center;
+  padding: 16px;
 }
 
 .player-step {
@@ -318,54 +351,101 @@ onMounted(() => {
 }
 
 .player-title {
-  margin: 0 0 4px;
-  font-size: clamp(1.5rem, 5vw, 1.85rem);
+  margin: 0 0 6px;
+  font-size: clamp(1.35rem, 6vw, 1.85rem);
   font-weight: 700;
   line-height: 1.2;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 .player-set {
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   color: #00E5FF;
   font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.player-media {
+  margin: 0 -16px 14px;
+  width: calc(100% + 32px);
+  max-width: none;
+  border-radius: 0;
 }
 
 .player-hint {
   margin: 0 0 16px;
   color: #8B929E;
   font-size: 0.9rem;
-  line-height: 1.4;
+  line-height: 1.45;
+  max-width: 100%;
 }
 
 .player-inputs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 8px;
+  width: 100%;
 }
 
 .player-field {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 0.8rem;
-  color: #8B929E;
-}
-
-.player-field input {
-  height: 52px;
-  border-radius: 14px;
+  min-width: 0;
+  padding: 12px 12px 10px;
+  border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
-  color: #fff;
-  font-size: 1.25rem;
-  font-weight: 600;
-  padding: 0 14px;
-  outline: none;
 }
 
-.player-field input:focus {
+.player-field__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #8B929E;
+  line-height: 1.2;
+}
+
+.player-field__unit {
+  position: absolute;
+  right: 14px;
+  bottom: 18px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #5E6673;
+  pointer-events: none;
+}
+
+.player-field__input {
+  width: 100%;
+  height: 48px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 40px 0 0;
+  outline: none;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.player-field__input::-webkit-outer-spin-button,
+.player-field__input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.player-field:focus-within {
   border-color: rgba(0, 229, 255, 0.55);
+  background: rgba(0, 229, 255, 0.06);
 }
 
 .player-error {
@@ -374,9 +454,15 @@ onMounted(() => {
   margin: 0 0 8px;
 }
 
+.player-footer {
+  flex-shrink: 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, transparent, #0B0D12 28%);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
 .player-cta {
-  margin-top: auto;
-  height: 56px;
+  height: 54px;
   border: 0;
   border-radius: 16px;
   background: #00E5FF;
@@ -405,11 +491,56 @@ onMounted(() => {
 .player-rest-copy {
   margin: 0;
   color: #C5CAD3;
-  max-width: 18rem;
+  max-width: 20rem;
   line-height: 1.45;
+  width: 100%;
 }
 
 .text-muted {
   color: #8B929E;
+}
+
+@media (min-width: 480px) {
+  .player-scroll {
+    padding: 8px 20px 16px;
+  }
+
+  .player-media {
+    margin: 0 0 16px;
+    width: 100%;
+    border-radius: 16px;
+  }
+
+  .player-footer {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .player-field__input {
+    font-size: 1.85rem;
+    height: 52px;
+  }
+}
+
+@media (max-width: 360px) {
+  .player-inputs {
+    gap: 8px;
+  }
+
+  .player-field {
+    padding: 10px;
+  }
+
+  .player-field__input {
+    font-size: 1.5rem;
+    height: 44px;
+    padding-right: 36px;
+  }
+
+  .player-field__unit {
+    right: 10px;
+    bottom: 14px;
+    font-size: 0.72rem;
+  }
 }
 </style>
