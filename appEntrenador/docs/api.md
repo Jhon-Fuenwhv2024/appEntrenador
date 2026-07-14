@@ -211,11 +211,11 @@ Body:
 
 ### `PUT /exercises/:id` (trainer)
 
-Actualiza un ejercicio visible (global o privado del trainer): nombre, descripción, músculo, `media_type` y `media_url` (GIF/YouTube/video/imagen).
+Actualiza un ejercicio privado propiedad del trainer: nombre, descripción, músculo, `media_type` y `media_url` (GIF/YouTube/video/imagen). Los ejercicios globales son de solo lectura y devuelven `403`.
 
 ### `DELETE /exercises/:id` (trainer)
 
-Elimina un ejercicio visible (global o privado del trainer).
+Elimina un ejercicio privado propiedad del trainer. Los ejercicios globales son de solo lectura y devuelven `403`.
 
 Las rutinas siguen enviando `ejercicios[].nombre` como texto (copia del catálogo o libre). Sin FK aún.
 

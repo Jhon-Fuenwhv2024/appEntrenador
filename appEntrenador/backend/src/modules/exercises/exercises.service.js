@@ -86,6 +86,17 @@ async function getExerciseVisibleToTrainer(exerciseId, trainerId) {
   return rows[0];
 }
 
+async function assertExerciseOwnedByTrainer(exerciseId, trainerId) {
+  const exercise = await getExerciseVisibleToTrainer(exerciseId, trainerId);
+
+  if (exercise.created_by_trainer_id == null) {
+    throw createHttpError(
+      'Los ejercicios globales son de solo lectura.',
+      403,
+    );
+  }
+}
+
 async function assertNameAvailable(name, trainerId, excludeId = null) {
   const params = [name, trainerId];
   let sql = `
@@ -206,7 +217,7 @@ async function createExerciseForTrainer(trainerId, payload) {
 }
 
 /**
- * Updates a catalog exercise visible to the trainer (global or own).
+ * Updates a trainer-owned catalog exercise.
  */
 async function updateExerciseForTrainer(trainerId, exerciseId, payload) {
   const id = Number(exerciseId);
@@ -214,15 +225,15 @@ async function updateExerciseForTrainer(trainerId, exerciseId, payload) {
     throw createHttpError('ID de ejercicio inválido.', 400);
   }
 
-  await getExerciseVisibleToTrainer(id, trainerId);
+  await assertExerciseOwnedByTrainer(id, trainerId);
   const data = normalizeExercisePayload(payload);
   await assertNameAvailable(data.name, trainerId, id);
 
-  await db.query(
+  const [result] = await db.query(
     `UPDATE exercises
      SET name = ?, description = ?, target_muscle = ?, media_type = ?, media_url = ?
      WHERE id = ?
-       AND (created_by_trainer_id IS NULL OR created_by_trainer_id = ?)`,
+       AND created_by_trainer_id = ?`,
     [
       data.name,
       data.description,
@@ -234,6 +245,10 @@ async function updateExerciseForTrainer(trainerId, exerciseId, payload) {
     ],
   );
 
+  if (result.affectedRows === 0) {
+    throw createHttpError('Ejercicio no encontrado o no tienes acceso.', 404);
+  }
+
   const [rows] = await db.query(
     `SELECT id, name, description, target_muscle, media_type, media_url, created_by_trainer_id
      FROM exercises WHERE id = ?`,
@@ -244,7 +259,7 @@ async function updateExerciseForTrainer(trainerId, exerciseId, payload) {
 }
 
 /**
- * Deletes a catalog exercise visible to the trainer (global or own).
+ * Deletes a trainer-owned catalog exercise.
  */
 async function deleteExerciseForTrainer(trainerId, exerciseId) {
   const id = Number(exerciseId);
@@ -252,12 +267,12 @@ async function deleteExerciseForTrainer(trainerId, exerciseId) {
     throw createHttpError('ID de ejercicio inválido.', 400);
   }
 
-  await getExerciseVisibleToTrainer(id, trainerId);
+  await assertExerciseOwnedByTrainer(id, trainerId);
 
   const [result] = await db.query(
     `DELETE FROM exercises
      WHERE id = ?
-       AND (created_by_trainer_id IS NULL OR created_by_trainer_id = ?)`,
+       AND created_by_trainer_id = ?`,
     [id, trainerId],
   );
 
