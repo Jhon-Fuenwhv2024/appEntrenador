@@ -1,6 +1,6 @@
 # 023 · Invitaciones: módulo + gestión
 
-**Estado:** pendiente
+**Estado:** hecha
 
 **Depende de:** auth/invites actuales; se beneficia de 017
 
@@ -10,14 +10,14 @@ Extrae invitaciones de `modules/auth` a `modules/invites` y añade gestión oper
 
 ## Criterios de aceptación
 
-- [ ] Código de invites en `backend/src/modules/invites/` (routes → controller → service)
-- [ ] `POST` generar token (comportamiento actual preservado o mejorado)
-- [ ] `GET` listado de invitaciones del trainer autenticado (estado usado/pendiente)
-- [ ] Revocar/invalidar invitación pendiente
-- [ ] UI: panel o sección “Invitaciones” desde hub o alumnos (sin slot nav nuevo)
-- [ ] Ownership por `trainer_id` = `req.user.id`
-- [ ] Docs api / architecture / data-flows
-- [ ] Build + smoke login/registro por token
+- [x] Código de invites en `backend/src/modules/invites/` (routes → controller → service)
+- [x] `POST` generar token (comportamiento actual preservado o mejorado)
+- [x] `GET` listado de invitaciones del trainer autenticado (estado usado/pendiente)
+- [x] Revocar/invalidar invitación pendiente
+- [x] UI: panel o sección “Invitaciones” desde hub o alumnos (sin slot nav nuevo)
+- [x] Ownership por `trainer_id` = `req.user.id`
+- [x] Docs api / architecture / data-flows
+- [x] Build + smoke login/registro por token
 
 ## Fuera de alcance
 

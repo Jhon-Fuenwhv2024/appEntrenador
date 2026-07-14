@@ -1,8 +1,8 @@
 const bcrypt = require('bcrypt');
-const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const db = require('../../config/db');
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../../config/env');
+const invitesService = require('../invites/invites.service');
 
 function createHttpError(message, code) {
   const error = new Error(message);
@@ -53,24 +53,6 @@ async function login({ username, password }) {
   };
 }
 
-async function generateInvitation(trainerId) {
-  if (!trainerId) {
-    throw createHttpError('Trainer no autenticado.', 401);
-  }
-
-  const token = crypto.randomBytes(8).toString('hex');
-
-  await db.query(
-    'INSERT INTO invitaciones (token, trainer_id) VALUES (?, ?)',
-    [token, trainerId],
-  );
-
-  return {
-    token,
-    link_invitacion: `http://localhost:5173/registro?token=${token}`,
-  };
-}
-
 async function register({ username, password, nombre, token }) {
   const invitationToken = typeof token === 'string' ? token.trim() : '';
 
@@ -84,32 +66,10 @@ async function register({ username, password, nombre, token }) {
   try {
     await connection.beginTransaction();
 
-    const [invites] = await connection.query(
-      'SELECT id, trainer_id FROM invitaciones WHERE token = ? AND usado = FALSE FOR UPDATE',
-      [invitationToken],
+    const invite = await invitesService.validateAndConsumeToken(
+      invitationToken,
+      connection,
     );
-
-    if (invites.length === 0) {
-      throw createHttpError('El enlace de invitación es inválido o ya fue utilizado.', 403);
-    }
-
-    const invite = invites[0];
-
-    if (!invite.trainer_id) {
-      throw createHttpError(
-        'Esta invitación no está vinculada a un entrenador. Solicita un enlace nuevo.',
-        403,
-      );
-    }
-
-    const [consumeResult] = await connection.query(
-      'UPDATE invitaciones SET usado = TRUE WHERE id = ? AND usado = FALSE',
-      [invite.id],
-    );
-
-    if (consumeResult.affectedRows !== 1) {
-      throw createHttpError('El enlace de invitación es inválido o ya fue utilizado.', 403);
-    }
 
     const [existingUser] = await connection.query(
       'SELECT id FROM usuarios WHERE username = ?',
@@ -136,6 +96,5 @@ async function register({ username, password, nombre, token }) {
 
 module.exports = {
   login,
-  generateInvitation,
   register,
 };

@@ -8,6 +8,7 @@ export function registerClient(payload) {
   return http.post('/register', payload);
 }
 
+/** Prefer features/trainer/api/invitationsApi.createInvite (Feature 023). */
 export function generateInvitation() {
-  return http.post('/generate-token');
+  return http.post('/invites');
 }

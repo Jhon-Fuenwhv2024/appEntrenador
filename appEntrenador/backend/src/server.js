@@ -5,6 +5,7 @@ const express = require('express');
 const cors = require('cors');
 const { PORT } = require('./config/env');
 const authRoutes = require('./modules/auth/auth.routes');
+const invitesRoutes = require('./modules/invites/invites.routes');
 const clientsRoutes = require('./modules/clients/clients.routes');
 const routinesRoutes = require('./modules/routines/routines.routes');
 const exercisesRoutes = require('./modules/exercises/exercises.routes');
@@ -23,6 +24,7 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 app.use('/api', authRoutes);
+app.use('/api/invites', invitesRoutes);
 app.use('/api', clientsRoutes);
 app.use('/api', routinesRoutes);
 app.use('/api', exercisesRoutes);

@@ -71,10 +71,12 @@ CREATE TABLE ejercicios (
 ) ENGINE=InnoDB;
 
 -- 6. TABLA DE INVITACIONES PARA REGISTRO
+-- status: pending | used | revoked (Feature 023)
 CREATE TABLE invitaciones (
     id INT AUTO_INCREMENT PRIMARY KEY,
     token VARCHAR(64) UNIQUE NOT NULL,
-    usado BOOLEAN DEFAULT FALSE,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending'
+      COMMENT 'pending|used|revoked',
     trainer_id INT NULL,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_invitaciones_trainer

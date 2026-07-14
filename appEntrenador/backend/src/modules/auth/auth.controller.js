@@ -37,20 +37,6 @@ async function login(req, res) {
   }
 }
 
-async function generateInvitation(req, res) {
-  try {
-    const invitation = await authService.generateInvitation(req.user.id);
-
-    return res.json({
-      success: true,
-      message: 'Token generado con éxito',
-      ...invitation,
-    });
-  } catch (error) {
-    return sendError(res, error, 'Error generando token:');
-  }
-}
-
 async function register(req, res) {
   try {
     await authService.register(req.body);
@@ -66,6 +52,5 @@ async function register(req, res) {
 
 module.exports = {
   login,
-  generateInvitation,
   register,
 };

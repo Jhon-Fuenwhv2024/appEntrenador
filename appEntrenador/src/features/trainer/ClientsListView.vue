@@ -1,20 +1,25 @@
 <script setup>
 /**
  * Route view for /trainer/clients — loads owned clients and filters locally.
+ * Incluye diálogo de gestión de invitaciones (Feature 023) sin ítem de nav.
  */
 import { computed, onMounted, reactive, ref, shallowRef } from 'vue';
+import { useDisplay } from 'vuetify';
 import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
 import { getClients } from './api/clientsApi.js';
 import ClientsList from './components/ClientsList.vue';
+import InvitesManager from './components/InvitesManager.vue';
 
 const router = useRouter();
+const { smAndUp } = useDisplay();
 
 const searchQuery = shallowRef('');
 const loading = shallowRef(true);
 const clients = ref([]);
+const invitesDialogOpen = shallowRef(false);
 
 const snackbar = reactive({
   show: false,
@@ -37,6 +42,11 @@ const showNotification = (text, color = 'success') => {
   snackbar.show = true;
   snackbar.text = text;
   snackbar.color = color;
+};
+
+const onInvitesNotify = ({ text, color } = {}) => {
+  if (!text) return;
+  showNotification(text, color || 'success');
 };
 
 const loadClients = async () => {
@@ -69,8 +79,8 @@ const openClient = (client) => {
   router.push(`/trainer/clients/${client.id}`);
 };
 
-const goInvite = () => {
-  router.push({ path: '/dashboard', hash: '#invite' });
+const openInvitesManager = () => {
+  invitesDialogOpen.value = true;
 };
 
 onMounted(() => {
@@ -96,7 +106,19 @@ onMounted(() => {
           </p>
         </div>
 
-        <div class="header-right">
+        <div class="header-right d-flex align-center ga-2">
+          <v-btn
+            color="primary"
+            variant="tonal"
+            size="small"
+            prepend-icon="mdi-link-variant"
+            class="clients-page__invites-btn"
+            aria-label="Gestionar invitaciones"
+            title="Gestionar invitaciones"
+            @click="openInvitesManager"
+          >
+            <span class="clients-page__invites-label">Gestionar invitaciones</span>
+          </v-btn>
           <button
             type="button"
             class="header-logout-btn"
@@ -117,11 +139,38 @@ onMounted(() => {
           :total-count="clients.length"
           :loading="loading"
           @select-client="openClient"
-          @invite="goInvite"
+          @invite="openInvitesManager"
         />
       </div>
     </main>
   </AppShell>
+
+  <v-dialog
+    v-model="invitesDialogOpen"
+    :fullscreen="!smAndUp"
+    :max-width="smAndUp ? 720 : undefined"
+    scrollable
+  >
+    <v-card class="invites-dialog-card">
+      <v-card-title class="d-flex align-center justify-space-between pe-2">
+        <span class="text-subtitle-1 font-weight-medium">Gestión de invitaciones</span>
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          size="small"
+          aria-label="Cerrar"
+          @click="invitesDialogOpen = false"
+        />
+      </v-card-title>
+      <v-divider />
+      <v-card-text class="invites-dialog-body">
+        <InvitesManager
+          v-if="invitesDialogOpen"
+          @notify="onInvitesNotify"
+        />
+      </v-card-text>
+    </v-card>
+  </v-dialog>
 
   <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top">
     {{ snackbar.text }}
@@ -146,6 +195,25 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   padding: 0 16px 24px;
+}
+
+.clients-page__invites-label {
+  display: none;
+}
+
+.invites-dialog-card {
+  max-height: 100%;
+}
+
+.invites-dialog-body {
+  padding-top: 16px;
+  padding-bottom: 24px;
+}
+
+@media (min-width: 600px) {
+  .clients-page__invites-label {
+    display: inline;
+  }
 }
 
 @media (min-width: 961px) {

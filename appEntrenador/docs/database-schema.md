@@ -90,7 +90,7 @@ erDiagram
   invitaciones {
     int id PK
     string token
-    boolean usado
+    string status "pending|used|revoked"
     int trainer_id FK
   }
 
@@ -160,7 +160,14 @@ Ejecución del alumno. `workout_sessions` agrupa una sesión; `workout_set_logs`
 
 ### `invitaciones`
 
-Tokens de registro generados por un trainer (`trainer_id`).
+Tokens de registro generados por un trainer (`trainer_id`). Columna `status`: `pending` | `used` | `revoked` (Feature 023; reemplaza `usado` BOOLEAN).
+
+Migración: [`backend/db/migrations/009_invites_status.sql`](../backend/db/migrations/009_invites_status.sql).
+
+```bash
+cd backend
+node scripts/migrateInvitesStatus.js
+```
 
 ### `routine_templates` / `template_exercises` (Feature 018)
 

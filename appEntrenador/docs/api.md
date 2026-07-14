@@ -39,7 +39,7 @@ Respuesta exitosa:
 
 ### `POST /register`
 
-Registra un cliente usando una invitación válida no usada. El servidor fuerza `rol = "client"` y asigna `trainer_id` del creador de la invitación.
+Registra un cliente usando una invitación válida con `status = pending`. El servidor fuerza `rol = "client"`, asigna `trainer_id` del creador de la invitación y marca la invitación como `used` (vía `invitesService.validateAndConsumeToken`).
 
 Body:
 
@@ -57,24 +57,51 @@ Errores relevantes:
 | Código | Cuándo |
 |--------|--------|
 | `400` | Falta el token, o el username ya está en uso |
-| `403` | Token inexistente, ya utilizado, o sin trainer vinculado |
+| `403` | Token inexistente, ya usado/revocado, o sin trainer vinculado |
 
-### `POST /generate-token` (trainer + JWT)
+### `POST /generate-token` (trainer + JWT) — alias
 
-Genera un token y link de invitación vinculado al trainer autenticado.
+Alias de compatibilidad de `POST /invites`. Preferir el módulo de invitaciones.
+
+## Invitaciones (trainer + JWT) — Feature 023
+
+Base: `/api/invites`. Ownership estricto por `trainer_id = req.user.id`. Sin envío por email: el entrenador copia el enlace.
+
+### `POST /invites`
+
+Genera una invitación `pending` vinculada al trainer autenticado.
 
 Headers: `Authorization: Bearer <token>`
 
-Respuesta exitosa:
+Respuesta exitosa (`201`):
 
 ```json
 {
   "success": true,
   "message": "Token generado con éxito",
+  "data": {
+    "id": 1,
+    "token": "abc123",
+    "status": "pending",
+    "fecha_creacion": "2026-07-14T12:00:00.000Z",
+    "link_invitacion": "http://localhost:5173/registro?token=abc123"
+  },
   "token": "abc123",
   "link_invitacion": "http://localhost:5173/registro?token=abc123"
 }
 ```
+
+### `GET /invites`
+
+Lista las invitaciones del trainer (`pending` | `used` | `revoked`), más recientes primero.
+
+Respuesta `data`: array de `{ id, token, status, trainer_id, fecha_creacion, link_invitacion }`.
+
+### `PATCH /invites/:id/revoke`
+
+Cambia a `revoked` solo si estaba `pending` y pertenece al trainer.
+
+Errores: `404` no encontrada / sin ownership; `400` si no está pendiente.
 
 ## Clientes (trainer + JWT)
 

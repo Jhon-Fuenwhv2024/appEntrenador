@@ -8,13 +8,14 @@
 4. Middleware pobla `req.user`; roles restringen endpoints.
 5. Ante `401`, el interceptor limpia sesión y redirige al login.
 
-## Invitación → cliente del trainer
+## Invitación → cliente del trainer (Feature 023)
 
-1. Trainer autenticado `POST /generate-token` → fila en `invitaciones` con `trainer_id`.
-2. Cliente abre `/registro?token=...`: el frontend limpia cualquier sesión previa (`clearSession`) para no heredar el JWT del trainer.
-3. `POST /register` consume el token y crea `usuarios` con `rol=client` y `trainer_id` del invite.
-4. Tras éxito se vuelve a limpiar sesión y se redirige a `/` (login) para que el cliente inicie sesión con su cuenta.
-5. Trainer ve al alumno en `GET /clients` (filtrado por ownership) en `/trainer/clients`.
+1. Trainer autenticado `POST /api/invites` (o alias `POST /generate-token`) → fila en `invitaciones` con `trainer_id` y `status=pending`.
+2. En Alumnos puede listar (`GET /api/invites`) y revocar pendientes (`PATCH /api/invites/:id/revoke` → `revoked`).
+3. Cliente abre `/registro?token=...`: el frontend limpia cualquier sesión previa (`clearSession`) para no heredar el JWT del trainer.
+4. `POST /register` llama a `invitesService.validateAndConsumeToken` (transacción): marca `used` y crea `usuarios` con `rol=client` y `trainer_id` del invite.
+5. Tras éxito se vuelve a limpiar sesión y se redirige a `/` (login) para que el cliente inicie sesión con su cuenta.
+6. Trainer ve al alumno en `GET /clients` (filtrado por ownership) en `/trainer/clients`.
 
 ## Perfil alumno y avatar (Feature 020)
 
