@@ -67,6 +67,12 @@ const routes = [
     meta: { requiresAuth: true, role: 'trainer' },
   },
   {
+    path: '/trainer/library/exercises',
+    name: 'TrainerLibraryExercises',
+    component: LibraryView,
+    meta: { requiresAuth: true, role: 'trainer' },
+  },
+  {
     path: '/trainer/settings',
     name: 'TrainerSettings',
     component: TrainerSettingsView,

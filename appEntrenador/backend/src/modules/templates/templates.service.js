@@ -1,11 +1,21 @@
 const db = require('../../config/db');
 const clientsService = require('../clients/clients.service');
+const exercisesService = require('../exercises/exercises.service');
 const { DAYS } = require('../routines/routines.service');
 
 function createHttpError(message, code) {
   const error = new Error(message);
   error.code = code;
   return error;
+}
+
+function normalizeOptionalExerciseId(raw, nombre) {
+  if (raw == null || raw === '') return null;
+  const id = Number(raw);
+  if (!Number.isInteger(id) || id < 1) {
+    throw createHttpError(`exercise_id inválido en el ejercicio "${nombre}".`, 400);
+  }
+  return id;
 }
 
 function normalizeExercises(exercises) {
@@ -19,6 +29,10 @@ function normalizeExercises(exercises) {
     const repeticiones = Number(item.repeticiones);
     const peso = Number(item.peso);
     const indicaciones = typeof item.indicaciones === 'string' ? item.indicaciones.trim() : '';
+    const exercise_id = normalizeOptionalExerciseId(
+      item.exercise_id,
+      nombre || `#${index + 1}`,
+    );
 
     if (!nombre) {
       throw createHttpError(`El ejercicio #${index + 1} necesita un nombre.`, 400);
@@ -38,6 +52,7 @@ function normalizeExercises(exercises) {
 
     return {
       nombre,
+      exercise_id,
       series,
       repeticiones,
       indicaciones,
@@ -75,6 +90,19 @@ function resolveAssignDay(diaSemana) {
   return day;
 }
 
+function mapTemplateExerciseRow(exercise) {
+  return {
+    id: exercise.id,
+    nombre: exercise.nombre,
+    exercise_id: exercise.exercise_id ?? null,
+    series: exercise.series,
+    repeticiones: exercise.repeticiones,
+    peso: Number(exercise.peso),
+    indicaciones: exercise.indicaciones,
+    sort_order: exercise.sort_order,
+  };
+}
+
 async function fetchTemplatesWithExercises(trainerId, templateId = null) {
   const params = [trainerId];
   let where = 'WHERE t.trainer_id = ?';
@@ -99,7 +127,7 @@ async function fetchTemplatesWithExercises(trainerId, templateId = null) {
   const ids = templates.map((t) => t.id);
   const placeholders = ids.map(() => '?').join(',');
   const [exercises] = await db.query(
-    `SELECT id, template_id, nombre, series, repeticiones, peso, indicaciones, sort_order
+    `SELECT id, template_id, nombre, exercise_id, series, repeticiones, peso, indicaciones, sort_order
      FROM template_exercises
      WHERE template_id IN (${placeholders})
      ORDER BY sort_order ASC, id ASC`,
@@ -109,15 +137,7 @@ async function fetchTemplatesWithExercises(trainerId, templateId = null) {
   const byTemplate = new Map();
   for (const exercise of exercises) {
     const list = byTemplate.get(exercise.template_id) || [];
-    list.push({
-      id: exercise.id,
-      nombre: exercise.nombre,
-      series: exercise.series,
-      repeticiones: exercise.repeticiones,
-      peso: Number(exercise.peso),
-      indicaciones: exercise.indicaciones,
-      sort_order: exercise.sort_order,
-    });
+    list.push(mapTemplateExerciseRow(exercise));
     byTemplate.set(exercise.template_id, list);
   }
 
@@ -156,8 +176,33 @@ async function getTemplateById(trainerId, templateId) {
   return getTemplateOwnedByTrainer(templateId, trainerId);
 }
 
+async function insertTemplateExerciseLines(connection, templateId, exercises) {
+  for (const exercise of exercises) {
+    await connection.query(
+      `INSERT INTO template_exercises
+         (template_id, nombre, exercise_id, series, repeticiones, peso, indicaciones, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        templateId,
+        exercise.nombre,
+        exercise.exercise_id,
+        exercise.series,
+        exercise.repeticiones,
+        exercise.peso,
+        exercise.indicaciones || null,
+        exercise.sort_order,
+      ],
+    );
+  }
+}
+
 async function createTemplate(trainerId, payload) {
   const data = validateTemplatePayload(payload);
+  await exercisesService.assertCatalogExerciseIdsVisible(
+    data.exercises.map((ex) => ex.exercise_id),
+    trainerId,
+  );
+
   const connection = await db.getConnection();
   let templateId;
 
@@ -171,24 +216,7 @@ async function createTemplate(trainerId, payload) {
     );
 
     templateId = result.insertId;
-
-    for (const exercise of data.exercises) {
-      await connection.query(
-        `INSERT INTO template_exercises
-           (template_id, nombre, series, repeticiones, peso, indicaciones, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          templateId,
-          exercise.nombre,
-          exercise.series,
-          exercise.repeticiones,
-          exercise.peso,
-          exercise.indicaciones || null,
-          exercise.sort_order,
-        ],
-      );
-    }
-
+    await insertTemplateExerciseLines(connection, templateId, data.exercises);
     await connection.commit();
   } catch (error) {
     await connection.rollback();
@@ -203,6 +231,11 @@ async function createTemplate(trainerId, payload) {
 async function updateTemplate(trainerId, templateId, payload) {
   await getTemplateOwnedByTrainer(templateId, trainerId);
   const data = validateTemplatePayload(payload);
+  await exercisesService.assertCatalogExerciseIdsVisible(
+    data.exercises.map((ex) => ex.exercise_id),
+    trainerId,
+  );
+
   const connection = await db.getConnection();
 
   try {
@@ -220,23 +253,7 @@ async function updateTemplate(trainerId, templateId, payload) {
       [templateId],
     );
 
-    for (const exercise of data.exercises) {
-      await connection.query(
-        `INSERT INTO template_exercises
-           (template_id, nombre, series, repeticiones, peso, indicaciones, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          templateId,
-          exercise.nombre,
-          exercise.series,
-          exercise.repeticiones,
-          exercise.peso,
-          exercise.indicaciones || null,
-          exercise.sort_order,
-        ],
-      );
-    }
-
+    await insertTemplateExerciseLines(connection, templateId, data.exercises);
     await connection.commit();
   } catch (error) {
     await connection.rollback();
@@ -258,6 +275,7 @@ async function deleteTemplate(trainerId, templateId) {
 
 /**
  * Deep copy: inserts into rutinas/ejercicios. No FK from assigned routine back to template.
+ * Copies exercise_id when present (Feature 022).
  */
 async function assignTemplate(trainerId, templateId, payload = {}) {
   const template = await getTemplateOwnedByTrainer(templateId, trainerId);
@@ -289,11 +307,13 @@ async function assignTemplate(trainerId, templateId, payload = {}) {
 
     for (const exercise of template.exercises) {
       await connection.query(
-        `INSERT INTO ejercicios (rutina_id, nombre, series, repeticiones, indicaciones, peso)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO ejercicios
+           (rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           routineId,
           exercise.nombre,
+          exercise.exercise_id,
           exercise.series,
           exercise.repeticiones,
           exercise.indicaciones || null,
@@ -318,7 +338,7 @@ async function assignTemplate(trainerId, templateId, payload = {}) {
   );
 
   const [exercises] = await db.query(
-    `SELECT id, rutina_id, nombre, series, repeticiones, indicaciones, peso
+    `SELECT id, rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso
      FROM ejercicios
      WHERE rutina_id = ?
      ORDER BY id ASC`,
@@ -333,6 +353,7 @@ async function assignTemplate(trainerId, templateId, payload = {}) {
     ejercicios: exercises.map((exercise) => ({
       id: exercise.id,
       nombre: exercise.nombre,
+      exercise_id: exercise.exercise_id ?? null,
       series: exercise.series,
       repeticiones: exercise.repeticiones,
       indicaciones: exercise.indicaciones,

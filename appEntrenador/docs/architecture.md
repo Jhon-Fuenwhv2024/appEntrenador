@@ -34,9 +34,9 @@ El backend monta módulos bajo `/api` desde `backend/src/server.js`.
 - `backend/src/modules/clients/`: listado/detalle de clientes del trainer autenticado.
 - `backend/src/modules/routines/`: CRUD de rutinas/ejercicios (líneas de rutina) con ownership.
 - `backend/src/modules/templates/`: CRUD de plantillas + `POST /templates/:id/assign` (deep copy a `rutinas`/`ejercicios`; Feature 018).
-- `backend/src/modules/exercises/`: catálogo `exercises` — `GET/POST /api/exercises` (trainer: globales + propios). Seed (`backend/scripts/seedExercises.js`) desde clone local de wrkout/exercises.json; `media_url` = raw GitHub. Las rutinas copian `name` a `ejercicios.nombre` (sin FK). Ver [`docs/database-schema.md`](database-schema.md).
+- `backend/src/modules/exercises/`: catálogo `exercises` — `GET/POST /api/exercises` (trainer: globales + propios). Seed (`backend/scripts/seedExercises.js`) desde clone local de wrkout/exercises.json; `media_url` = raw GitHub. Las líneas de rutina/plantilla pueden vincularse con `exercise_id` + `nombre` denormalizado (Feature 022). Ver [`docs/database-schema.md`](database-schema.md).
 - `backend/src/modules/workout-sessions/`: `POST/GET /me/workout-sessions` (client) y `GET /clients/:id/workout-sessions` (trainer). Feature 012 + 021.
-- Frontend trainer: `LibraryView` gestiona plantillas; `ExercisesCatalogView` (`/trainer/exercises`) gestiona el catálogo (acceso desde Biblioteca); `ClientRoutinesView` usa combobox al crear/editar rutinas y puede guardar como plantilla.
+- Frontend trainer: `LibraryView` es el hub (tabs Plantillas | Catálogo en `/trainer/library` y `/trainer/library/exercises`); `ClientRoutinesView` / `TemplateFormDialog` usan autocomplete híbrido (`nombre` + `exercise_id`).
 
 Cada módulo sigue la forma `routes -> controller -> service`. Los services concentran consultas MySQL parametrizadas y los controllers traducen a respuestas JSON.
 

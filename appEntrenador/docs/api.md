@@ -220,6 +220,7 @@ Crea rutina con ejercicios (transacción).
   "ejercicios": [
     {
       "nombre": "Press banca",
+      "exercise_id": 42,
       "series": 4,
       "repeticiones": 10,
       "peso": 60,
@@ -229,6 +230,7 @@ Crea rutina con ejercicios (transacción).
 }
 ```
 
+`exercise_id` es opcional (`null` = texto libre / líneas legacy). Debe ser un ejercicio del catálogo visible al trainer (global o propio). Se persiste junto al `nombre` denormalizado.
 ### `PUT /routines/:routineId` (trainer)
 
 Reemplaza día, nombre y ejercicios de una rutina propia.
@@ -256,6 +258,7 @@ Crea plantilla + líneas (transacción).
   "exercises": [
     {
       "nombre": "Press banca",
+      "exercise_id": 42,
       "series": 4,
       "repeticiones": 10,
       "peso": 60,
@@ -265,6 +268,7 @@ Crea plantilla + líneas (transacción).
 }
 ```
 
+`exercise_id` opcional; misma semántica que en rutinas de alumno.
 ### `GET /templates/:id`
 
 Detalle de una plantilla propia.
@@ -295,7 +299,8 @@ Lista las rutinas del cliente autenticado.
 
 Cada ítem de `ejercicios[]` incluye (además de la prescripción):
 
-- `media_type` / `media_url` — media del catálogo por nombre (Features 008–009)
+- `exercise_id` — vínculo al catálogo (nullable; Feature 022)
+- `media_type` / `media_url` — resueltos por `exercise_id` si existe; si no, por nombre (Features 008–009 / 022)
 - `last_log` — memoria de progresión (Feature 019):
 
 ```json
@@ -383,7 +388,7 @@ Actualiza un ejercicio visible (global o privado del trainer): nombre, descripci
 
 Elimina un ejercicio visible (global o privado del trainer).
 
-Las rutinas siguen enviando `ejercicios[].nombre` como texto (copia del catálogo o libre). Sin FK aún.
+Las líneas de rutina/plantilla envían `nombre` + `exercise_id` opcional (Feature 022). El player resuelve media por id; fallback por nombre si `exercise_id` es NULL.
 
 UI trainer: ruta `/trainer/exercises` (listar / buscar / crear / editar / borrar) y combobox en `/trainer/clients/:clientId`.
 

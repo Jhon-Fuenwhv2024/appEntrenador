@@ -1,5 +1,6 @@
 const db = require('../../config/db');
 const clientsService = require('../clients/clients.service');
+const exercisesService = require('../exercises/exercises.service');
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -7,6 +8,15 @@ function createHttpError(message, code) {
   const error = new Error(message);
   error.code = code;
   return error;
+}
+
+function normalizeOptionalExerciseId(raw, index, nombre) {
+  if (raw == null || raw === '') return null;
+  const id = Number(raw);
+  if (!Number.isInteger(id) || id < 1) {
+    throw createHttpError(`exercise_id inválido en el ejercicio "${nombre}".`, 400);
+  }
+  return id;
 }
 
 function normalizeExercises(ejercicios) {
@@ -20,6 +30,7 @@ function normalizeExercises(ejercicios) {
     const repeticiones = Number(item.repeticiones);
     const peso = Number(item.peso);
     const indicaciones = typeof item.indicaciones === 'string' ? item.indicaciones.trim() : '';
+    const exercise_id = normalizeOptionalExerciseId(item.exercise_id, index, nombre || `#${index + 1}`);
 
     if (!nombre) {
       throw createHttpError(`El ejercicio #${index + 1} necesita un nombre.`, 400);
@@ -39,6 +50,7 @@ function normalizeExercises(ejercicios) {
 
     return {
       nombre,
+      exercise_id,
       series,
       repeticiones,
       indicaciones,
@@ -68,6 +80,18 @@ function validateRoutinePayload(payload) {
   };
 }
 
+function mapExerciseRow(exercise) {
+  return {
+    id: exercise.id,
+    nombre: exercise.nombre,
+    exercise_id: exercise.exercise_id ?? null,
+    series: exercise.series,
+    repeticiones: exercise.repeticiones,
+    indicaciones: exercise.indicaciones,
+    peso: Number(exercise.peso),
+  };
+}
+
 async function fetchRoutinesWithExercises(alumnoId) {
   const [routines] = await db.query(
     `SELECT id, alumno_id, dia_semana, nombre_rutina
@@ -84,7 +108,7 @@ async function fetchRoutinesWithExercises(alumnoId) {
   const routineIds = routines.map((r) => r.id);
   const placeholders = routineIds.map(() => '?').join(',');
   const [exercises] = await db.query(
-    `SELECT id, rutina_id, nombre, series, repeticiones, indicaciones, peso
+    `SELECT id, rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso
      FROM ejercicios
      WHERE rutina_id IN (${placeholders})
      ORDER BY id ASC`,
@@ -94,14 +118,7 @@ async function fetchRoutinesWithExercises(alumnoId) {
   const byRoutine = new Map();
   for (const exercise of exercises) {
     const list = byRoutine.get(exercise.rutina_id) || [];
-    list.push({
-      id: exercise.id,
-      nombre: exercise.nombre,
-      series: exercise.series,
-      repeticiones: exercise.repeticiones,
-      indicaciones: exercise.indicaciones,
-      peso: Number(exercise.peso),
-    });
+    list.push(mapExerciseRow(exercise));
     byRoutine.set(exercise.rutina_id, list);
   }
 
@@ -141,26 +158,33 @@ async function listRoutinesForClientAsTrainer(trainerId, clientId) {
 }
 
 /**
- * Attach media_type / media_url from catalog by case-insensitive name.
- * Prefers the client's trainer private entries over globals.
+ * Attach media_type / media_url from catalog.
+ * Prefer exercise_id (Feature 022); fallback to case-insensitive name for legacy lines.
  */
 async function enrichRoutinesWithCatalogMedia(routines, clientId) {
   if (!routines.length) return routines;
 
+  const catalogIds = new Set();
   const names = new Set();
+
   for (const routine of routines) {
     for (const exercise of routine.ejercicios || []) {
-      if (exercise.nombre) names.add(exercise.nombre.trim().toLowerCase());
+      if (exercise.exercise_id != null) {
+        catalogIds.add(Number(exercise.exercise_id));
+      } else if (exercise.nombre) {
+        names.add(exercise.nombre.trim().toLowerCase());
+      }
     }
   }
 
-  if (names.size === 0) {
+  const emptyMedia = { media_type: 'none', media_url: null };
+
+  if (catalogIds.size === 0 && names.size === 0) {
     return routines.map((routine) => ({
       ...routine,
       ejercicios: (routine.ejercicios || []).map((ex) => ({
         ...ex,
-        media_type: 'none',
-        media_url: null,
+        ...emptyMedia,
       })),
     }));
   }
@@ -171,42 +195,67 @@ async function enrichRoutinesWithCatalogMedia(routines, clientId) {
   );
   const trainerId = userRows[0]?.trainer_id ?? null;
 
-  const nameList = [...names];
-  const placeholders = nameList.map(() => '?').join(',');
-  const params = trainerId == null
-    ? [...nameList]
-    : [...nameList, trainerId];
-
-  const trainerClause = trainerId == null
-    ? 'created_by_trainer_id IS NULL'
-    : '(created_by_trainer_id IS NULL OR created_by_trainer_id = ?)';
-
-  const [catalogRows] = await db.query(
-    `SELECT name, media_type, media_url, created_by_trainer_id
-     FROM exercises
-     WHERE LOWER(TRIM(name)) IN (${placeholders})
-       AND ${trainerClause}`,
-    params,
-  );
-
+  const mediaById = new Map();
   const mediaByName = new Map();
-  for (const row of catalogRows) {
-    const key = String(row.name).trim().toLowerCase();
-    const existing = mediaByName.get(key);
-    const isTrainerOwned = trainerId != null
-      && row.created_by_trainer_id === trainerId;
 
-    if (!existing || isTrainerOwned) {
-      mediaByName.set(key, {
+  if (catalogIds.size > 0) {
+    const idList = [...catalogIds];
+    const idPlaceholders = idList.map(() => '?').join(',');
+    const [byIdRows] = await db.query(
+      `SELECT id, media_type, media_url
+       FROM exercises
+       WHERE id IN (${idPlaceholders})`,
+      idList,
+    );
+    for (const row of byIdRows) {
+      mediaById.set(row.id, {
         media_type: row.media_type || 'none',
         media_url: row.media_url || null,
       });
     }
   }
 
+  if (names.size > 0) {
+    const nameList = [...names];
+    const placeholders = nameList.map(() => '?').join(',');
+    const params = trainerId == null
+      ? [...nameList]
+      : [...nameList, trainerId];
+
+    const trainerClause = trainerId == null
+      ? 'created_by_trainer_id IS NULL'
+      : '(created_by_trainer_id IS NULL OR created_by_trainer_id = ?)';
+
+    const [catalogRows] = await db.query(
+      `SELECT name, media_type, media_url, created_by_trainer_id
+       FROM exercises
+       WHERE LOWER(TRIM(name)) IN (${placeholders})
+         AND ${trainerClause}`,
+      params,
+    );
+
+    for (const row of catalogRows) {
+      const key = String(row.name).trim().toLowerCase();
+      const existing = mediaByName.get(key);
+      const isTrainerOwned = trainerId != null
+        && row.created_by_trainer_id === trainerId;
+
+      if (!existing || isTrainerOwned) {
+        mediaByName.set(key, {
+          media_type: row.media_type || 'none',
+          media_url: row.media_url || null,
+        });
+      }
+    }
+  }
+
   return routines.map((routine) => ({
     ...routine,
     ejercicios: (routine.ejercicios || []).map((ex) => {
+      if (ex.exercise_id != null && mediaById.has(ex.exercise_id)) {
+        const media = mediaById.get(ex.exercise_id);
+        return { ...ex, ...media };
+      }
       const key = String(ex.nombre || '').trim().toLowerCase();
       const media = mediaByName.get(key);
       return {
@@ -285,9 +334,33 @@ async function listMyRoutines(clientId) {
   return enrichRoutinesWithLastLogs(withMedia, clientId);
 }
 
+async function insertExerciseLines(connection, routineId, ejercicios) {
+  for (const exercise of ejercicios) {
+    await connection.query(
+      `INSERT INTO ejercicios
+         (rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        routineId,
+        exercise.nombre,
+        exercise.exercise_id,
+        exercise.series,
+        exercise.repeticiones,
+        exercise.indicaciones || null,
+        exercise.peso,
+      ],
+    );
+  }
+}
+
 async function createRoutine(trainerId, clientId, payload) {
   await assertTrainerOwnsClient(trainerId, clientId);
   const data = validateRoutinePayload(payload);
+  await exercisesService.assertCatalogExerciseIdsVisible(
+    data.ejercicios.map((ex) => ex.exercise_id),
+    trainerId,
+  );
+
   const connection = await db.getConnection();
 
   try {
@@ -299,22 +372,7 @@ async function createRoutine(trainerId, clientId, payload) {
     );
 
     const routineId = result.insertId;
-
-    for (const exercise of data.ejercicios) {
-      await connection.query(
-        `INSERT INTO ejercicios (rutina_id, nombre, series, repeticiones, indicaciones, peso)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          routineId,
-          exercise.nombre,
-          exercise.series,
-          exercise.repeticiones,
-          exercise.indicaciones || null,
-          exercise.peso,
-        ],
-      );
-    }
-
+    await insertExerciseLines(connection, routineId, data.ejercicios);
     await connection.commit();
 
     const routines = await fetchRoutinesWithExercises(clientId);
@@ -330,6 +388,11 @@ async function createRoutine(trainerId, clientId, payload) {
 async function updateRoutine(trainerId, routineId, payload) {
   await getRoutineOwnedByTrainer(routineId, trainerId);
   const data = validateRoutinePayload(payload);
+  await exercisesService.assertCatalogExerciseIdsVisible(
+    data.ejercicios.map((ex) => ex.exercise_id),
+    trainerId,
+  );
+
   const connection = await db.getConnection();
 
   try {
@@ -341,22 +404,7 @@ async function updateRoutine(trainerId, routineId, payload) {
     );
 
     await connection.query('DELETE FROM ejercicios WHERE rutina_id = ?', [routineId]);
-
-    for (const exercise of data.ejercicios) {
-      await connection.query(
-        `INSERT INTO ejercicios (rutina_id, nombre, series, repeticiones, indicaciones, peso)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          routineId,
-          exercise.nombre,
-          exercise.series,
-          exercise.repeticiones,
-          exercise.indicaciones || null,
-          exercise.peso,
-        ],
-      );
-    }
-
+    await insertExerciseLines(connection, routineId, data.ejercicios);
     await connection.commit();
   } catch (error) {
     await connection.rollback();

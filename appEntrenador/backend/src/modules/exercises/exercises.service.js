@@ -86,6 +86,39 @@ async function getExerciseVisibleToTrainer(exerciseId, trainerId) {
   return rows[0];
 }
 
+/**
+ * Batch-validate optional catalog IDs (global or owned by trainer).
+ * @param {number[]} exerciseIds
+ * @param {number} trainerId
+ */
+async function assertCatalogExerciseIdsVisible(exerciseIds, trainerId) {
+  const ids = [...new Set(
+    (exerciseIds || [])
+      .map((id) => Number(id))
+      .filter((id) => Number.isInteger(id) && id > 0),
+  )];
+
+  if (ids.length === 0) return;
+
+  const placeholders = ids.map(() => '?').join(',');
+  const [rows] = await db.query(
+    `SELECT id FROM exercises
+     WHERE id IN (${placeholders})
+       AND (created_by_trainer_id IS NULL OR created_by_trainer_id = ?)`,
+    [...ids, trainerId],
+  );
+
+  const allowed = new Set(rows.map((row) => row.id));
+  for (const id of ids) {
+    if (!allowed.has(id)) {
+      throw createHttpError(
+        `El ejercicio de catálogo #${id} no existe o no tienes acceso.`,
+        400,
+      );
+    }
+  }
+}
+
 async function assertNameAvailable(name, trainerId, excludeId = null) {
   const params = [name, trainerId];
   let sql = `
@@ -273,5 +306,7 @@ module.exports = {
   createExerciseForTrainer,
   updateExerciseForTrainer,
   deleteExerciseForTrainer,
+  getExerciseVisibleToTrainer,
+  assertCatalogExerciseIdsVisible,
   createHttpError,
 };

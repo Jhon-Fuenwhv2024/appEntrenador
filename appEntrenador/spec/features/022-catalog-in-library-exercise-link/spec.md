@@ -1,6 +1,6 @@
 # 022 · Catálogo dentro de Biblioteca + vínculo estable
 
-**Estado:** pendiente
+**Estado:** implementado (Fase 1 + 2)
 
 **Depende de:** 016 (nav); 018 (Biblioteca); catálogo 008/009
 
@@ -11,13 +11,13 @@
 
 ## Criterios de aceptación
 
-- [ ] Acceso a catálogo desde Biblioteca (y/o al editar plantilla/rutina); sin slot “Ejercicios” en barra
-- [ ] Schema: columna nullable `exercise_id` (o equivalente) en `ejercicios` y/o líneas de plantilla → FK a `exercises`
-- [ ] Crear/editar rutina o plantilla puede persistir `exercise_id` + nombre denormalizado para display
-- [ ] Player/media resuelve por `exercise_id` cuando existe; fallback por nombre si NULL
-- [ ] Migración documentada; `script_db.sql` actualizado
-- [ ] Docs schema / api / architecture
-- [ ] Build OK
+- [x] Acceso a catálogo desde Biblioteca (y/o al editar plantilla/rutina); sin slot “Ejercicios” en barra
+- [x] Schema: columna nullable `exercise_id` (o equivalente) en `ejercicios` y/o líneas de plantilla → FK a `exercises`
+- [x] Crear/editar rutina o plantilla puede persistir `exercise_id` + nombre denormalizado para display
+- [x] Player/media resuelve por `exercise_id` cuando existe; fallback por nombre si NULL
+- [x] Migración documentada; `script_db.sql` actualizado
+- [x] Docs schema / api / architecture
+- [x] Build OK
 
 ## Fuera de alcance
 

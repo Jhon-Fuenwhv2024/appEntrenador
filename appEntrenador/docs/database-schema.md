@@ -11,6 +11,8 @@ erDiagram
   usuarios ||--o{ invitaciones : "genera"
   usuarios ||--o{ rutinas : "alumno_id"
   rutinas ||--o{ ejercicios : "contiene"
+  exercises ||--o{ ejercicios : "exercise_id"
+  exercises ||--o{ template_exercises : "exercise_id"
   usuarios ||--o{ exercises : "created_by_trainer_id"
   usuarios ||--o{ workout_sessions : "client_id"
   rutinas ||--o{ workout_sessions : "routine_id"
@@ -48,6 +50,7 @@ erDiagram
     int id PK
     int rutina_id FK
     string nombre
+    int exercise_id FK "nullable → exercises"
     int series
     int repeticiones
     text indicaciones
@@ -102,6 +105,7 @@ erDiagram
     int id PK
     int template_id FK
     string nombre
+    int exercise_id FK "nullable → exercises"
     int series
     int repeticiones
     decimal peso
@@ -130,7 +134,9 @@ Rutina diaria asignada a un alumno (`alumno_id` → `usuarios`).
 
 ### `ejercicios` (líneas de rutina)
 
-Detalle de una rutina concreta: nombre libre, series, repeticiones, peso e indicaciones. **No** es el catálogo del sistema. El peso aquí es **prescripción**, no historial de ejecución.
+Detalle de una rutina concreta: nombre (denormalizado), series, repeticiones, peso e indicaciones. **No** es el catálogo del sistema. El peso aquí es **prescripción**, no historial de ejecución.
+
+**Feature 022:** `exercise_id INT NULL` → FK a `exercises(id)` con `ON DELETE SET NULL`. Si el catálogo borra un ejercicio, la línea de rutina permanece con `nombre` intacto y `exercise_id = NULL`.
 
 ### `exercises` (catálogo / diccionario)
 
@@ -146,7 +152,7 @@ Diccionario híbrido de ejercicios (Feature 008):
 | `media_url` | URL de media (GitHub, YouTube, hosting del trainer) |
 | `created_by_trainer_id` | `NULL` = global del sistema; con ID = privado del trainer (`usuarios.id`) |
 
-**Importante:** `exercises` ≠ `ejercicios`. Las rutinas siguen usando `ejercicios.nombre` como texto libre; la UI del trainer puede elegir del catálogo y copiar el nombre (Feature 009: `GET/POST /api/exercises`).
+**Importante:** `exercises` ≠ `ejercicios`. Las líneas de rutina/plantilla pueden vincularse con `exercise_id` (estable) y siguen guardando `nombre` para display e historial (Feature 022). La UI del trainer elige del catálogo vía `GET/POST /api/exercises`.
 
 ### `workout_sessions` / `workout_set_logs` (Feature 012)
 
@@ -158,11 +164,18 @@ Tokens de registro generados por un trainer (`trainer_id`).
 
 ### `routine_templates` / `template_exercises` (Feature 018)
 
-Biblioteca personal del trainer. `routine_templates.trainer_id` aísla ownership. Las líneas viven en `template_exercises` (sin FK al catálogo `exercises`).
+Biblioteca personal del trainer. `routine_templates.trainer_id` aísla ownership. Las líneas viven en `template_exercises` con `exercise_id` opcional → `exercises` (Feature 022, `ON DELETE SET NULL`).
 
-**Deep copy:** al asignar (`POST /templates/:id/assign`) se insertan filas nuevas en `rutinas` + `ejercicios` del alumno. No hay FK plantilla↔rutina; editar/borrar la plantilla no muta rutinas ya asignadas.
+**Deep copy:** al asignar (`POST /templates/:id/assign`) se insertan filas nuevas en `rutinas` + `ejercicios` del alumno (incluye `exercise_id` si existe). No hay FK plantilla↔rutina; editar/borrar la plantilla no muta rutinas ya asignadas.
 
-Migración: [`backend/db/migrations/005_routine_templates.sql`](../backend/db/migrations/005_routine_templates.sql).
+Migración catálogo link: [`backend/db/migrations/008_exercise_catalog_link.sql`](../backend/db/migrations/008_exercise_catalog_link.sql).
+
+```bash
+cd backend
+node scripts/createExerciseCatalogLink.js
+```
+
+Migración plantillas: [`backend/db/migrations/005_routine_templates.sql`](../backend/db/migrations/005_routine_templates.sql).
 
 ```bash
 cd backend

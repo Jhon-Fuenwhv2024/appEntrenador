@@ -1,6 +1,6 @@
 <script setup>
-import { onMounted, reactive, ref, shallowRef } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
@@ -12,10 +12,12 @@ import {
   updateTemplate,
 } from './api/templatesApi.js';
 import AssignTemplateDialog from './components/AssignTemplateDialog.vue';
+import ExercisesCatalogPanel from './components/ExercisesCatalogPanel.vue';
 import TemplateFormDialog from './components/TemplateFormDialog.vue';
 import TemplateList from './components/TemplateList.vue';
 
 const router = useRouter();
+const route = useRoute();
 
 const templates = ref([]);
 const loading = shallowRef(true);
@@ -31,10 +33,22 @@ const snackbar = reactive({
   color: 'success',
 });
 
+/** Hub tabs: plantillas | catálogo (Feature 022). */
+const libraryTab = computed({
+  get: () => (route.path.includes('/exercises') ? 'exercises' : 'templates'),
+  set: (value) => {
+    router.push(value === 'exercises' ? '/trainer/library/exercises' : '/trainer/library');
+  },
+});
+
 const showNotification = (text, color = 'success') => {
   snackbar.show = true;
   snackbar.text = text;
   snackbar.color = color;
+};
+
+const onCatalogNotify = ({ text, color }) => {
+  showNotification(text, color);
 };
 
 const loadTemplates = async () => {
@@ -133,7 +147,15 @@ onMounted(() => {
     router.push('/dashboard');
     return;
   }
-  loadTemplates();
+  if (libraryTab.value === 'templates') {
+    loadTemplates();
+  }
+});
+
+watch(libraryTab, (tab) => {
+  if (tab === 'templates') {
+    loadTemplates();
+  }
 });
 </script>
 
@@ -144,7 +166,7 @@ onMounted(() => {
         <div class="header-left">
           <h1 class="header-title">Biblioteca</h1>
           <p class="header-greeting text-medium-emphasis">
-            Plantillas reutilizables de tu entrenamiento
+            Plantillas y catálogo de ejercicios
           </p>
         </div>
 
@@ -162,26 +184,39 @@ onMounted(() => {
       </header>
 
       <div class="library-page">
-        <div class="library-page__toolbar">
-          <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreate">
-            Nueva plantilla
-          </v-btn>
-          <v-btn
-            variant="outlined"
-            color="primary"
-            prepend-icon="mdi-dumbbell"
-            @click="router.push('/trainer/exercises')"
-          >
-            Catálogo de ejercicios
-          </v-btn>
+        <v-tabs
+          v-model="libraryTab"
+          color="primary"
+          class="library-page__tabs mb-4"
+          density="comfortable"
+        >
+          <v-tab value="templates" prepend-icon="mdi-file-document-multiple-outline">
+            Plantillas
+          </v-tab>
+          <v-tab value="exercises" prepend-icon="mdi-dumbbell">
+            Catálogo
+          </v-tab>
+        </v-tabs>
+
+        <div v-if="libraryTab === 'templates'">
+          <div class="library-page__toolbar">
+            <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreate">
+              Nueva plantilla
+            </v-btn>
+          </div>
+
+          <TemplateList
+            :templates="templates"
+            :loading="loading"
+            @edit="openEdit"
+            @assign="openAssign"
+            @delete="handleDelete"
+          />
         </div>
 
-        <TemplateList
-          :templates="templates"
-          :loading="loading"
-          @edit="openEdit"
-          @assign="openAssign"
-          @delete="handleDelete"
+        <ExercisesCatalogPanel
+          v-else
+          @notify="onCatalogNotify"
         />
       </div>
     </main>
@@ -214,7 +249,7 @@ onMounted(() => {
 <style scoped>
 .library-page {
   padding: 0 16px 24px;
-  max-width: 960px;
+  max-width: 1100px;
 }
 
 .library-page__toolbar {
@@ -222,6 +257,11 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 16px;
+}
+
+.library-page__tabs :deep(.v-tab) {
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 @media (min-width: 961px) {

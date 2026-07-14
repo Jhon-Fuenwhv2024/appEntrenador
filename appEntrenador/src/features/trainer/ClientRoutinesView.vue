@@ -45,7 +45,7 @@ const form = reactive({
   dia_semana: 'Lunes',
   nombre_rutina: '',
   ejercicios: [
-    { nombre: '', series: 3, repeticiones: 10, peso: 0, indicaciones: '' },
+    { nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, indicaciones: '' },
   ],
 });
 
@@ -66,11 +66,6 @@ const catalogByName = computed(() => {
   }
   return map;
 });
-
-/** String titles for combobox so free typing is not blocked by object items. */
-const catalogNames = computed(() => (
-  catalogExercises.value.map((item) => item.name)
-));
 
 const showNotification = (text, color = 'success') => {
   snackbar.show = true;
@@ -100,6 +95,8 @@ const onExerciseNameUpdate = (index, value) => {
   ex.nombre = name;
 
   const match = catalogByName.value.get(name.trim().toLowerCase());
+  ex.exercise_id = match?.id ?? null;
+
   if (match && !ex.indicaciones?.trim() && match.description) {
     ex.indicaciones = match.description;
   }
@@ -110,13 +107,14 @@ const resetForm = () => {
   form.dia_semana = 'Lunes';
   form.nombre_rutina = '';
   form.ejercicios = [
-    { nombre: '', series: 3, repeticiones: 10, peso: 0, indicaciones: '' },
+    { nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, indicaciones: '' },
   ];
 };
 
 const addExerciseRow = () => {
   form.ejercicios.push({
     nombre: '',
+    exercise_id: null,
     series: 3,
     repeticiones: 10,
     peso: 0,
@@ -222,13 +220,20 @@ const saveExerciseToCatalog = async (index) => {
 
   try {
     savingCatalogIndex.value = index;
-    await createExercise({
+    const res = await createExercise({
       name,
       target_muscle: DEFAULT_TARGET_MUSCLE,
       description: ex.indicaciones?.trim() || null,
       media_type: 'none',
     });
     await loadCatalog();
+    const created = res.data?.data;
+    if (created?.id) {
+      ex.exercise_id = created.id;
+    } else {
+      const match = catalogByName.value.get(name.toLowerCase());
+      ex.exercise_id = match?.id ?? null;
+    }
     showNotification(`"${name}" guardado en el catálogo`);
   } catch (error) {
     console.error('Error guardando ejercicio en catálogo:', error);
@@ -244,6 +249,7 @@ const startEdit = (routine) => {
   form.nombre_rutina = routine.nombre_rutina;
   form.ejercicios = (routine.ejercicios || []).map((ex) => ({
     nombre: ex.nombre,
+    exercise_id: ex.exercise_id ?? null,
     series: ex.series,
     repeticiones: ex.repeticiones,
     peso: Number(ex.peso) || 0,
@@ -260,6 +266,7 @@ const buildPayload = () => ({
   nombre_rutina: form.nombre_rutina.trim(),
   ejercicios: form.ejercicios.map((ex) => ({
     nombre: ex.nombre.trim(),
+    exercise_id: ex.exercise_id ?? null,
     series: Number(ex.series),
     repeticiones: Number(ex.repeticiones),
     peso: Number(ex.peso),
@@ -314,6 +321,7 @@ const handleSaveAsTemplate = async (routine) => {
       notes: '',
       exercises: (routine.ejercicios || []).map((ex) => ({
         nombre: ex.nombre,
+        exercise_id: ex.exercise_id ?? null,
         series: Number(ex.series),
         repeticiones: Number(ex.repeticiones),
         peso: Number(ex.peso),
@@ -405,7 +413,7 @@ onMounted(() => {
                   size="small"
                   class="mb-4 px-0"
                   prepend-icon="mdi-dumbbell"
-                  @click="router.push('/trainer/exercises')"
+                  @click="router.push('/trainer/library/exercises')"
                 >
                   Abrir catálogo
                 </v-btn>
@@ -444,24 +452,29 @@ onMounted(() => {
                       @click="removeExerciseRow(index)"
                     />
                   </div>
-                  <v-combobox
-                    v-model="ex.nombre"
-                    :items="catalogNames"
+                  <v-autocomplete
+                    :model-value="ex.nombre"
+                    :items="catalogExercises"
+                    item-title="name"
+                    item-value="name"
                     label="Nombre (catálogo o texto libre)"
                     density="compact"
                     class="mb-2"
                     clearable
                     hide-no-data
                     auto-select-first
+                    free-solo
+                    :menu-props="{ contentClass: 'tf-overlay-menu', maxHeight: 280 }"
+                    :list-props="{ bgColor: 'surface', color: undefined }"
                     @update:model-value="(value) => onExerciseNameUpdate(index, value)"
                   >
-                    <template #item="{ props, item }">
+                    <template #item="{ props: itemProps, item }">
                       <v-list-item
-                        v-bind="props"
-                        :subtitle="catalogByName.get(String(item.value ?? item.title ?? '').toLowerCase())?.target_muscle"
+                        v-bind="itemProps"
+                        :subtitle="item.raw?.target_muscle"
                       />
                     </template>
-                  </v-combobox>
+                  </v-autocomplete>
                   <v-btn
                     v-if="ex.nombre?.trim() && !isNameInCatalog(ex.nombre)"
                     size="small"

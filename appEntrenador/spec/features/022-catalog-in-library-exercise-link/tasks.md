@@ -1,8 +1,8 @@
 # 022 · Tasks
 
-- [ ] Crear SDD
-- [ ] Reubicar catálogo bajo Biblioteca (rutas/UI)
-- [ ] DDL `exercise_id` + migración (permiso schema)
-- [ ] Backend persistir/devolver exercise_id + ownership catálogo
-- [ ] Frontend combobox / player fallback
-- [ ] Docs + validar build
+- [x] Crear SDD
+- [x] Reubicar catálogo bajo Biblioteca (rutas/UI)
+- [x] DDL `exercise_id` + migración (permiso schema)
+- [x] Backend persistir/devolver exercise_id + ownership catálogo
+- [x] Frontend combobox / player fallback
+- [x] Docs + validar build

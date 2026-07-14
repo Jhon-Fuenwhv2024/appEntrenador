@@ -55,14 +55,18 @@ CREATE TABLE rutinas (
 ) ENGINE=InnoDB;
 
 -- 5. TABLA DE EJERCICIOS DETALLADOS
+-- exercise_id: vínculo opcional al catálogo `exercises` (Feature 022).
+-- La FK se añade tras crear `exercises` (más abajo) por orden de dependencias.
 CREATE TABLE ejercicios (
     id INT AUTO_INCREMENT PRIMARY KEY,
     rutina_id INT NOT NULL,
     nombre VARCHAR(100) NOT NULL,
+    exercise_id INT NULL,
     series INT NOT NULL,
     repeticiones INT NOT NULL,
     indicaciones TEXT,
     peso DECIMAL(6,2) NOT NULL,
+    INDEX idx_ejercicios_exercise (exercise_id),
     FOREIGN KEY (rutina_id) REFERENCES rutinas(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
@@ -95,6 +99,11 @@ CREATE TABLE exercises (
     CONSTRAINT fk_exercises_trainer
       FOREIGN KEY (created_by_trainer_id) REFERENCES usuarios(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
+
+-- Feature 022: vínculo estable rutina → catálogo (ON DELETE SET NULL = historial intacto)
+ALTER TABLE ejercicios
+  ADD CONSTRAINT fk_ejercicios_catalog_exercise
+    FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE SET NULL;
 
 -- 8. SESIONES DE ENTRENAMIENTO (ejecución; no muta la prescripción en ejercicios)
 CREATE TABLE workout_sessions (
@@ -145,16 +154,21 @@ CREATE TABLE routine_templates (
 ) ENGINE=InnoDB;
 
 -- 11. LÍNEAS DE EJERCICIO DE PLANTILLA (copia independiente al asignar)
+-- exercise_id: vínculo opcional al catálogo (Feature 022); ON DELETE SET NULL.
 CREATE TABLE template_exercises (
     id INT AUTO_INCREMENT PRIMARY KEY,
     template_id INT NOT NULL,
     nombre VARCHAR(100) NOT NULL,
+    exercise_id INT NULL,
     series INT NOT NULL,
     repeticiones INT NOT NULL,
     peso DECIMAL(6,2) NOT NULL,
     indicaciones TEXT NULL,
     sort_order INT NOT NULL DEFAULT 0,
     INDEX idx_template_exercises_template (template_id),
+    INDEX idx_template_exercises_exercise (exercise_id),
     CONSTRAINT fk_template_exercises_template
-      FOREIGN KEY (template_id) REFERENCES routine_templates(id) ON DELETE CASCADE
+      FOREIGN KEY (template_id) REFERENCES routine_templates(id) ON DELETE CASCADE,
+    CONSTRAINT fk_template_exercises_catalog_exercise
+      FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;

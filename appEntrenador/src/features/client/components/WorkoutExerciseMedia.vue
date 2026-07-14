@@ -82,6 +82,9 @@ const embedSrc = computed(() => (
     />
     <div v-else class="workout-media__fallback">
       <v-icon icon="mdi-dumbbell" size="48" color="#5E6673" />
+      <p v-if="exerciseName" class="workout-media__fallback-name">
+        {{ exerciseName }}
+      </p>
       <p class="workout-media__fallback-text">
         Sin demo visual. Sigue el nombre y las indicaciones de tu entrenador.
       </p>
@@ -122,6 +125,16 @@ const embedSrc = computed(() => (
   width: 100%;
   height: 100%;
   background: rgba(255, 255, 255, 0.03);
+}
+
+.workout-media__fallback-name {
+  margin: 0;
+  color: #E8EAED;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.3;
+  max-width: 100%;
+  padding: 0 8px;
 }
 
 .workout-media__fallback-text {
