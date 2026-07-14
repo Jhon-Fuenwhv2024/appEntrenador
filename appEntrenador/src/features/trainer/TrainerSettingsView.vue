@@ -115,7 +115,7 @@ onMounted(() => {
         <div class="header-left">
           <h1 class="header-title">Ajustes</h1>
           <p class="header-greeting text-medium-emphasis">
-            Tu perfil y seguridad de cuenta
+            Tu perfil de cuenta
           </p>
         </div>
         <div class="header-right">

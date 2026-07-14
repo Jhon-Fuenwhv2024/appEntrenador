@@ -1,4 +1,7 @@
 <script setup>
+/**
+ * Password change: collapsed to a single button; form only when requested.
+ */
 import { reactive, shallowRef } from 'vue';
 
 const props = defineProps({
@@ -10,6 +13,8 @@ const props = defineProps({
 
 const emit = defineEmits(['submit']);
 
+const open = shallowRef(false);
+
 const form = reactive({
   current_password: '',
   new_password: '',
@@ -17,6 +22,23 @@ const form = reactive({
 });
 
 const localError = shallowRef('');
+
+function resetForm() {
+  form.current_password = '';
+  form.new_password = '';
+  form.confirm_password = '';
+  localError.value = '';
+}
+
+function openForm() {
+  resetForm();
+  open.value = true;
+}
+
+function cancel() {
+  resetForm();
+  open.value = false;
+}
 
 function onSubmit() {
   localError.value = '';
@@ -37,9 +59,8 @@ function onSubmit() {
     new_password: form.new_password,
     done: (ok) => {
       if (ok) {
-        form.current_password = '';
-        form.new_password = '';
-        form.confirm_password = '';
+        resetForm();
+        open.value = false;
       }
     },
   });
@@ -47,14 +68,27 @@ function onSubmit() {
 </script>
 
 <template>
-  <v-card class="password-card" variant="flat" rounded="lg">
-    <v-card-title class="password-card__title">
-      Seguridad
-    </v-card-title>
-    <v-card-subtitle class="pb-2">
-      Cambia tu contraseña. Seguirás con la sesión activa.
-    </v-card-subtitle>
-    <v-card-text>
+  <section class="password-panel" aria-label="Cambiar contraseña">
+    <div v-if="!open" class="password-collapsed">
+      <v-btn
+        color="primary"
+        variant="tonal"
+        block
+        prepend-icon="mdi-lock-outline"
+        @click="openForm"
+      >
+        Cambiar contraseña
+      </v-btn>
+    </div>
+
+    <div v-else class="password-form">
+      <div class="password-form__header">
+        <h2 class="password-form__title">Cambiar contraseña</h2>
+        <v-btn variant="text" size="small" color="#8B929E" :disabled="saving" @click="cancel">
+          Cancelar
+        </v-btn>
+      </div>
+
       <v-text-field
         v-model="form.current_password"
         label="Contraseña actual"
@@ -82,30 +116,60 @@ function onSubmit() {
         class="mb-2"
         autocomplete="new-password"
       />
-      <p v-if="localError" class="text-caption text-error mb-0">{{ localError }}</p>
-    </v-card-text>
-    <v-card-actions class="px-4 pb-4">
-      <v-btn
-        color="primary"
-        class="font-weight-bold"
-        block
-        :loading="saving"
-        @click="onSubmit"
-      >
-        Actualizar contraseña
-      </v-btn>
-    </v-card-actions>
-  </v-card>
+      <p v-if="localError" class="text-caption text-error mb-3">{{ localError }}</p>
+
+      <div class="password-form__actions">
+        <v-btn variant="text" class="tf-btn-muted" :disabled="saving" @click="cancel">
+          Cancelar
+        </v-btn>
+        <v-btn
+          color="primary"
+          class="font-weight-bold"
+          :loading="saving"
+          @click="onSubmit"
+        >
+          Guardar
+        </v-btn>
+      </div>
+    </div>
+  </section>
 </template>
 
 <style scoped>
-.password-card {
-  background: rgba(255, 255, 255, 0.03);
+.password-panel {
+  width: 100%;
+  border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
 }
 
-.password-card__title {
+.password-collapsed {
+  padding: 14px;
+}
+
+.password-form {
+  padding: 16px;
+}
+
+.password-form__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.password-form__title {
+  margin: 0;
   font-size: 1.05rem;
   font-weight: 700;
+}
+
+.password-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 </style>
