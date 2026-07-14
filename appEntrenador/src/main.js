@@ -1,6 +1,6 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import vuetify from './plugin/vuetify'
+import vuetify from './plugin/Vuetify.js'
 import router from './router'
 import { APP_NAME, APP_FAVICON } from './config/app.js'
 import '@mdi/font/css/materialdesignicons.css'
