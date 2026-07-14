@@ -1,8 +1,8 @@
 # 019 · Tasks
 
-- [ ] Crear SDD
-- [ ] Backend: último peso/reps por ejercicio + ownership
-- [ ] Enriquecer rutinas / endpoint dedicado
-- [ ] Workout Player: UI último + prefill (si se acuerda)
-- [ ] Docs api / data-flows
-- [ ] Validar flujo sesión + build
+- [x] Crear SDD
+- [x] Backend: último peso/reps por ejercicio + ownership
+- [x] Enriquecer rutinas / endpoint dedicado
+- [x] Workout Player: UI último (sin prefill)
+- [x] Docs api / data-flows
+- [x] Validar flujo sesión + build

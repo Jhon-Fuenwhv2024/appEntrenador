@@ -173,6 +173,13 @@ onMounted(() => {
 
         <p v-if="exerciseHint" class="player-hint">{{ exerciseHint }}</p>
 
+        <p
+          v-if="currentExercise.last_log"
+          class="player-last-log text-caption"
+        >
+          Último: {{ currentExercise.last_log.weight }}kg × {{ currentExercise.last_log.reps }}
+        </p>
+
         <div class="player-inputs" role="group" aria-label="Registro de la serie">
           <label class="player-field">
             <span class="player-field__label">Peso</span>
@@ -375,10 +382,23 @@ onMounted(() => {
 }
 
 .player-hint {
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   color: #8B929E;
   font-size: 0.9rem;
   line-height: 1.45;
+  max-width: 100%;
+}
+
+.player-hint + .player-last-log {
+  margin-top: -4px;
+}
+
+.player-last-log {
+  margin: 0 0 12px;
+  color: #8B929E;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
   max-width: 100%;
 }
 

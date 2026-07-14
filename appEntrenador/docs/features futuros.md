@@ -38,3 +38,5 @@ Credenciales solo por `.env`, checklist de deploy (frontend Netlify + API), sin
 
 - Nutrición: la card “Planes de Dieta” sigue siendo placeholder; encaja si quieres producto “completo” del mock.
 - Tests: si priorizas estabilidad, suite mínima (login, ownership, workout save) antes de más features.
+
+atencioalciudadano@iudigital.edu.co

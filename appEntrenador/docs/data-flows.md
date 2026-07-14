@@ -34,6 +34,15 @@
 ## Ejecución de rutina (Workout Player)
 
 1. Cliente pulsa **Comenzar** en el dashboard → `/client/workout/:routineId`.
-2. Frontend orquesta con `useWorkoutSession` (serie, descanso, auto-avance).
-3. Al terminar, `POST /me/workout-sessions` persiste peso/reps por serie.
-4. Trainer consulta `GET /clients/:id/workout-sessions` y ve el historial en la ficha del alumno.
+2. Frontend carga `GET /me/routines` (incluye `last_log` por ejercicio si hay historial) y orquesta con `useWorkoutSession` (serie, descanso, auto-avance).
+3. El Player muestra “Último: X kg × Y” de forma informativa; **no** autocompleta los inputs con ese historial.
+4. Al terminar, `POST /me/workout-sessions` persiste peso/reps por serie.
+5. En la siguiente sesión, ese log queda disponible como `last_log` (match por `client_id` + nombre de ejercicio; los ids de línea de deep copy no afectan).
+6. Trainer consulta `GET /clients/:id/workout-sessions` y ve el historial en la ficha del alumno; `GET /clients/:id/routines` también incluye `last_log` por ejercicio.
+
+## Memoria de progresión (Feature 019)
+
+1. Al listar rutinas del cliente, el service consulta el último `workout_set_logs` del alumno por **nombre exacto** del ejercicio (`JOIN workout_sessions` filtrando `client_id`).
+2. No se usa `ejercicios.id` / `exercise_id` de la línea actual: al reasignar plantillas (018) esos ids cambian y el historial se perdería.
+3. Payload: `ejercicios[].last_log = { weight, reps, date } | null`.
+4. UI: hint en Workout Player; sin prefill de inputs.

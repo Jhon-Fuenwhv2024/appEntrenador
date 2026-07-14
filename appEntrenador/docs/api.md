@@ -122,6 +122,8 @@ Detalle de un cliente propio.
 
 Lista rutinas + ejercicios del cliente propio.
 
+Cada ejercicio incluye `last_log` (Feature 019): último peso/reps del alumno para ese **nombre** de ejercicio (no el id de línea; ver deep copy 018), o `null` si no hay historial.
+
 ### `POST /clients/:clientId/routines` (trainer)
 
 Crea rutina con ejercicios (transacción).
@@ -206,6 +208,31 @@ UI: `/trainer/library` (`LibraryView`); “Guardar en Biblioteca” desde ficha 
 
 Lista las rutinas del cliente autenticado.
 
+Cada ítem de `ejercicios[]` incluye (además de la prescripción):
+
+- `media_type` / `media_url` — media del catálogo por nombre (Features 008–009)
+- `last_log` — memoria de progresión (Feature 019):
+
+```json
+{
+  "id": 30,
+  "nombre": "Press banca",
+  "series": 4,
+  "repeticiones": 10,
+  "peso": 60,
+  "indicaciones": "",
+  "media_type": "youtube",
+  "media_url": "https://...",
+  "last_log": {
+    "weight": 62.5,
+    "reps": 10,
+    "date": "2026-07-13T20:15:00.000Z"
+  }
+}
+```
+
+`last_log` es `null` si el cliente no tiene series previas en `workout_set_logs` para ese nombre exacto. El match **no** usa `ejercicios.id` (los ids cambian al reasignar plantillas). Ownership: solo logs con `workout_sessions.client_id` = el dueño de la rutina.
+
 ## Catálogo de ejercicios (Features 008–009)
 
 Tabla MySQL `exercises` (diccionario híbrido). Seed desde clone wrkout: `npm run seed:exercises` en `backend/` (ver [`database-schema.md`](database-schema.md)).
@@ -277,7 +304,7 @@ UI trainer: ruta `/trainer/exercises` (listar / buscar / crear / editar / borrar
 
 ### `GET /me/routines` — media enriquecida (cliente)
 
-Además de la prescripción, cada ejercicio incluye `media_type` y `media_url` resueltos por coincidencia de nombre contra el catálogo `exercises` (prioridad: privado del trainer del cliente, luego global).
+Además de la prescripción, cada ejercicio incluye `media_type` y `media_url` resueltos por coincidencia de nombre contra el catálogo `exercises` (prioridad: privado del trainer del cliente, luego global). Ver también `last_log` en la sección de rutinas (Feature 019).
 
 ## Sesiones de entrenamiento (Feature 012)
 

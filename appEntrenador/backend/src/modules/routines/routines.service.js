@@ -136,7 +136,8 @@ async function getRoutineOwnedByTrainer(routineId, trainerId) {
 
 async function listRoutinesForClientAsTrainer(trainerId, clientId) {
   await assertTrainerOwnsClient(trainerId, clientId);
-  return fetchRoutinesWithExercises(clientId);
+  const routines = await fetchRoutinesWithExercises(clientId);
+  return enrichRoutinesWithLastLogs(routines, clientId);
 }
 
 /**
@@ -217,9 +218,71 @@ async function enrichRoutinesWithCatalogMedia(routines, clientId) {
   }));
 }
 
+/**
+ * Feature 019: attach last performed set per exercise.
+ * Match by client_id + exact exercise name (NOT exercise line id — deep copy changes ids).
+ * @returns {Promise<object[]>}
+ */
+async function enrichRoutinesWithLastLogs(routines, clientId) {
+  if (!routines.length) return routines;
+
+  const names = new Set();
+  for (const routine of routines) {
+    for (const exercise of routine.ejercicios || []) {
+      const nombre = typeof exercise.nombre === 'string' ? exercise.nombre.trim() : '';
+      if (nombre) names.add(nombre);
+    }
+  }
+
+  if (names.size === 0) {
+    return routines.map((routine) => ({
+      ...routine,
+      ejercicios: (routine.ejercicios || []).map((ex) => ({
+        ...ex,
+        last_log: null,
+      })),
+    }));
+  }
+
+  const nameList = [...names];
+  const placeholders = nameList.map(() => '?').join(',');
+  const [rows] = await db.query(
+    `SELECT wsl.exercise_name, wsl.weight, wsl.reps, wsl.created_at
+     FROM workout_set_logs wsl
+     INNER JOIN workout_sessions ws ON ws.id = wsl.session_id
+     WHERE ws.client_id = ?
+       AND wsl.exercise_name IN (${placeholders})
+     ORDER BY wsl.created_at DESC, wsl.id DESC`,
+    [clientId, ...nameList],
+  );
+
+  const lastByName = new Map();
+  for (const row of rows) {
+    const key = String(row.exercise_name || '').trim();
+    if (!key || lastByName.has(key)) continue;
+    lastByName.set(key, {
+      weight: Number(row.weight),
+      reps: Number(row.reps),
+      date: row.created_at,
+    });
+  }
+
+  return routines.map((routine) => ({
+    ...routine,
+    ejercicios: (routine.ejercicios || []).map((ex) => {
+      const key = typeof ex.nombre === 'string' ? ex.nombre.trim() : '';
+      return {
+        ...ex,
+        last_log: (key && lastByName.get(key)) || null,
+      };
+    }),
+  }));
+}
+
 async function listMyRoutines(clientId) {
   const routines = await fetchRoutinesWithExercises(clientId);
-  return enrichRoutinesWithCatalogMedia(routines, clientId);
+  const withMedia = await enrichRoutinesWithCatalogMedia(routines, clientId);
+  return enrichRoutinesWithLastLogs(withMedia, clientId);
 }
 
 async function createRoutine(trainerId, clientId, payload) {
