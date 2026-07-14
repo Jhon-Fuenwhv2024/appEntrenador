@@ -16,15 +16,31 @@
 12. **011 · Workout Player UI** — modo Comenzar mobile-first con media y registro de peso/reps.
 13. **012 · Persistencia de sesión** — logs en DB + historial visible al trainer.
 14. **013 · Contraste UI + responsive mobile** — tokens `on-primary`/`on-success`, CTAs legibles y pass mobile en vistas principales.
+15. **014 · Mobile shell: bottom nav** — shell compartido, bottom nav ≤960px, logout en header móvil.
+16. **015 · Dashboard trainer con datos reales** — stats/API reales; estado Activo/Sin plan; sin dietas.
 
-## Siguiente
+## Siguiente (016–025)
 
-- **Plantillas de rutinas + memoria de progresión** — biblioteca reutilizable (el historial de pesos por sesión ya arranca en 012).
-- **Perfil alumno (`alumnos_info`)** — API y UI de datos extendidos.
+Orden acordado con IA de nav trainer: **Inicio · Alumnos · Biblioteca · Ajustes**.
+
+1. **016 · IA de navegación trainer (shell)** — 4 slots; Ejercicios fuera de la barra.
+2. **017 · Alumnos como destino propio** — `/trainer/clients`; Inicio como hub.
+3. **018 · Plantillas de rutinas (Biblioteca)** — biblioteca reutilizable; asignar = copia.
+4. **019 · Memoria de progresión** — último peso/reps desde logs (012).
+5. **020 · Perfil alumno (`alumnos_info`)** — API + UI (schema ya existe).
+6. **021 · Progreso / historial del cliente** — vista cliente + resumen en ficha trainer.
+7. **022 · Catálogo en Biblioteca + `exercise_id`** — vínculo estable línea↔catálogo.
+8. **023 · Invitaciones: módulo + gestión** — `modules/invites`, listar/revocar.
+9. **024 · Ajustes de cuenta** — nombre + cambio de password.
+10. **025 · Notificaciones MVP + hardening** — badge real + env/deploy docs.
+
+> Specs en `spec/features/016-…` … `025-…`. Dietas y suite de tests quedan en backlog posterior.
+
 ## Backlog / ideas
 
-- **Config por entorno** — endurecer `.env` para DB; quitar credenciales hardcodeadas en `db.js`.
+- **Planes de nutrición (MVP)** — solo cuando deje de ser placeholder de producto.
+- **Tests E2E / API críticos** — login, ownership, guardar sesión.
 - **Pinia / TypeScript** — solo si el estado o el tamaño del equipo lo justifican.
-- **Extracción `modules/invites`** — sacar invitaciones del módulo auth.
+- **Caducidad de invitaciones / email SMTP** — extensión de 023.
 
 > Cada feature nueva se crea como `features/NNN-nombre-feature/` con `spec.md`, `plan.md` y `tasks.md` antes de tocar código.

@@ -1,0 +1,26 @@
+# 018 · Plantillas de rutinas (Biblioteca)
+
+**Estado:** pendiente
+
+**Depende de:** 016 (slot Biblioteca); recomendable tras 017
+
+## Qué hace
+
+Biblioteca personal del trainer: guardar rutinas como plantillas reutilizables y asignarlas a un alumno sin alterar la plantilla original. Activa el destino **Biblioteca** con contenido real. Ver también `docs/plantillas de rutinas y memoria de progresión.md` (parte plantillas; memoria de pesos = 019).
+
+## Criterios de aceptación
+
+- [ ] Schema: tablas de plantillas (p. ej. `routine_templates` + líneas de ejercicios) separadas de `rutinas`/`ejercicios` del alumno
+- [ ] Trainer puede crear/guardar plantilla (desde cero o desde una rutina de alumno existente)
+- [ ] Listar plantillas propias en `/trainer/library`
+- [ ] Asignar plantilla a un alumno → crea copia en `rutinas`/`ejercicios` del alumno (ownership validado)
+- [ ] Editar/borrar plantilla no muta rutinas ya asignadas
+- [ ] JWT + `requireRole('trainer')`; solo plantillas de `req.user.id`
+- [ ] Docs: `database-schema.md`, `api.md`, `data-flows.md`
+- [ ] Build frontend + API operativa local
+
+## Fuera de alcance
+
+- Memoria de último peso/reps en UI de ejecución (019)
+- FK catálogo `exercises` (022)
+- Plantillas globales del sistema (solo del trainer)
