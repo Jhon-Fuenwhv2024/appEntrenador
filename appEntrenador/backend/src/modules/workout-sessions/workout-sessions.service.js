@@ -50,15 +50,21 @@ function normalizeSets(sets) {
   });
 }
 
-async function assertRoutineBelongsToClient(routineId, clientId) {
-  const [rows] = await db.query(
-    'SELECT id, nombre_rutina FROM rutinas WHERE id = ? AND alumno_id = ? LIMIT 1',
-    [routineId, clientId],
+async function getRoutineSnapshotForClient(connection, routineId, clientId) {
+  const [rows] = await connection.query(
+    `SELECT id, alumno_id, nombre_rutina
+     FROM rutinas
+     WHERE id = ?
+     LIMIT 1
+     FOR UPDATE`,
+    [routineId],
   );
-  if (rows.length === 0) {
+
+  if (rows.length > 0 && rows[0].alumno_id !== clientId) {
     throw createHttpError('La rutina no pertenece a tu cuenta.', 403);
   }
-  return rows[0];
+
+  return rows[0] || null;
 }
 
 async function createMySession(clientId, payload) {
@@ -67,10 +73,9 @@ async function createMySession(clientId, payload) {
     throw createHttpError('routine_id es obligatorio.', 400);
   }
 
-  const routine = await assertRoutineBelongsToClient(routineId, clientId);
-  const routineName = typeof payload.routine_name === 'string' && payload.routine_name.trim()
+  const requestedRoutineName = typeof payload.routine_name === 'string'
     ? payload.routine_name.trim()
-    : routine.nombre_rutina;
+    : '';
 
   const status = payload.status === 'abandoned' ? 'abandoned' : 'completed';
   const sets = normalizeSets(payload.sets);
@@ -88,11 +93,22 @@ async function createMySession(clientId, payload) {
   try {
     await connection.beginTransaction();
 
+    // The player keeps a routine snapshot while a workout is active. If the
+    // trainer deleted that routine meanwhile, preserve the completed workout
+    // as a historical session without a live routine FK.
+    const routine = await getRoutineSnapshotForClient(connection, routineId, clientId);
+    if (!routine && !requestedRoutineName) {
+      throw createHttpError('La rutina ya no existe y falta su nombre.', 400);
+    }
+
+    const sessionRoutineId = routine?.id ?? null;
+    const routineName = requestedRoutineName || routine.nombre_rutina;
+
     const [sessionResult] = await connection.query(
       `INSERT INTO workout_sessions
         (client_id, routine_id, routine_name, started_at, finished_at, status)
        VALUES (?, ?, ?, ?, NOW(), ?)`,
-      [clientId, routineId, routineName, startedAt, status],
+      [clientId, sessionRoutineId, routineName, startedAt, status],
     );
 
     const sessionId = sessionResult.insertId;
