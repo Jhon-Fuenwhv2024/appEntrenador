@@ -27,7 +27,7 @@ test('preserves a completed session when its routine was deleted', async () => {
     async beginTransaction() {},
     async query(sql, params) {
       if (sql.includes('FROM rutinas')) {
-        assert.match(sql, /FOR SHARE/);
+        assert.match(sql, /FOR UPDATE/);
         return [[]];
       }
       if (sql.includes('INSERT INTO workout_sessions')) {

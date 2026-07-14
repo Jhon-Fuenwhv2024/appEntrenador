@@ -56,7 +56,7 @@ async function getRoutineSnapshotForClient(connection, routineId, clientId) {
      FROM rutinas
      WHERE id = ?
      LIMIT 1
-     FOR SHARE`,
+     FOR UPDATE`,
     [routineId],
   );
 
