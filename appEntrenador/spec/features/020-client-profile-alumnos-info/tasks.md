@@ -1,7 +1,7 @@
 # 020 · Tasks
 
-- [ ] Crear SDD
-- [ ] Backend get/upsert alumnos_info + ownership
-- [ ] UI perfil en ficha trainer
-- [ ] UI perfil en portal cliente
-- [ ] Docs + validar build / smoke API
+- [x] Crear SDD
+- [x] Backend get/upsert alumnos_info + ownership + multer
+- [x] UI perfil en ficha trainer
+- [x] UI perfil en portal cliente
+- [x] Docs + validar build / smoke API

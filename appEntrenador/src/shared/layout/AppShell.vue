@@ -94,6 +94,15 @@ const go = (path) => {
         >
           <v-icon icon="mdi-view-dashboard-outline" size="24" />
         </button>
+        <button
+          type="button"
+          class="nav-item"
+          :class="{ active: active === 'profile' }"
+          title="Mi Perfil"
+          @click="go('/client/profile')"
+        >
+          <v-icon icon="mdi-account-circle-outline" size="24" />
+        </button>
       </template>
 
       <button

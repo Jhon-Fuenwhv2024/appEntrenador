@@ -1,6 +1,6 @@
 # 020 · Perfil alumno (`alumnos_info`)
 
-**Estado:** pendiente
+**Estado:** implementado
 
 **Depende de:** 017 (ficha/lista); schema ya en `script_db.sql`
 
@@ -14,16 +14,15 @@ Conecta la tabla existente `alumnos_info` con API y UI: el trainer gestiona dato
 
 ## Criterios de aceptación
 
-- [ ] `GET/PUT` (o PATCH) perfil: trainer sobre alumno propio; client sobre `req.user.id`
-- [ ] Crear fila `alumnos_info` si no existe (upsert) al guardar
-- [ ] UI trainer en ficha alumno (sección Perfil)
-- [ ] UI cliente: ver/editar campos acordados (p. ej. teléfono, objetivo, lesiones)
-- [ ] Validación básica server-side; SQL parametrizado
-- [ ] Docs api / database-schema / data-flows
-- [ ] Build OK
+- [x] `GET/PUT` (o PATCH) perfil: trainer sobre alumno propio; client sobre `req.user.id`
+- [x] Crear fila `alumnos_info` si no existe (upsert) al guardar
+- [x] UI trainer en ficha alumno (sección Perfil)
+- [x] UI cliente: ver/editar campos acordados (p. ej. teléfono, objetivo, lesiones)
+- [x] Validación básica server-side; SQL parametrizado
+- [x] Docs api / database-schema / data-flows
+- [x] Build OK
 
-## Fuera de alcance
+## Fuera de alcance (original; upload sí implementado por pedido)
 
-- Upload real de foto (puede quedar `foto_url` textual o default)
 - Onboarding obligatorio al registrarse (opcional post-MVP)
 - Campos nuevos fuera del schema actual (salvo permiso DDL)

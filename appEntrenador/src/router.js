@@ -8,6 +8,7 @@ import ClientsListView from './features/trainer/ClientsListView.vue';
 import LibraryView from './features/trainer/LibraryView.vue';
 import TrainerSettingsView from './features/trainer/TrainerSettingsView.vue';
 import WorkoutPlayerView from './features/client/WorkoutPlayerView.vue';
+import ClientProfileView from './features/client/ClientProfileView.vue';
 import { getSessionUser, isAuthenticated } from './shared/auth/session.js';
 
 const routes = [
@@ -27,6 +28,12 @@ const routes = [
     name: 'Dashboard',
     component: Dashboard,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/client/profile',
+    name: 'ClientProfile',
+    component: ClientProfileView,
+    meta: { requiresAuth: true, role: 'client' },
   },
   {
     path: '/client/workout/:routineId',

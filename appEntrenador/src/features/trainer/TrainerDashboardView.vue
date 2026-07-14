@@ -1,8 +1,10 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, reactive, shallowRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { getMyAccount } from '../../shared/api/accountApi.js';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { clearSession } from '../../shared/auth/session.js';
+import { resolveAvatarSrc } from '../../shared/utils/avatar.js';
 import AppShell from '../../shared/layout/AppShell.vue';
 import { getTrainerDashboard } from './api/clientsApi.js';
 import { generateInvitationLink } from './api/invitationsApi.js';
@@ -17,6 +19,7 @@ const router = useRouter();
 const route = useRoute();
 
 const userName = shallowRef('');
+const fotoUrl = shallowRef(null);
 const invitationLink = shallowRef('');
 const isGeneratingInvitation = shallowRef(false);
 const dashboardStats = reactive({
@@ -34,6 +37,8 @@ const snackbar = reactive({
   color: 'success',
 });
 
+const avatarSrc = computed(() => resolveAvatarSrc(fotoUrl.value));
+
 const currentDateLabel = computed(() => {
   const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
   const date = new Date().toLocaleDateString('es-ES', options);
@@ -47,22 +52,22 @@ const currentDateLabel = computed(() => {
     .join(', ');
 });
 
-const getInitials = (name) => {
-  if (!name) return '??';
-
-  const parts = name.trim().split(/\s+/);
-
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-
-  return name.substring(0, 2).toUpperCase();
-};
-
 const showNotification = (text, color = 'success') => {
   snackbar.show = true;
   snackbar.text = text;
   snackbar.color = color;
+};
+
+const loadAvatar = async () => {
+  try {
+    const response = await getMyAccount();
+    const data = response.data?.data;
+    if (data?.nombre) userName.value = data.nombre;
+    fotoUrl.value = data?.foto_url ?? null;
+  } catch (error) {
+    console.error('Error cargando foto de perfil del trainer:', error);
+    fotoUrl.value = null;
+  }
 };
 
 const loadDashboard = async () => {
@@ -171,6 +176,7 @@ onMounted(() => {
   }
 
   userName.value = storedName || '';
+  loadAvatar();
   loadDashboard().then(scrollToInviteIfNeeded);
 });
 
@@ -199,13 +205,15 @@ onUnmounted(() => {
             <v-icon icon="mdi-bell-outline" size="20" color="#8B929E"></v-icon>
           </button>
 
-          <div class="profile-pill">
-            <div class="profile-avatar">{{ getInitials(userName) }}</div>
+          <router-link to="/trainer/settings" class="profile-pill" title="Ajustes">
+            <div class="profile-avatar">
+              <img :src="avatarSrc" :alt="`Foto de ${userName}`" class="profile-avatar__img">
+            </div>
             <div class="profile-info">
               <div class="profile-name">{{ userName }}</div>
               <div class="profile-role">Entrenador</div>
             </div>
-          </div>
+          </router-link>
 
           <button
             type="button"

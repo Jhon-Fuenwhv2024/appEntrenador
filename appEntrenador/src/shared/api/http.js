@@ -3,6 +3,9 @@ import { clearSession, getAuthToken } from '../auth/session.js';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
+/** Origin without `/api` — used for static uploads (`/uploads/...`). */
+export const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
+
 const http = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -15,6 +18,10 @@ http.interceptors.request.use((config) => {
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
   }
 
   return config;

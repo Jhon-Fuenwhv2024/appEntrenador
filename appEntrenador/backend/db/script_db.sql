@@ -16,18 +16,33 @@ CREATE TABLE usuarios (
       FOREIGN KEY (trainer_id) REFERENCES usuarios(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
--- 3. TABLA DE INFORMACIÓN EXTRA DEL ALUMNO
+-- 3. TABLA DE INFORMACIÓN EXTRA DEL ALUMNO (1:1 con usuarios)
 CREATE TABLE alumnos_info (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    telefono VARCHAR(20) NOT NULL,
-    fecha_nacimiento DATE NOT NULL,
-    sexo ENUM('Masculino', 'Femenino', 'Otro') NOT NULL,
-    lesiones TEXT,
-    objetivo VARCHAR(100) NOT NULL,
-    foto_url VARCHAR(255) DEFAULT 'default_avatar.png',
+    telefono VARCHAR(20) NULL,
+    fecha_nacimiento DATE NULL,
+    sexo ENUM('Masculino', 'Femenino', 'Otro') NULL,
+    lesiones TEXT NULL,
+    objetivo VARCHAR(100) NULL,
+    foto_url VARCHAR(255) NULL,
     ultimo_acceso TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE
+    UNIQUE KEY uq_alumnos_info_user (user_id),
+    CONSTRAINT fk_alumnos_info_user
+      FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 3b. PERFIL EXTENDIDO DEL ENTRENADOR (1:1 con usuarios)
+CREATE TABLE trainers_info (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    telefono VARCHAR(20) NULL,
+    foto_url VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_trainers_info_user (user_id),
+    CONSTRAINT fk_trainers_info_user
+      FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- 4. TABLA DE RUTINAS DIARIAS

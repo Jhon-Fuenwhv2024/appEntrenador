@@ -116,6 +116,91 @@ UI trainer: lista en `/trainer/clients` (`ClientsListView`). La búsqueda por no
 
 Detalle de un cliente propio.
 
+## Cuenta / Ajustes (Feature 024)
+
+Endpoints del usuario autenticado (`req.user.id`). Trainer y client.
+
+### `GET /me/account`
+
+Devuelve datos de cuenta:
+
+```json
+{
+  "id": 1,
+  "username": "coach",
+  "nombre": "Juan Coach",
+  "rol": "trainer",
+  "telefono": "3001112233",
+  "foto_url": "/uploads/avatars/user_1.jpg"
+}
+```
+
+- Trainer: `telefono` / `foto_url` desde `trainers_info` (o `null`).
+- Client: mismos campos desde `alumnos_info` si existen.
+
+### `PUT /me/account`
+
+`multipart/form-data` opcional. Campos: `nombre`, `telefono`, archivo `foto`.
+
+Actualiza `usuarios.nombre` y hace upsert en `trainers_info` (trainer) o `alumnos_info` (client) para teléfono/foto.
+
+Respuesta incluye `data` (cuenta) y `token` JWT renovado (para reflejar el nuevo nombre en claims). Mantener sesión en frontend con el token nuevo.
+
+### `POST /me/password`
+
+Body JSON:
+
+```json
+{
+  "current_password": "actual",
+  "new_password": "nuevaSegura"
+}
+```
+
+Valida bcrypt de la actual, hashea la nueva. La sesión JWT actual **sigue válida** (no fuerza re-login).
+
+UI trainer: `/trainer/settings` (perfil colapsable + cambio de contraseña).
+
+## Perfil alumno (`alumnos_info` · Feature 020)
+
+Tabla 1:1 con `usuarios` (rol client). Upsert al guardar. Avatares en `backend/public/uploads/avatars` servidos en `/uploads/...` (fuera de `/api`).
+
+### `GET /profile/:userId`
+
+JWT requerido. Ownership:
+
+- **client:** solo `userId === req.user.id`
+- **trainer:** solo alumnos con `trainer_id = req.user.id`
+
+Respuesta `data`:
+
+```json
+{
+  "user_id": 12,
+  "nombre": "Ana",
+  "username": "ana",
+  "rol": "client",
+  "telefono": "3001234567",
+  "fecha_nacimiento": "1998-05-12",
+  "sexo": "Femenino",
+  "lesiones": "Rodilla izquierda",
+  "objetivo": "Hipertrofia",
+  "foto_url": "/uploads/avatars/user_12.jpg",
+  "ultimo_acceso": "2026-07-14T15:00:00.000Z"
+}
+```
+
+`foto_url` es `null` si no hay foto personalizada (el frontend usa avatar por defecto).
+
+### `PUT /profile/:userId`
+
+Misma autorización que GET. Acepta `multipart/form-data` (campos de texto + archivo opcional `foto`).
+
+Campos de texto: `telefono`, `fecha_nacimiento`, `sexo`, `lesiones`, `objetivo`.  
+Archivo: `foto` (JPEG/PNG/WebP/GIF, máx. 2 MB) → guarda en disco y persiste URL relativa en `foto_url`.
+
+Si no existe fila en `alumnos_info`, la crea (upsert).
+
 ## Rutinas
 
 ### `GET /clients/:clientId/routines` (trainer)

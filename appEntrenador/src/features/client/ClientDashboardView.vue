@@ -3,17 +3,23 @@ import { computed, onMounted, ref, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { APP_NAME } from '../../config/app.js';
 import { getApiErrorMessage } from '../../shared/api/http.js';
+import { getProfile } from '../../shared/api/profileApi.js';
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
+import { resolveAvatarSrc } from '../../shared/utils/avatar.js';
 import { getMyRoutines } from './api/routinesApi.js';
 
 const DAY_ORDER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 const router = useRouter();
 const userName = shallowRef('');
+const userId = shallowRef(null);
+const fotoUrl = shallowRef(null);
 const loading = shallowRef(true);
 const loadError = shallowRef('');
 const routines = ref([]);
+
+const avatarSrc = computed(() => resolveAvatarSrc(fotoUrl.value));
 
 const fechaActual = computed(() => {
   const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -52,15 +58,6 @@ const routinesByDay = computed(() => {
     .filter((entry) => entry.items.length > 0);
 });
 
-const obtenerIniciales = (nombre) => {
-  if (!nombre) return '??';
-  const partes = nombre.trim().split(/\s+/);
-  if (partes.length >= 2) {
-    return (partes[0][0] + partes[1][0]).toUpperCase();
-  }
-  return nombre.substring(0, 2).toUpperCase();
-};
-
 const loadRoutines = async () => {
   try {
     loading.value = true;
@@ -73,6 +70,17 @@ const loadRoutines = async () => {
     routines.value = [];
   } finally {
     loading.value = false;
+  }
+};
+
+const loadAvatar = async () => {
+  if (!userId.value) return;
+  try {
+    const response = await getProfile(userId.value);
+    fotoUrl.value = response.data.data?.foto_url ?? null;
+  } catch (error) {
+    console.error('Error cargando foto de perfil:', error);
+    fotoUrl.value = null;
   }
 };
 
@@ -90,6 +98,8 @@ onMounted(() => {
   }
 
   userName.value = user.nombre || '';
+  userId.value = user.id;
+  loadAvatar();
   loadRoutines();
 });
 </script>
@@ -110,13 +120,15 @@ onMounted(() => {
         </div>
 
         <div class="header-right">
-          <div class="profile-pill">
-            <div class="profile-avatar">{{ obtenerIniciales(userName) }}</div>
+          <router-link to="/client/profile" class="profile-pill" title="Mi Perfil">
+            <div class="profile-avatar">
+              <img :src="avatarSrc" :alt="`Foto de ${userName}`" class="profile-avatar__img">
+            </div>
             <div class="profile-info">
               <div class="profile-name">{{ userName }}</div>
               <div class="profile-role">Cliente</div>
             </div>
-          </div>
+          </router-link>
 
           <button
             type="button"

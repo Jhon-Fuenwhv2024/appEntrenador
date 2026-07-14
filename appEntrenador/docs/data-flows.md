@@ -16,6 +16,22 @@
 4. Tras éxito se vuelve a limpiar sesión y se redirige a `/` (login) para que el cliente inicie sesión con su cuenta.
 5. Trainer ve al alumno en `GET /clients` (filtrado por ownership) en `/trainer/clients`.
 
+## Perfil alumno y avatar (Feature 020)
+
+1. Cliente abre `/client/profile` o trainer la sección Perfil en `/trainer/clients/:id`.
+2. `GET /profile/:userId` con ownership (client = propio; trainer = alumno suyo).
+3. Al guardar: `PUT /profile/:userId` con `FormData` (texto + opcional `foto`).
+4. Multer guarda en `backend/public/uploads/avatars`; Express sirve `/uploads`.
+5. Upsert en `alumnos_info`; si `foto_url` es null, la UI usa `src/assets/foto_perfil.png`.
+
+## Ajustes de cuenta del trainer (Feature 024)
+
+1. Trainer abre `/trainer/settings`.
+2. `GET /me/account` carga nombre + `trainers_info` (teléfono/foto).
+3. Editar perfil: `PUT /me/account` (FormData); se renueva el JWT con el nuevo nombre.
+4. Cambiar contraseña: `POST /me/password` con password actual; la sesión no se cierra.
+5. Avatar por defecto igual que alumnos si no hay `foto_url`.
+
 ## Asignación y lectura de rutinas
 
 1. Trainer abre la lista en `/trainer/clients` (o CTA desde Inicio) y entra a `/trainer/clients/:id` para crear/editar rutinas vía API.

@@ -1,23 +1,23 @@
 # 024 · Ajustes de cuenta
 
-**Estado:** pendiente
+**Estado:** implementado (trainer); client password UI pendiente de slot dedicado
 
 **Depende de:** 016 (slot Ajustes)
 
 ## Qué hace
 
-Pantalla real del 4.º destino de navegación: el usuario autenticado (trainer o client) puede ver/editar datos básicos de cuenta (nombre) y cambiar contraseña de forma segura.
+Pantalla real del 4.º destino de navegación: el usuario autenticado (trainer) puede ver/editar perfil (nombre, teléfono, foto) y cambiar contraseña de forma segura. API `/me/account` y `/me/password` también sirven a client.
 
 ## Criterios de aceptación
 
-- [ ] Ruta `/trainer/settings` y equivalente client (o ruta compartida `/settings` filtrada por rol)
-- [ ] Ver nombre (y username solo lectura)
-- [ ] Actualizar nombre
-- [ ] Cambiar password: requiere password actual + hash bcrypt en server
-- [ ] JWT + solo `req.user.id`; sin editar a otros usuarios
-- [ ] Ítem Ajustes deja de ser placeholder vacío
-- [ ] Docs api
-- [ ] Build OK
+- [x] Ruta `/trainer/settings` (client usa `/client/profile` para datos; API cuenta compartida)
+- [x] Ver nombre (y username solo lectura)
+- [x] Actualizar nombre (+ teléfono/foto trainer en `trainers_info`)
+- [x] Cambiar password: requiere password actual + hash bcrypt en server
+- [x] JWT + solo `req.user.id`; sin editar a otros usuarios
+- [x] Ítem Ajustes deja de ser placeholder vacío
+- [x] Docs api
+- [x] Build OK
 
 ## Fuera de alcance
 

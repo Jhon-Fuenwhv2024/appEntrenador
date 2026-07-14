@@ -52,6 +52,12 @@ const clientItems = [
     icon: 'mdi-view-dashboard-outline',
     to: '/dashboard',
   },
+  {
+    key: 'profile',
+    label: 'Perfil',
+    icon: 'mdi-account-circle-outline',
+    to: '/client/profile',
+  },
 ];
 
 const items = computed(() => (props.role === 'trainer' ? trainerItems : clientItems));
@@ -65,6 +71,7 @@ const resolvedActive = computed(() => {
     return 'library';
   }
   if (path.startsWith('/trainer/settings')) return 'settings';
+  if (path.startsWith('/client/profile')) return 'profile';
   if (path === '/dashboard' || path === '/') return 'dashboard';
   return '';
 });

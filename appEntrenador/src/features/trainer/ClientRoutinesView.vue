@@ -2,8 +2,14 @@
 import { computed, onMounted, reactive, ref, shallowRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
+import {
+  buildProfileFormData,
+  getProfile,
+  updateProfile,
+} from '../../shared/api/profileApi.js';
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
+import ProfileFormCard from '../../shared/components/ProfileFormCard.vue';
 import { getClientById } from './api/clientsApi.js';
 import { createExercise, getExercises } from './api/exercisesApi.js';
 import {
@@ -23,11 +29,13 @@ const router = useRouter();
 
 const clientId = Number(route.params.clientId);
 const client = shallowRef(null);
+const clientProfile = shallowRef(null);
 const routines = ref([]);
 const workoutSessions = ref([]);
 const catalogExercises = ref([]);
 const loading = shallowRef(true);
 const saving = shallowRef(false);
+const savingProfile = shallowRef(false);
 const savingCatalogIndex = shallowRef(null);
 const savingTemplateId = shallowRef(null);
 const editingId = shallowRef(null);
@@ -145,6 +153,28 @@ const loadData = async () => {
   }
 
   try {
+    const profileRes = await getProfile(clientId);
+    clientProfile.value = profileRes.data.data ?? null;
+  } catch (error) {
+    console.error('Error cargando perfil del alumno:', error);
+    clientProfile.value = {
+      user_id: clientId,
+      nombre: client.value?.nombre || '',
+      username: client.value?.username || '',
+      telefono: '',
+      fecha_nacimiento: '',
+      sexo: '',
+      lesiones: '',
+      objetivo: '',
+      foto_url: null,
+    };
+    showNotification(
+      getApiErrorMessage(error, 'No se pudo cargar el perfil del alumno'),
+      'warning',
+    );
+  }
+
+  try {
     const sessionsRes = await getClientWorkoutSessions(clientId);
     workoutSessions.value = sessionsRes.data.data ?? [];
   } catch (error) {
@@ -165,6 +195,23 @@ const loadData = async () => {
       getApiErrorMessage(error, 'Catálogo no disponible; puedes escribir el nombre a mano'),
       'warning',
     );
+  }
+};
+
+const onSaveProfile = async ({ fields, fotoFile, done }) => {
+  try {
+    savingProfile.value = true;
+    const formData = buildProfileFormData(fields, fotoFile);
+    const response = await updateProfile(clientId, formData);
+    clientProfile.value = response.data.data ?? clientProfile.value;
+    showNotification('Perfil del alumno actualizado');
+    done?.(true);
+  } catch (error) {
+    console.error('Error guardando perfil del alumno:', error);
+    showNotification(getApiErrorMessage(error, 'No se pudo guardar el perfil'), 'error');
+    done?.(false);
+  } finally {
+    savingProfile.value = false;
   }
 };
 
@@ -349,6 +396,17 @@ onMounted(() => {
         <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-6" />
 
         <template v-else>
+          <v-row class="mb-2">
+            <v-col cols="12">
+              <ProfileFormCard
+                title="Perfil"
+                :profile="clientProfile"
+                :saving="savingProfile"
+                @save="onSaveProfile"
+              />
+            </v-col>
+          </v-row>
+
           <v-row>
             <v-col cols="12" md="5">
               <div class="functional-card">

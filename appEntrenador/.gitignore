@@ -16,6 +16,10 @@ dist-ssr
 !.env.example
 backend/.env
 
+# Uploaded avatars (keep folder via .gitkeep)
+backend/public/uploads/avatars/*
+!backend/public/uploads/avatars/.gitkeep
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
