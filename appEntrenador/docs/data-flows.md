@@ -14,11 +14,11 @@
 2. Cliente abre `/registro?token=...`: el frontend limpia cualquier sesión previa (`clearSession`) para no heredar el JWT del trainer.
 3. `POST /register` consume el token y crea `usuarios` con `rol=client` y `trainer_id` del invite.
 4. Tras éxito se vuelve a limpiar sesión y se redirige a `/` (login) para que el cliente inicie sesión con su cuenta.
-5. Trainer ve al alumno en `GET /clients` (filtrado por ownership).
+5. Trainer ve al alumno en `GET /clients` (filtrado por ownership) en `/trainer/clients`.
 
 ## Asignación y lectura de rutinas
 
-1. Trainer abre `/trainer/clients/:id` y crea/edita rutinas vía API.
+1. Trainer abre la lista en `/trainer/clients` (o CTA desde Inicio) y entra a `/trainer/clients/:id` para crear/editar rutinas vía API.
 2. Service valida ownership trainer↔cliente en cada escritura.
 3. Cliente autenticado `GET /me/routines` y el portal muestra plan del día / semana (con media del catálogo si hay match por nombre).
 

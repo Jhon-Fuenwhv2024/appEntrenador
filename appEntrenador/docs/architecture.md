@@ -11,7 +11,7 @@ Trainfit usa una migración modular gradual. La estructura actual mantiene compa
   - **Contexto (no ítem de barra):** ficha `/trainer/clients/:clientId` marca Alumnos; catálogo `/trainer/exercises` es herramienta de Biblioteca (sin slot propio).
   - **Client:** Inicio (sin cambios de IA en 016).
 - `src/features/auth/`: vistas de login/registro y llamadas de auth.
-- `src/features/trainer/`: portal del entrenador, clientes, invitaciones y asignación de rutinas (`ClientRoutinesView`). Placeholders: `TrainerClientsView`, `TrainerLibraryView`, `TrainerSettingsView` (lista real en 017; biblioteca en 018; ajustes en 024).
+- `src/features/trainer/`: portal del entrenador, clientes, invitaciones y asignación de rutinas (`ClientRoutinesView`). Lista dedicada en `ClientsListView` (`/trainer/clients`, filtro local). Placeholders: `TrainerLibraryView`, `TrainerSettingsView` (biblioteca en 018; ajustes en 024). Inicio (`TrainerDashboardView`) es hub de métricas + invitación + CTA a Alumnos.
 - `src/features/client/`: portal del cliente con rutinas reales (`ClientDashboardView`).
 - `src/components/Dashboard.vue`: composición por rol; enruta a trainer o client sin contener lógica de feature.
 

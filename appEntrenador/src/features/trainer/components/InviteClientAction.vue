@@ -8,16 +8,20 @@ defineProps({
     type: String,
     default: '',
   },
+  clientsCount: {
+    type: Number,
+    default: 0,
+  },
 });
 
-defineEmits(['generateInvite', 'copyInvite', 'openRoutinesHint']);
+defineEmits(['generateInvite', 'copyInvite', 'goToClients']);
 </script>
 
 <template>
-  <div class="quick-actions">
+  <aside id="invite" class="quick-actions" aria-label="Acciones rápidas">
     <div class="quick-actions-header">
       <h3 class="section-title">Acciones Rápidas</h3>
-      <p class="section-subtitle">Gestiona tus herramientas</p>
+      <p class="section-subtitle">Invita y gestiona desde aquí</p>
     </div>
 
     <div class="invite-card">
@@ -27,7 +31,7 @@ defineEmits(['generateInvite', 'copyInvite', 'openRoutinesHint']);
         </div>
         <div>
           <div class="invite-title">Nueva Invitación</div>
-          <div class="invite-desc">Genera un link de acceso único para tus clientes</div>
+          <div class="invite-desc">Link único para que un alumno se registre</div>
         </div>
       </div>
       <button
@@ -63,43 +67,70 @@ defineEmits(['generateInvite', 'copyInvite', 'openRoutinesHint']);
       </div>
     </div>
 
-    <div
-      class="action-link-card"
-      role="button"
-      tabindex="0"
-      @click="$emit('openRoutinesHint')"
-      @keydown.enter="$emit('openRoutinesHint')"
+    <button
+      type="button"
+      class="action-link-card action-link-card--btn"
+      @click="$emit('goToClients')"
     >
       <div class="action-link-content">
         <div class="invite-icon invite-icon-green">
-          <v-icon icon="mdi-dumbbell" size="20" color="#4CAF50"></v-icon>
+          <v-icon icon="mdi-account-group-outline" size="20" color="#4CAF50"></v-icon>
         </div>
         <div>
-          <div class="invite-title">Asignar Rutinas</div>
-          <div class="invite-desc">Elige un alumno de la lista para gestionar su plan</div>
+          <div class="invite-title">Alumnos</div>
+          <div class="invite-desc">
+            {{ clientsCount }}
+            {{ clientsCount === 1 ? 'alumno' : 'alumnos' }} · abrir lista
+          </div>
         </div>
       </div>
       <v-icon icon="mdi-chevron-right" size="20" color="#6B7280"></v-icon>
-    </div>
+    </button>
 
-    <div class="action-link-card">
+    <div class="action-link-card action-link-card--muted" aria-disabled="true">
       <div class="action-link-content">
         <div class="invite-icon invite-icon-orange">
           <v-icon icon="mdi-food-apple" size="20" color="#FF9800"></v-icon>
         </div>
         <div>
           <div class="invite-title">Planes de Dieta</div>
-          <div class="invite-desc">Configura planes nutricionales a medida</div>
+          <div class="invite-desc">Próximamente</div>
         </div>
       </div>
-      <v-icon icon="mdi-chevron-right" size="20" color="#6B7280"></v-icon>
+      <span class="soon-pill">Soon</span>
     </div>
-  </div>
+  </aside>
 </template>
 
 <style src="../../../assets/trainerDashboard.css" scoped></style>
 
 <style scoped>
+.action-link-card--btn {
+  width: 100%;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.action-link-card--muted {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.soon-pill {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8B929E;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
 .invite-generated-link {
   display: flex;
   flex-direction: column;

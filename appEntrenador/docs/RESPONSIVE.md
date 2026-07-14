@@ -22,3 +22,10 @@
   - **Logout:** fuera de los 4 slots (header móvil / pie sidebar).
   - **Restricción:** Sin producto de dominio nuevo; client sin cambios de IA.
   - **Detalle:** ver `spec/features/016-trainer-nav-ia/`.
+
+- [x] `[017]` **Alumnos como destino propio**
+  **Descripción:** Lista dedicada en `/trainer/clients` (búsqueda local, estado Activo/Sin plan, entrada a ficha). Inicio queda como hub (métricas, invitación, CTA).
+  **Requisitos Técnicos (Agente):**
+  - **Vista:** `ClientsListView` + `ClientsList` (filtro `computed` local; sin `?q` en API).
+  - **Hub:** `TrainerDashboardView` sin lista completa; CTA “Mis alumnos”.
+  - **Detalle:** ver `spec/features/017-trainer-clients-destination/`.

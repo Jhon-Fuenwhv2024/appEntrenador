@@ -4,7 +4,7 @@ import Dashboard from './components/Dashboard.vue';
 import RegisterView from './features/auth/RegisterView.vue';
 import ClientRoutinesView from './features/trainer/ClientRoutinesView.vue';
 import ExercisesCatalogView from './features/trainer/ExercisesCatalogView.vue';
-import TrainerClientsView from './features/trainer/TrainerClientsView.vue';
+import ClientsListView from './features/trainer/ClientsListView.vue';
 import TrainerLibraryView from './features/trainer/TrainerLibraryView.vue';
 import TrainerSettingsView from './features/trainer/TrainerSettingsView.vue';
 import WorkoutPlayerView from './features/client/WorkoutPlayerView.vue';
@@ -37,7 +37,7 @@ const routes = [
   {
     path: '/trainer/clients',
     name: 'TrainerClients',
-    component: TrainerClientsView,
+    component: ClientsListView,
     meta: { requiresAuth: true, role: 'trainer' },
   },
   {

@@ -20,6 +20,8 @@ const props = defineProps({
   },
 });
 
+const emit = defineEmits(['openClients']);
+
 const growthLabel = computed(() => {
   const value = Number(props.growthPercent) || 0;
   if (value > 0) return `+${value}%`;
@@ -32,13 +34,19 @@ const growthPositive = computed(() => (Number(props.growthPercent) || 0) >= 0);
 
 <template>
   <div class="stats-grid">
-    <div class="stat-card">
+    <button
+      type="button"
+      class="stat-card stat-card--action"
+      title="Ver lista de alumnos"
+      @click="emit('openClients')"
+    >
       <div class="stat-icon stat-icon-cyan">
         <v-icon icon="mdi-account-group-outline" size="18" color="primary"></v-icon>
       </div>
       <div class="stat-value">{{ clientsCount }}</div>
       <div class="stat-label">Total Alumnos</div>
-    </div>
+      <span class="stat-card__hint">Ver lista</span>
+    </button>
 
     <div class="stat-card">
       <div class="stat-icon stat-icon-green">
@@ -74,6 +82,29 @@ const growthPositive = computed(() => (Number(props.growthPercent) || 0) >= 0);
 <style src="../../../assets/trainerDashboard.css" scoped></style>
 
 <style scoped>
+.stat-card--action {
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  position: relative;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.stat-card--action:hover {
+  border-color: rgba(0, 229, 255, 0.35);
+  background: rgba(0, 229, 255, 0.04);
+}
+
+.stat-card__hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #00E5FF;
+  letter-spacing: 0.01em;
+}
+
 .growth-badge--down {
   background: rgba(239, 68, 68, 0.15);
   color: #F87171;
@@ -109,6 +140,11 @@ const growthPositive = computed(() => (Number(props.growthPercent) || 0) >= 0);
 
   .stat-card-top {
     margin-bottom: 8px;
+  }
+
+  .stat-card__hint {
+    margin-top: 4px;
+    font-size: 10px;
   }
 }
 </style>

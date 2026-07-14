@@ -1,12 +1,11 @@
 <script setup>
-import { computed, onMounted, onUnmounted, reactive, ref, shallowRef } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, nextTick, onMounted, onUnmounted, reactive, shallowRef } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { clearSession } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
-import { getClients, getTrainerDashboard } from './api/clientsApi.js';
+import { getTrainerDashboard } from './api/clientsApi.js';
 import { generateInvitationLink } from './api/invitationsApi.js';
-import ClientsList from './components/ClientsList.vue';
 import InviteClientAction from './components/InviteClientAction.vue';
 import TrainerMonthlyActivityChart from './components/TrainerMonthlyActivityChart.vue';
 import TrainerStatsSummary from './components/TrainerStatsSummary.vue';
@@ -15,13 +14,11 @@ import TrainerStatsSummary from './components/TrainerStatsSummary.vue';
 const INVITE_LINK_VISIBLE_MS = 60_000;
 
 const router = useRouter();
+const route = useRoute();
 
 const userName = shallowRef('');
 const invitationLink = shallowRef('');
 const isGeneratingInvitation = shallowRef(false);
-const searchQuery = shallowRef('');
-const loadingClients = shallowRef(true);
-const clients = ref([]);
 const dashboardStats = reactive({
   clientsCount: 0,
   routinesCount: 0,
@@ -48,17 +45,6 @@ const currentDateLabel = computed(() => {
       return part.split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     })
     .join(', ');
-});
-
-const filteredClients = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase();
-
-  if (!query) return clients.value;
-
-  return clients.value.filter((client) => (
-    client.nombre.toLowerCase().includes(query)
-    || client.username.toLowerCase().includes(query)
-  ));
 });
 
 const getInitials = (name) => {
@@ -93,43 +79,11 @@ const loadDashboard = async () => {
       : [];
   } catch (error) {
     console.error('Error al cargar dashboard:', error);
-    // Fallback desde lista de alumnos ya cargada (evita mostrar 0 si el endpoint falla)
-    syncStatsFromClients();
     showNotification(getApiErrorMessage(error, 'Error al cargar métricas'), 'error');
   }
 };
 
-const syncStatsFromClients = () => {
-  const list = clients.value;
-  dashboardStats.clientsCount = list.length;
-  dashboardStats.routinesCount = list.reduce(
-    (sum, client) => sum + (Number(client.routines_count) || 0),
-    0,
-  );
-};
-
-const loadClients = async () => {
-  try {
-    loadingClients.value = true;
-    const response = await getClients();
-
-    if (response.data.success) {
-      clients.value = response.data.clients ?? [];
-      // Si el dashboard aún no llegó o falló, al menos reflejar alumnos/rutinas reales
-      if (dashboardStats.clientsCount === 0 && clients.value.length > 0) {
-        syncStatsFromClients();
-      }
-    }
-  } catch (error) {
-    console.error('Error al cargar alumnos:', error);
-    showNotification(getApiErrorMessage(error, 'Error al cargar alumnos'), 'error');
-  } finally {
-    loadingClients.value = false;
-  }
-};
-
 const buildInvitationLink = (payload = {}) => {
-  // Prefer current frontend origin so the link matches the running app (port/host).
   if (payload.token) {
     return `${window.location.origin}/registro?token=${payload.token}`;
   }
@@ -191,9 +145,14 @@ const handleLogout = () => {
   router.push('/');
 };
 
-const openClientRoutines = (client) => {
-  if (!client?.id) return;
-  router.push(`/trainer/clients/${client.id}`);
+const goToClients = () => {
+  router.push('/trainer/clients');
+};
+
+const scrollToInviteIfNeeded = async () => {
+  if (route.hash !== '#invite') return;
+  await nextTick();
+  document.getElementById('invite')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
 onMounted(() => {
@@ -212,7 +171,7 @@ onMounted(() => {
   }
 
   userName.value = storedName || '';
-  Promise.all([loadClients(), loadDashboard()]);
+  loadDashboard().then(scrollToInviteIfNeeded);
 });
 
 onUnmounted(() => {
@@ -229,7 +188,7 @@ onUnmounted(() => {
             <v-icon icon="mdi-calendar-blank-outline" size="14"></v-icon>
             {{ currentDateLabel }}
           </div>
-          <h1 class="header-title">Dashboard</h1>
+          <h1 class="header-title">Inicio</h1>
           <p class="header-greeting">
             Bienvenido de vuelta, <span class="text-cyan">{{ userName }}</span>
           </p>
@@ -261,31 +220,24 @@ onUnmounted(() => {
       </header>
 
       <div class="trainer-dash-body">
-        <div class="stack-stats">
-          <TrainerStatsSummary
-            :clients-count="dashboardStats.clientsCount"
-            :routines-count="dashboardStats.routinesCount"
-            :sessions-this-month="dashboardStats.sessionsThisMonth"
-            :growth-percent="dashboardStats.growthPercent"
-          />
-        </div>
-
-        <ClientsList
-          v-model:search-query="searchQuery"
-          :clients="filteredClients"
-          :loading="loadingClients"
-          @select-client="openClientRoutines"
+        <TrainerStatsSummary
+          :clients-count="dashboardStats.clientsCount"
+          :routines-count="dashboardStats.routinesCount"
+          :sessions-this-month="dashboardStats.sessionsThisMonth"
+          :growth-percent="dashboardStats.growthPercent"
+          @open-clients="goToClients"
         />
 
-        <div class="stack-content content-grid">
+        <div class="hub-grid">
           <TrainerMonthlyActivityChart :months="dashboardStats.monthlyActivity" />
 
           <InviteClientAction
             :loading="isGeneratingInvitation"
             :invitation-link="invitationLink"
+            :clients-count="dashboardStats.clientsCount"
             @generate-invite="handleGenerateInvite"
             @copy-invite="copyInvitationLink"
-            @open-routines-hint="showNotification('Selecciona un alumno en la lista de alumnos para asignar rutinas', 'info')"
+            @go-to-clients="goToClients"
           />
         </div>
       </div>
@@ -294,7 +246,7 @@ onUnmounted(() => {
 
   <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top">
     {{ snackbar.text }}
-    <template v-slot:actions>
+    <template #actions>
       <v-btn variant="text" @click="snackbar.show = false">Cerrar</v-btn>
     </template>
   </v-snackbar>
@@ -311,51 +263,41 @@ onUnmounted(() => {
 .trainer-dash-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 20px;
+}
+
+.hub-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
   flex: 1;
   min-height: 0;
 }
 
-@media (max-width: 960px) {
-  :deep(.right-panel) {
-    width: 100%;
-    min-width: 0;
-    height: auto;
-    max-height: 42vh;
-    margin: 0;
-    border-radius: 16px;
+@media (min-width: 961px) {
+  .hub-grid {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 20px;
+  }
+
+  .hub-grid :deep(.chart-card) {
+    min-height: 380px;
+    height: 100%;
+  }
+
+  .hub-grid :deep(.quick-actions) {
+    position: sticky;
+    top: 0;
   }
 }
 
-@media (min-width: 961px) {
+@media (max-width: 960px) {
   .trainer-dash-body {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 310px;
-    grid-template-rows: auto 1fr;
-    gap: 0 20px;
-    align-items: start;
-  }
-
-  .stack-stats {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .stack-content {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  :deep(.right-panel) {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    width: 310px;
-    min-width: 310px;
-    height: calc(100vh - 160px);
-    max-height: calc(100dvh - 160px);
-    margin: 0;
-    position: sticky;
-    top: 0;
+    gap: 14px;
   }
 }
 </style>

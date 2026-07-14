@@ -110,6 +110,8 @@ Devuelve solo los clientes con `trainer_id = req.user.id`.
 
 Cada ítem incluye `routines_count` y `status` (`Activo` si tiene ≥1 rutina, `Sin plan` si no).
 
+UI trainer: lista en `/trainer/clients` (`ClientsListView`). La búsqueda por nombre/usuario es **filtro local** sobre esta respuesta (sin query param; suficiente para carteras pequeñas). Click → `/trainer/clients/:clientId`.
+
 ### `GET /clients/:clientId`
 
 Detalle de un cliente propio.

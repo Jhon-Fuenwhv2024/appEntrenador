@@ -206,7 +206,7 @@ STAT CARDS
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .stat-card {
@@ -863,38 +863,7 @@ RESPONSIVE
   }
 }
 
-/* Desktop: stats + chart left, alumnos right */
-@media (min-width: 961px) {
-  .trainer-dash-body {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 310px;
-    grid-template-rows: auto 1fr;
-    gap: 0 20px;
-    align-items: start;
-  }
-
-  .trainer-dash-body .stack-stats {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .trainer-dash-body .stack-content {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  .trainer-dash-body .right-panel {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    width: 310px;
-    min-width: 310px;
-    height: calc(100vh - 160px);
-    max-height: calc(100dvh - 160px);
-    margin: 0;
-    position: sticky;
-    top: 0;
-  }
-}
+/* Desktop hub layout lives in TrainerDashboardView scoped styles (stats + hub-grid). */
 
 /* Content panels used by catalog / client routines (replace fixed pa-8) */
 .content-panel {
