@@ -10,6 +10,7 @@ import {
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
 import ProfileFormCard from '../../shared/components/ProfileFormCard.vue';
+import WorkoutSessionHistoryList from '../../shared/components/WorkoutSessionHistoryList.vue';
 import { getClientById } from './api/clientsApi.js';
 import { createExercise, getExercises } from './api/exercisesApi.js';
 import {
@@ -39,7 +40,6 @@ const savingProfile = shallowRef(false);
 const savingCatalogIndex = shallowRef(null);
 const savingTemplateId = shallowRef(null);
 const editingId = shallowRef(null);
-const expandedSessionId = shallowRef(null);
 
 const form = reactive({
   dia_semana: 'Lunes',
@@ -213,20 +213,6 @@ const onSaveProfile = async ({ fields, fotoFile, done }) => {
   } finally {
     savingProfile.value = false;
   }
-};
-
-const formatSessionDate = (value) => {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString('es-ES', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
-};
-
-const toggleSession = (sessionId) => {
-  expandedSessionId.value = expandedSessionId.value === sessionId ? null : sessionId;
 };
 
 const saveExerciseToCatalog = async (index) => {
@@ -586,51 +572,12 @@ onMounted(() => {
           <div class="functional-card mt-6">
             <h3 class="card-section-title mb-2">Historial de entrenamientos</h3>
             <p class="text-caption text-medium-emphasis mb-4">
-              Sesiones completadas por el alumno (peso y reps reales).
+              Sesiones del alumno con peso y reps reales. Toca para ver el detalle por ejercicio.
             </p>
-
-            <div v-if="workoutSessions.length === 0" class="text-medium-emphasis">
-              Aún no hay entrenamientos registrados.
-            </div>
-
-            <div
-              v-for="session in workoutSessions"
-              :key="session.id"
-              class="workout-history-item mb-3"
-            >
-              <button
-                type="button"
-                class="workout-history-header"
-                @click="toggleSession(session.id)"
-              >
-                <div>
-                  <div class="exercise-name">{{ session.routine_name }}</div>
-                  <div class="exercise-meta">
-                    {{ formatSessionDate(session.finished_at) }}
-                    · {{ session.sets?.length || 0 }} series
-                    · {{ session.status }}
-                  </div>
-                </div>
-                <v-icon
-                  :icon="expandedSessionId === session.id ? 'mdi-chevron-up' : 'mdi-chevron-down'"
-                  size="20"
-                  color="#8B929E"
-                />
-              </button>
-
-              <div v-if="expandedSessionId === session.id" class="workout-history-sets mt-3">
-                <div
-                  v-for="set in session.sets"
-                  :key="set.id"
-                  class="workout-history-set"
-                >
-                  <span class="font-weight-medium">{{ set.exercise_name }}</span>
-                  <span class="exercise-meta">
-                    Serie {{ set.set_number }} · {{ set.reps }} reps · {{ set.weight }} kg
-                  </span>
-                </div>
-              </div>
-            </div>
+            <WorkoutSessionHistoryList
+              :sessions="workoutSessions"
+              empty-text="Aún no hay entrenamientos registrados."
+            />
           </div>
         </template>
       </div>
@@ -697,42 +644,6 @@ onMounted(() => {
 .card-section-title {
   font-size: 1.1rem;
   font-weight: 700;
-}
-
-.workout-history-item {
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  padding: 0.75rem 1rem;
-  background: rgba(0, 0, 0, 0.18);
-}
-
-.workout-history-header {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-  background: transparent;
-  border: 0;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  padding: 0;
-}
-
-.workout-history-sets {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding-top: 0.75rem;
-}
-
-.workout-history-set {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  font-size: 0.9rem;
 }
 
 .min-w-0 {

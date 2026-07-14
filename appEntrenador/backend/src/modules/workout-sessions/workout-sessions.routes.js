@@ -12,6 +12,13 @@ router.post(
 );
 
 router.get(
+  '/me/workout-sessions',
+  authenticate,
+  requireRole('client'),
+  workoutSessionsController.listMine,
+);
+
+router.get(
   '/clients/:clientId/workout-sessions',
   authenticate,
   requireRole('trainer'),

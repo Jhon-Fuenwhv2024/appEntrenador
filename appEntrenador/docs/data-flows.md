@@ -55,6 +55,7 @@
 4. Al terminar, `POST /me/workout-sessions` persiste peso/reps por serie.
 5. En la siguiente sesión, ese log queda disponible como `last_log` (match por `client_id` + nombre de ejercicio; los ids de línea de deep copy no afectan).
 6. Trainer consulta `GET /clients/:id/workout-sessions` y ve el historial en la ficha del alumno; `GET /clients/:id/routines` también incluye `last_log` por ejercicio.
+7. Cliente consulta `GET /me/workout-sessions` en **Mi progreso** (`/client/progress`) — Feature 021; solo lectura de sesiones propias.
 
 ## Memoria de progresión (Feature 019)
 

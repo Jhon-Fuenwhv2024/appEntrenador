@@ -8,7 +8,7 @@ const props = defineProps({
     required: true,
     validator: (value) => ['trainer', 'client'].includes(value),
   },
-  /** Override active key: dashboard | clients | library | settings */
+  /** Override active key: dashboard | clients | library | settings | progress | profile */
   active: {
     type: String,
     default: '',
@@ -45,12 +45,19 @@ const trainerItems = [
   },
 ];
 
+/** Client: Inicio + Progreso + Perfil (máx. 3; no añade slot al trainer). */
 const clientItems = [
   {
     key: 'dashboard',
     label: 'Inicio',
     icon: 'mdi-view-dashboard-outline',
     to: '/dashboard',
+  },
+  {
+    key: 'progress',
+    label: 'Progreso',
+    icon: 'mdi-chart-timeline-variant',
+    to: '/client/progress',
   },
   {
     key: 'profile',
@@ -71,6 +78,7 @@ const resolvedActive = computed(() => {
     return 'library';
   }
   if (path.startsWith('/trainer/settings')) return 'settings';
+  if (path.startsWith('/client/progress')) return 'progress';
   if (path.startsWith('/client/profile')) return 'profile';
   if (path === '/dashboard' || path === '/') return 'dashboard';
   return '';

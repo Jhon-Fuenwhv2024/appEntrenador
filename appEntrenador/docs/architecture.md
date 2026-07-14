@@ -9,10 +9,11 @@ Trainfit usa una migración modular gradual. La estructura actual mantiene compa
 - `src/shared/layout/AppShell.vue` + `AppBottomNav.vue`: shell autenticado (sidebar desktop / bottom nav móvil ≤960px). Estilos en `src/assets/appShell.css`.
   - **Trainer (4 slots):** Inicio (`/dashboard`), Alumnos (`/trainer/clients`), Biblioteca (`/trainer/library`), Ajustes (`/trainer/settings`). Logout fuera de los slots (header móvil / pie sidebar).
   - **Contexto (no ítem de barra):** ficha `/trainer/clients/:clientId` marca Alumnos; catálogo `/trainer/exercises` es herramienta de Biblioteca (sin slot propio).
-  - **Client:** Inicio (sin cambios de IA en 016).
+  - **Client (3 slots):** Inicio (`/dashboard`), Progreso (`/client/progress`, Feature 021), Perfil (`/client/profile`). Workout Player sin bottom nav.
 - `src/features/auth/`: vistas de login/registro y llamadas de auth.
 - `src/features/trainer/`: portal del entrenador, clientes, invitaciones, rutinas (`ClientRoutinesView`), lista de alumnos (`ClientsListView`), biblioteca de plantillas (`LibraryView` en `/trainer/library`), placeholder `TrainerSettingsView` (024). Inicio (`TrainerDashboardView`) es hub de métricas + invitación + CTA a Alumnos.
-- `src/features/client/`: portal del cliente con rutinas reales (`ClientDashboardView`).
+- `src/features/client/`: portal del cliente — rutinas (`ClientDashboardView`), progreso (`ClientProgressView`), perfil (`ClientProfileView`), player (`WorkoutPlayerView`).
+- `src/shared/components/WorkoutSessionHistoryList.vue`: historial expandible de sesiones (cliente + ficha trainer).
 - `src/components/Dashboard.vue`: composición por rol; enruta a trainer o client sin contener lógica de feature.
 
 Los componentes legacy `src/components/Login.vue`, `src/components/Register.vue`, `src/components/TrainerDashboard.vue` y `src/components/ClientDashboard.vue` quedan como wrappers cuando aplica.
@@ -34,6 +35,7 @@ El backend monta módulos bajo `/api` desde `backend/src/server.js`.
 - `backend/src/modules/routines/`: CRUD de rutinas/ejercicios (líneas de rutina) con ownership.
 - `backend/src/modules/templates/`: CRUD de plantillas + `POST /templates/:id/assign` (deep copy a `rutinas`/`ejercicios`; Feature 018).
 - `backend/src/modules/exercises/`: catálogo `exercises` — `GET/POST /api/exercises` (trainer: globales + propios). Seed (`backend/scripts/seedExercises.js`) desde clone local de wrkout/exercises.json; `media_url` = raw GitHub. Las rutinas copian `name` a `ejercicios.nombre` (sin FK). Ver [`docs/database-schema.md`](database-schema.md).
+- `backend/src/modules/workout-sessions/`: `POST/GET /me/workout-sessions` (client) y `GET /clients/:id/workout-sessions` (trainer). Feature 012 + 021.
 - Frontend trainer: `LibraryView` gestiona plantillas; `ExercisesCatalogView` (`/trainer/exercises`) gestiona el catálogo (acceso desde Biblioteca); `ClientRoutinesView` usa combobox al crear/editar rutinas y puede guardar como plantilla.
 
 Cada módulo sigue la forma `routes -> controller -> service`. Los services concentran consultas MySQL parametrizadas y los controllers traducen a respuestas JSON.

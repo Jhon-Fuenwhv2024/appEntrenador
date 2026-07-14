@@ -9,6 +9,7 @@ import LibraryView from './features/trainer/LibraryView.vue';
 import TrainerSettingsView from './features/trainer/TrainerSettingsView.vue';
 import WorkoutPlayerView from './features/client/WorkoutPlayerView.vue';
 import ClientProfileView from './features/client/ClientProfileView.vue';
+import ClientProgressView from './features/client/ClientProgressView.vue';
 import { getSessionUser, isAuthenticated } from './shared/auth/session.js';
 
 const routes = [
@@ -28,6 +29,12 @@ const routes = [
     name: 'Dashboard',
     component: Dashboard,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/client/progress',
+    name: 'ClientProgress',
+    component: ClientProgressView,
+    meta: { requiresAuth: true, role: 'client' },
   },
   {
     path: '/client/profile',

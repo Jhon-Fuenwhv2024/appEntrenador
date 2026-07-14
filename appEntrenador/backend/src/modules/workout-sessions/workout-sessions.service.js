@@ -181,9 +181,7 @@ function mapSession(session, sets) {
   };
 }
 
-async function listSessionsForClientAsTrainer(trainerId, clientId) {
-  await clientsService.getClientOwnedByTrainer(clientId, trainerId);
-
+async function listSessionsForClient(clientId) {
   const [sessions] = await db.query(
     `SELECT id, client_id, routine_id, routine_name, started_at, finished_at, status, created_at
      FROM workout_sessions
@@ -215,7 +213,18 @@ async function listSessionsForClientAsTrainer(trainerId, clientId) {
   return sessions.map((session) => mapSession(session, bySession.get(session.id) || []));
 }
 
+/** Client portal: only sessions owned by req.user.id */
+async function listMySessions(clientId) {
+  return listSessionsForClient(clientId);
+}
+
+async function listSessionsForClientAsTrainer(trainerId, clientId) {
+  await clientsService.getClientOwnedByTrainer(clientId, trainerId);
+  return listSessionsForClient(clientId);
+}
+
 module.exports = {
   createMySession,
+  listMySessions,
   listSessionsForClientAsTrainer,
 };

@@ -29,3 +29,11 @@
   - **Vista:** `ClientsListView` + `ClientsList` (filtro `computed` local; sin `?q` en API).
   - **Hub:** `TrainerDashboardView` sin lista completa; CTA “Mis alumnos”.
   - **Detalle:** ver `spec/features/017-trainer-clients-destination/`.
+
+- [x] `[021]` **Progreso / historial del cliente**
+  **Descripción:** Vista cliente “Mi progreso” con sesiones y detalle de sets; resumen pulido en ficha trainer. Nav client con 3 ítems (Inicio · Progreso · Perfil); trainer sin 5.º slot.
+  **Requisitos Técnicos (Agente):**
+  - **Ruta:** `/client/progress` + `GET /me/workout-sessions`.
+  - **UI compartida:** `WorkoutSessionHistoryList` (cliente + ficha).
+  - **Breakpoints:** misma shell ≤960px; lista legible ~390px.
+  - **Detalle:** ver `spec/features/021-client-progress-history/`.

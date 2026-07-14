@@ -10,7 +10,7 @@ const props = defineProps({
     required: true,
     validator: (value) => ['trainer', 'client'].includes(value),
   },
-  /** Active nav key: dashboard | clients | library | settings (trainer) */
+  /** Active nav key: dashboard | clients | library | settings | progress | profile */
   active: {
     type: String,
     default: 'dashboard',
@@ -93,6 +93,15 @@ const go = (path) => {
           @click="go('/dashboard')"
         >
           <v-icon icon="mdi-view-dashboard-outline" size="24" />
+        </button>
+        <button
+          type="button"
+          class="nav-item"
+          :class="{ active: active === 'progress' }"
+          title="Mi progreso"
+          @click="go('/client/progress')"
+        >
+          <v-icon icon="mdi-chart-timeline-variant" size="24" />
         </button>
         <button
           type="button"

@@ -27,6 +27,18 @@ async function createMine(req, res) {
   }
 }
 
+async function listMine(req, res) {
+  try {
+    const sessions = await workoutSessionsService.listMySessions(req.user.id);
+    return res.json({
+      success: true,
+      data: sessions,
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error listando tu historial de entrenamientos:');
+  }
+}
+
 async function listForClient(req, res) {
   try {
     const clientId = Number(req.params.clientId);
@@ -45,5 +57,6 @@ async function listForClient(req, res) {
 
 module.exports = {
   createMine,
+  listMine,
   listForClient,
 };

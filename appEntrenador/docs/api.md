@@ -421,6 +421,10 @@ Body:
 
 `client_id` siempre es `req.user.id`. `routine_id` debe pertenecer al cliente.
 
+### `GET /me/workout-sessions` (client) — Feature 021
+
+Lista las sesiones propias del cliente autenticado (máx. 50, más recientes primero). Misma forma que el GET del trainer: cada ítem incluye `sets[]` anidados. Ownership: solo `workout_sessions.client_id = req.user.id` (no acepta `clientId` en params/body).
+
 ### `GET /clients/:clientId/workout-sessions` (trainer)
 
 Historial del alumno propio (ownership). Incluye `sets[]` anidados.
