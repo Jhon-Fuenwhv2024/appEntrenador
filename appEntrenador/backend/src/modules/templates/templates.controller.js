@@ -1,4 +1,5 @@
 const templatesService = require('./templates.service');
+const { notificationService } = require('../notifications/notifications.service');
 
 function sendError(res, error, context) {
   const code = error.code || 500;
@@ -96,6 +97,17 @@ async function assign(req, res) {
       templateId,
       req.body,
     );
+
+    try {
+      await notificationService.createNotification(
+        routine.alumno_id,
+        'Nueva rutina asignada',
+        `Tu entrenador te asignó la rutina: ${routine.nombre_rutina}`,
+        'routine_assigned',
+      );
+    } catch (notifError) {
+      console.error('Error enviando notificación (assign template):', notifError);
+    }
 
     return res.status(201).json({
       success: true,

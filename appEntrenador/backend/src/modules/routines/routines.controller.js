@@ -1,4 +1,5 @@
 const routinesService = require('./routines.service');
+const { notificationService } = require('../notifications/notifications.service');
 
 function sendError(res, error, context) {
   const code = error.code || 500;
@@ -53,6 +54,18 @@ async function create(req, res) {
       req.body,
     );
 
+    // Notificar al cliente
+    try {
+      await notificationService.createNotification(
+        clientId,
+        'Nueva rutina asignada',
+        `Tu entrenador ha creado la rutina: ${routine.nombre_rutina}`,
+        'routine_assigned'
+      );
+    } catch (notifError) {
+      console.error('Error enviando notificación (create routine):', notifError);
+    }
+
     return res.status(201).json({
       success: true,
       message: 'Rutina creada',
@@ -71,6 +84,18 @@ async function update(req, res) {
       routineId,
       req.body,
     );
+
+    // Notificar al cliente
+    try {
+      await notificationService.createNotification(
+        routine.alumno_id,
+        'Rutina actualizada',
+        `Tu entrenador ha actualizado la rutina: ${routine.nombre_rutina}`,
+        'routine_assigned'
+      );
+    } catch (notifError) {
+      console.error('Error enviando notificación (update routine):', notifError);
+    }
 
     return res.json({
       success: true,

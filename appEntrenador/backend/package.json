@@ -11,6 +11,7 @@
     "db:create-alumnos-info": "node scripts/createAlumnosInfoTable.js",
     "db:create-trainers-info": "node scripts/createTrainersInfoTable.js",
     "db:create-body-composition": "node scripts/createBodyCompositionTable.js",
+    "db:create-notifications": "node scripts/createNotificationsTable.js",
     "seed:exercises": "node scripts/seedExercises.js"
   },
   "keywords": [],

@@ -7,6 +7,7 @@ import { getProfile } from '../../shared/api/profileApi.js';
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
 import { resolveAvatarSrc } from '../../shared/utils/avatar.js';
+import NotificationBadge from '../../components/notifications/NotificationBadge.vue';
 import { getMyRoutines } from './api/routinesApi.js';
 
 const DAY_ORDER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -120,6 +121,8 @@ onMounted(() => {
         </div>
 
         <div class="header-right">
+          <NotificationBadge />
+
           <router-link to="/client/profile" class="profile-pill" title="Mi Perfil">
             <div class="profile-avatar">
               <img :src="avatarSrc" :alt="`Foto de ${userName}`" class="profile-avatar__img">

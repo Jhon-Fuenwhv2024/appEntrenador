@@ -1,4 +1,6 @@
 const workoutSessionsService = require('./workout-sessions.service');
+const { notificationService } = require('../notifications/notifications.service');
+const db = require('../../config/db');
 
 function sendError(res, error, context) {
   const code = error.code || 500;
@@ -17,6 +19,27 @@ function sendError(res, error, context) {
 async function createMine(req, res) {
   try {
     const session = await workoutSessionsService.createMySession(req.user.id, req.body);
+
+    try {
+      const [rows] = await db.query(
+        'SELECT trainer_id FROM usuarios WHERE id = ? AND rol = ? LIMIT 1',
+        [req.user.id, 'client'],
+      );
+      const trainerId = rows[0]?.trainer_id;
+
+      if (trainerId && session.status === 'completed') {
+        const clientName = req.user.nombre || 'Tu alumno';
+        await notificationService.createNotification(
+          trainerId,
+          'Entrenamiento completado',
+          `${clientName} ha completado la rutina: ${session.routine_name}`,
+          'routine_completed',
+        );
+      }
+    } catch (notifError) {
+      console.error('Error enviando notificación (create session):', notifError);
+    }
+
     return res.status(201).json({
       success: true,
       message: 'Entrenamiento guardado',

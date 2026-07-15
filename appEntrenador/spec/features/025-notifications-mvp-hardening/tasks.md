@@ -1,9 +1,10 @@
 # 025 · Tasks
 
-- [ ] Crear SDD
-- [ ] Modelo/endpoints notificaciones + ownership
-- [ ] Generación de eventos en flujos clave
-- [ ] UI badge + panel
-- [ ] Hardening env / db.js
-- [ ] Docs deploy + api
-- [ ] Validar build y smoke notificaciones
+- [x] Crear SDD
+- [x] DDL `notifications` en `script_db.sql` + migración `011_notifications.sql`
+- [x] Backend: endpoints CRUD para notificaciones (`GET /`, `PUT /:id/read`, `PUT /read-all`)
+- [x] Disparar notificaciones: crear/actualizar rutina, asignar plantilla, completar sesión
+- [x] Frontend: composable `useNotifications` + `notificationsApi`
+- [x] UI: `NotificationBadge` en dashboard trainer y client
+- [x] Docs api / schema
+- [x] Validar tabla aplicada en coach_db + build

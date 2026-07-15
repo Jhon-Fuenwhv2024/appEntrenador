@@ -493,3 +493,41 @@ Crea una medición. Campos obligatorios: `weight_kg`, `height_cm`. Opcionales: `
 ### `PUT /clients/:clientId/body-composition/:logId` (trainer)
 
 Actualiza una medición del alumno propio. Misma forma de body que el POST; el IMC se recalcula.
+
+## Notificaciones in-app (Feature 025)
+
+Campana en el dashboard (trainer y client). Eventos:
+
+- Cliente: rutina creada / actualizada / plantilla asignada → `routine_assigned`
+- Trainer: alumno completa entrenamiento → `routine_completed`
+
+### `GET /notifications`
+
+Lista las notificaciones del usuario autenticado (máx. 50) y el conteo de no leídas.
+
+```json
+{
+  "success": true,
+  "data": {
+    "notifications": [
+      {
+        "id": 1,
+        "title": "Nueva rutina asignada",
+        "message": "Tu entrenador ha creado la rutina: Full Body",
+        "type": "routine_assigned",
+        "is_read": false,
+        "created_at": "2026-07-14T20:00:00.000Z"
+      }
+    ],
+    "unreadCount": 1
+  }
+}
+```
+
+### `PUT /notifications/:id/read`
+
+Marca una notificación propia como leída.
+
+### `PUT /notifications/read-all`
+
+Marca todas las del usuario autenticado como leídas.

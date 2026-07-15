@@ -203,6 +203,18 @@ npm run db:create-body-composition
 # o: node scripts/createBodyCompositionTable.js
 ```
 
+### `notifications` (Feature 025)
+
+Alertas in-app N:1 con el usuario (`user_id` → `usuarios`). Tipos: `routine_assigned` | `routine_completed` | `system`. `is_read` booleano.
+
+Migración: [`backend/db/migrations/011_notifications.sql`](../backend/db/migrations/011_notifications.sql). Al arrancar, `ensureNotificationsTable` también aplica `CREATE TABLE IF NOT EXISTS`.
+
+```bash
+cd backend
+npm run db:create-notifications
+# o: node scripts/createNotificationsTable.js
+```
+
 ## Seed del catálogo
 
 Fuente principal: clone local de [wrkout/exercises.json](https://github.com/wrkout/exercises.json) (gitignored en `backend/data/wrkout-exercises/`). El script recorre `exercises/*/exercise.json`, mapea a columnas Trainfit y guarda `media_url` apuntando a `raw.githubusercontent.com` (`images/0.jpg`); no hostea JPG.

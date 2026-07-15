@@ -14,7 +14,9 @@ const templatesRoutes = require('./modules/templates/templates.routes');
 const profileRoutes = require('./modules/profile/profile.routes');
 const accountRoutes = require('./modules/account/account.routes');
 const bodyCompositionRoutes = require('./modules/body-composition/body-composition.routes');
+const notificationsRoutes = require('./modules/notifications/notifications.routes');
 const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
+const { ensureNotificationsTable } = require('./db/ensureNotificationsTable');
 
 const app = express();
 
@@ -34,7 +36,18 @@ app.use('/api', templatesRoutes);
 app.use('/api', profileRoutes);
 app.use('/api', accountRoutes);
 app.use('/api', bodyCompositionRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Servidor API modular (JWT) corriendo en http://localhost:${PORT}`);
-});
+async function start() {
+  try {
+    await ensureNotificationsTable();
+  } catch (error) {
+    console.error('No se pudo asegurar la tabla notifications:', error.message);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Servidor API modular (JWT) corriendo en http://localhost:${PORT}`);
+  });
+}
+
+start();

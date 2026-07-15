@@ -11,6 +11,7 @@ import { generateInvitationLink } from './api/invitationsApi.js';
 import InviteClientAction from './components/InviteClientAction.vue';
 import TrainerMonthlyActivityChart from './components/TrainerMonthlyActivityChart.vue';
 import TrainerStatsSummary from './components/TrainerStatsSummary.vue';
+import NotificationBadge from '../../components/notifications/NotificationBadge.vue';
 
 /** Tiempo que el link permanece visible antes de ocultarse solo. */
 const INVITE_LINK_VISIBLE_MS = 60_000;
@@ -201,9 +202,7 @@ onUnmounted(() => {
         </div>
 
         <div class="header-right">
-          <button type="button" class="notification-btn" aria-label="Notificaciones" disabled>
-            <v-icon icon="mdi-bell-outline" size="20" color="#8B929E"></v-icon>
-          </button>
+          <NotificationBadge />
 
           <router-link to="/trainer/settings" class="profile-pill" title="Ajustes">
             <div class="profile-avatar">

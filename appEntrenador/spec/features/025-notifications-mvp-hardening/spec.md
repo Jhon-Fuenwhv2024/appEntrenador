@@ -1,36 +1,9 @@
-# 025 · Notificaciones MVP + hardening config/deploy
+# 025 · Notificaciones In-App
 
-**Estado:** pendiente
+## Objetivo
+Ícono de campana en el Header. Alerta al cliente cuando "Tu entrenador ha actualizado tu rutina" y al entrenador cuando "El cliente X terminó su entrenamiento". Mantiene viva la interacción sin depender de emails externos.
 
-**Depende de:** dashboard 015; recomendable tras 017/012
-
-## Qué hace
-
-1. **Notificaciones in-app MVP:** badge real en header (deja de estar disabled) con eventos mínimos del dominio del trainer: alumno nuevo, sesión completada, alumno sin plan.
-2. **Hardening:** credenciales DB/JWT solo por `.env`; checklist de despliegue (frontend + API) documentado en `docs/`.
-
-## Criterios de aceptación
-
-### Notificaciones
-
-- [ ] Fuente de verdad server-side (tabla ligera `notifications` o cálculo derivado documentado)
-- [ ] `GET` notificaciones del trainer; marcar leídas
-- [ ] Badge en header refleja no leídas; panel/lista simple
-- [ ] Eventos mínimos generados en flujos existentes (register cliente, finish session, o job/consulta de “sin plan”)
-- [ ] Ownership por trainer
-
-### Hardening / deploy
-
-- [ ] `db.js` sin credenciales hardcodeadas; `.env.example` completo
-- [ ] Doc en `docs/` con variables, build frontend, arranque API, notas Netlify/hosting API
-- [ ] Sin secretos en repo
-
-- [ ] Docs api / architecture
-- [ ] Build OK
-
-## Fuera de alcance
-
-- Push mobile / email
-- Dietas
-- Suite de tests automatizados (backlog posterior)
-- Pinia / TypeScript
+## Requisitos
+- Modelo de base de datos para notificaciones.
+- Endpoints para obtener, marcar como leídas y eliminar notificaciones.
+- UI: Badge en el header y panel desplegable.
