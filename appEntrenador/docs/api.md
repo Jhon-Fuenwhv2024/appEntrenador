@@ -251,6 +251,7 @@ Crea rutina con ejercicios (transacción).
       "series": 4,
       "repeticiones": 10,
       "peso": 60,
+      "rest_time_seconds": 90,
       "indicaciones": "Controlar la bajada"
     }
   ]
@@ -258,6 +259,8 @@ Crea rutina con ejercicios (transacción).
 ```
 
 `exercise_id` es opcional (`null` = texto libre / líneas legacy). Debe ser un ejercicio del catálogo visible al trainer (global o propio). Se persiste junto al `nombre` denormalizado.
+
+`rest_time_seconds` (Feature 028): descanso entre series en segundos (entero `0`–`900`; default `90` si se omite). El Workout Player usa este valor en el temporizador.
 ### `PUT /routines/:routineId` (trainer)
 
 Reemplaza día, nombre y ejercicios de una rutina propia.
@@ -289,13 +292,14 @@ Crea plantilla + líneas (transacción).
       "series": 4,
       "repeticiones": 10,
       "peso": 60,
+      "rest_time_seconds": 90,
       "indicaciones": ""
     }
   ]
 }
 ```
 
-`exercise_id` opcional; misma semántica que en rutinas de alumno.
+`exercise_id` opcional; misma semántica que en rutinas de alumno. `rest_time_seconds` se copia al asignar (Feature 028).
 ### `GET /templates/:id`
 
 Detalle de una plantilla propia.
@@ -327,6 +331,7 @@ Lista las rutinas del cliente autenticado.
 Cada ítem de `ejercicios[]` incluye (además de la prescripción):
 
 - `exercise_id` — vínculo al catálogo (nullable; Feature 022)
+- `rest_time_seconds` — descanso entre series prescrito por el trainer (Feature 028; default 90)
 - `media_type` / `media_url` — resueltos por `exercise_id` si existe; si no, por nombre (Features 008–009 / 022)
 - `last_log` — memoria de progresión (Feature 019):
 
@@ -337,6 +342,7 @@ Cada ítem de `ejercicios[]` incluye (además de la prescripción):
   "series": 4,
   "repeticiones": 10,
   "peso": 60,
+  "rest_time_seconds": 90,
   "indicaciones": "",
   "media_type": "youtube",
   "media_url": "https://...",

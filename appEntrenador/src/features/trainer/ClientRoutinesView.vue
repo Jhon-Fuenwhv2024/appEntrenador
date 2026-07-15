@@ -46,11 +46,13 @@ const savingCatalogIndex = shallowRef(null);
 const savingTemplateId = shallowRef(null);
 const editingId = shallowRef(null);
 
+const DEFAULT_REST_SECONDS = 90;
+
 const form = reactive({
   dia_semana: 'Lunes',
   nombre_rutina: '',
   ejercicios: [
-    { nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, indicaciones: '' },
+    { nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, rest_time_seconds: DEFAULT_REST_SECONDS, indicaciones: '' },
   ],
 });
 
@@ -82,6 +84,20 @@ const showNotification = (text, color = 'success') => {
   snackbar.show = true;
   snackbar.text = text;
   snackbar.color = color;
+};
+
+/** Coerce trainer rest input to an int seconds value for the API. */
+const toRestSeconds = (value) => {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n) || n < 0) return DEFAULT_REST_SECONDS;
+  if (n > 900) return 900;
+  return n;
+};
+
+const setRestSeconds = (index, value) => {
+  const ex = form.ejercicios[index];
+  if (!ex) return;
+  ex.rest_time_seconds = toRestSeconds(value);
 };
 
 const isNameInCatalog = (nombre) => {
@@ -118,7 +134,7 @@ const resetForm = () => {
   form.dia_semana = 'Lunes';
   form.nombre_rutina = '';
   form.ejercicios = [
-    { nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, indicaciones: '' },
+    { nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, rest_time_seconds: DEFAULT_REST_SECONDS, indicaciones: '' },
   ];
 };
 
@@ -129,6 +145,7 @@ const addExerciseRow = () => {
     series: 3,
     repeticiones: 10,
     peso: 0,
+    rest_time_seconds: DEFAULT_REST_SECONDS,
     indicaciones: '',
   });
 };
@@ -264,6 +281,7 @@ const startEdit = (routine) => {
     series: ex.series,
     repeticiones: ex.repeticiones,
     peso: Number(ex.peso) || 0,
+    rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
     indicaciones: ex.indicaciones || '',
   }));
 
@@ -281,6 +299,7 @@ const buildPayload = () => ({
     series: Number(ex.series),
     repeticiones: Number(ex.repeticiones),
     peso: Number(ex.peso),
+    rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
     indicaciones: ex.indicaciones?.trim() || '',
   })),
 });
@@ -336,6 +355,7 @@ const handleSaveAsTemplate = async (routine) => {
         series: Number(ex.series),
         repeticiones: Number(ex.repeticiones),
         peso: Number(ex.peso),
+        rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
         indicaciones: ex.indicaciones || '',
       })),
     });
@@ -579,6 +599,22 @@ onMounted(() => {
                         color="primary"
                       />
                     </label>
+                    <label class="metric metric--rest">
+                      <span class="field-cap">Descanso (s)</span>
+                      <v-text-field
+                        :model-value="ex.rest_time_seconds"
+                        type="number"
+                        density="compact"
+                        variant="outlined"
+                        hide-details
+                        min="0"
+                        max="900"
+                        step="5"
+                        color="primary"
+                        aria-label="Descanso entre series en segundos"
+                        @update:model-value="(value) => setRestSeconds(index, value)"
+                      />
+                    </label>
                   </div>
 
                   <label class="field-block">
@@ -687,6 +723,7 @@ onMounted(() => {
                         <div class="exercise-name">{{ ejercicio.nombre }}</div>
                         <div class="exercise-meta">
                           {{ ejercicio.series }}×{{ ejercicio.repeticiones }} · {{ ejercicio.peso }} kg
+                          · descanso {{ ejercicio.rest_time_seconds ?? 90 }}s
                         </div>
                       </div>
                     </div>
@@ -932,6 +969,11 @@ onMounted(() => {
 .metric--peso {
   width: 5rem;
   flex-basis: 5rem;
+}
+
+.metric--rest {
+  width: 6.25rem;
+  flex-basis: 6.25rem;
 }
 
 .exercise-notes {

@@ -1,25 +1,34 @@
 import { computed, onUnmounted, ref, shallowRef } from 'vue';
+import { useTimer } from './useTimer.js';
 
 export const DEFAULT_REST_SECONDS = 90;
 
 /**
  * Orchestrates an active workout: current exercise/set, rest timer, local set logs.
+ * Rest countdown uses wall-clock timestamps (background-throttling resilient).
  * @param {{ restSeconds?: number }} [options]
  */
 export function useWorkoutSession(options = {}) {
-  const restDuration = options.restSeconds ?? DEFAULT_REST_SECONDS;
+  const defaultRestSeconds = options.restSeconds ?? DEFAULT_REST_SECONDS;
 
   const routine = shallowRef(null);
   const exerciseIndex = ref(0);
   const setIndex = ref(0);
   const phase = ref('idle'); // idle | working | resting | finished
-  const restSecondsLeft = ref(0);
   const actualWeight = ref(0);
   const actualReps = ref(0);
   const logs = ref([]);
   const startedAt = shallowRef(null);
+  /** Duration used for the active / last rest (for UI copy). */
+  const restDuration = shallowRef(defaultRestSeconds);
 
-  let restTimerId = null;
+  const {
+    secondsLeft: restSecondsLeft,
+    formattedTime: restFormattedTime,
+    start: startTimer,
+    cancel: cancelTimer,
+    unlockAudio,
+  } = useTimer();
 
   const exercises = computed(() => routine.value?.ejercicios ?? []);
 
@@ -45,11 +54,12 @@ export function useWorkoutSession(options = {}) {
     return `Serie ${currentSetNumber.value} de ${totalSets.value}`;
   });
 
-  function clearRestTimer() {
-    if (restTimerId != null) {
-      clearInterval(restTimerId);
-      restTimerId = null;
+  function resolveRestSeconds() {
+    const fromExercise = Number(currentExercise.value?.rest_time_seconds);
+    if (Number.isFinite(fromExercise) && fromExercise >= 0) {
+      return Math.round(fromExercise);
     }
+    return defaultRestSeconds;
   }
 
   function syncInputDefaults() {
@@ -58,8 +68,36 @@ export function useWorkoutSession(options = {}) {
     actualReps.value = ex ? Number(ex.repeticiones) || 0 : 0;
   }
 
+  function advanceToNextSet() {
+    setIndex.value += 1;
+    phase.value = 'working';
+    syncInputDefaults();
+  }
+
+  function finishRest() {
+    cancelTimer();
+    if (phase.value !== 'resting') return;
+    advanceToNextSet();
+  }
+
+  function startRest() {
+    const seconds = resolveRestSeconds();
+    restDuration.value = seconds;
+    if (seconds <= 0) {
+      advanceToNextSet();
+      return;
+    }
+    phase.value = 'resting';
+    startTimer(seconds, {
+      onComplete: () => {
+        if (phase.value !== 'resting') return;
+        advanceToNextSet();
+      },
+    });
+  }
+
   function start(nextRoutine) {
-    clearRestTimer();
+    cancelTimer();
     if (!nextRoutine?.ejercicios?.length) {
       throw new Error('La rutina no tiene ejercicios.');
     }
@@ -67,32 +105,10 @@ export function useWorkoutSession(options = {}) {
     exerciseIndex.value = 0;
     setIndex.value = 0;
     phase.value = 'working';
-    restSecondsLeft.value = 0;
     logs.value = [];
     startedAt.value = new Date().toISOString();
+    restDuration.value = defaultRestSeconds;
     syncInputDefaults();
-  }
-
-  function finishRest() {
-    clearRestTimer();
-    restSecondsLeft.value = 0;
-    if (phase.value !== 'resting') return;
-    setIndex.value += 1;
-    phase.value = 'working';
-    syncInputDefaults();
-  }
-
-  function startRest() {
-    clearRestTimer();
-    phase.value = 'resting';
-    restSecondsLeft.value = restDuration;
-    restTimerId = setInterval(() => {
-      if (restSecondsLeft.value <= 1) {
-        finishRest();
-        return;
-      }
-      restSecondsLeft.value -= 1;
-    }, 1000);
   }
 
   function skipRest() {
@@ -133,25 +149,25 @@ export function useWorkoutSession(options = {}) {
       return;
     }
 
-    clearRestTimer();
+    cancelTimer();
     phase.value = 'finished';
   }
 
   function reset() {
-    clearRestTimer();
+    cancelTimer();
     routine.value = null;
     exerciseIndex.value = 0;
     setIndex.value = 0;
     phase.value = 'idle';
-    restSecondsLeft.value = 0;
     actualWeight.value = 0;
     actualReps.value = 0;
     logs.value = [];
     startedAt.value = null;
+    restDuration.value = defaultRestSeconds;
   }
 
   onUnmounted(() => {
-    clearRestTimer();
+    cancelTimer();
   });
 
   return {
@@ -160,6 +176,7 @@ export function useWorkoutSession(options = {}) {
     setIndex,
     phase,
     restSecondsLeft,
+    restFormattedTime,
     actualWeight,
     actualReps,
     logs,
@@ -174,5 +191,6 @@ export function useWorkoutSession(options = {}) {
     completeSet,
     skipRest,
     reset,
+    unlockAudio,
   };
 }

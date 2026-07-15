@@ -3,11 +3,28 @@ const clientsService = require('../clients/clients.service');
 const exercisesService = require('../exercises/exercises.service');
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+/** Default rest between sets (Feature 028). */
+const DEFAULT_REST_TIME_SECONDS = 90;
+const MAX_REST_TIME_SECONDS = 900;
 
 function createHttpError(message, code) {
   const error = new Error(message);
   error.code = code;
   return error;
+}
+
+function normalizeRestTimeSeconds(raw, nombre) {
+  if (raw == null || raw === '') {
+    return DEFAULT_REST_TIME_SECONDS;
+  }
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0 || value > MAX_REST_TIME_SECONDS) {
+    throw createHttpError(
+      `Descanso inválido en el ejercicio "${nombre}" (usa 0–${MAX_REST_TIME_SECONDS} segundos).`,
+      400,
+    );
+  }
+  return Math.round(value);
 }
 
 function normalizeOptionalExerciseId(raw, index, nombre) {
@@ -48,6 +65,8 @@ function normalizeExercises(ejercicios) {
       throw createHttpError(`Peso inválido en el ejercicio "${nombre}".`, 400);
     }
 
+    const rest_time_seconds = normalizeRestTimeSeconds(item.rest_time_seconds, nombre);
+
     return {
       nombre,
       exercise_id,
@@ -55,6 +74,7 @@ function normalizeExercises(ejercicios) {
       repeticiones,
       indicaciones,
       peso,
+      rest_time_seconds,
     };
   });
 }
@@ -89,6 +109,9 @@ function mapExerciseRow(exercise) {
     repeticiones: exercise.repeticiones,
     indicaciones: exercise.indicaciones,
     peso: Number(exercise.peso),
+    rest_time_seconds: Number.isFinite(Number(exercise.rest_time_seconds))
+      ? Number(exercise.rest_time_seconds)
+      : DEFAULT_REST_TIME_SECONDS,
   };
 }
 
@@ -108,7 +131,7 @@ async function fetchRoutinesWithExercises(alumnoId) {
   const routineIds = routines.map((r) => r.id);
   const placeholders = routineIds.map(() => '?').join(',');
   const [exercises] = await db.query(
-    `SELECT id, rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso
+    `SELECT id, rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, rest_time_seconds
      FROM ejercicios
      WHERE rutina_id IN (${placeholders})
      ORDER BY id ASC`,
@@ -338,8 +361,8 @@ async function insertExerciseLines(connection, routineId, ejercicios) {
   for (const exercise of ejercicios) {
     await connection.query(
       `INSERT INTO ejercicios
-         (rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         (rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, rest_time_seconds)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         routineId,
         exercise.nombre,
@@ -348,6 +371,7 @@ async function insertExerciseLines(connection, routineId, ejercicios) {
         exercise.repeticiones,
         exercise.indicaciones || null,
         exercise.peso,
+        exercise.rest_time_seconds,
       ],
     );
   }

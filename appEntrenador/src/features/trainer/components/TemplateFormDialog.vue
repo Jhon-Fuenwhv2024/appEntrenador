@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../../shared/api/http.js';
 import { createExercise, getExercises } from '../api/exercisesApi.js';
 
+const DEFAULT_REST_SECONDS = 90;
 const DEFAULT_TARGET_MUSCLE = 'General';
 
 const props = defineProps({
@@ -38,9 +39,22 @@ const form = reactive({
   name: '',
   notes: '',
   exercises: [
-    { nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, indicaciones: '' },
+    { nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, rest_time_seconds: DEFAULT_REST_SECONDS, indicaciones: '' },
   ],
 });
+
+const toRestSeconds = (value) => {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n) || n < 0) return DEFAULT_REST_SECONDS;
+  if (n > 900) return 900;
+  return n;
+};
+
+const setRestSeconds = (index, value) => {
+  const ex = form.exercises[index];
+  if (!ex) return;
+  ex.rest_time_seconds = toRestSeconds(value);
+};
 
 const catalogByName = computed(() => {
   const map = new Map();
@@ -89,7 +103,7 @@ const resetForm = () => {
   form.name = '';
   form.notes = '';
   form.exercises = [
-    { nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, indicaciones: '' },
+    { nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, rest_time_seconds: DEFAULT_REST_SECONDS, indicaciones: '' },
   ];
 };
 
@@ -109,9 +123,10 @@ const fillFromTemplate = (template) => {
       series: Number(ex.series) || 3,
       repeticiones: Number(ex.repeticiones) || 10,
       peso: Number(ex.peso) || 0,
+      rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
       indicaciones: ex.indicaciones || '',
     }))
-    : [{ nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, indicaciones: '' }];
+    : [{ nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, rest_time_seconds: DEFAULT_REST_SECONDS, indicaciones: '' }];
 };
 
 const loadCatalog = async () => {
@@ -151,6 +166,7 @@ const addExercise = () => {
     series: 3,
     repeticiones: 10,
     peso: 0,
+    rest_time_seconds: DEFAULT_REST_SECONDS,
     indicaciones: '',
   });
 };
@@ -205,6 +221,7 @@ const handleSubmit = () => {
       series: Number(ex.series),
       repeticiones: Number(ex.repeticiones),
       peso: Number(ex.peso),
+      rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
       indicaciones: ex.indicaciones,
     })),
   });
@@ -313,7 +330,7 @@ const handleSubmit = () => {
           </v-btn>
 
           <v-row dense>
-            <v-col cols="4">
+            <v-col cols="6" sm="3">
               <v-text-field
                 v-model.number="ex.series"
                 label="Series"
@@ -322,7 +339,7 @@ const handleSubmit = () => {
                 density="compact"
               />
             </v-col>
-            <v-col cols="4">
+            <v-col cols="6" sm="3">
               <v-text-field
                 v-model.number="ex.repeticiones"
                 label="Reps"
@@ -331,7 +348,7 @@ const handleSubmit = () => {
                 density="compact"
               />
             </v-col>
-            <v-col cols="4">
+            <v-col cols="6" sm="3">
               <v-text-field
                 v-model.number="ex.peso"
                 label="Peso"
@@ -339,6 +356,20 @@ const handleSubmit = () => {
                 min="0"
                 step="0.5"
                 density="compact"
+              />
+            </v-col>
+            <v-col cols="6" sm="3">
+              <v-text-field
+                :model-value="ex.rest_time_seconds"
+                label="Descanso (s)"
+                type="number"
+                min="0"
+                max="900"
+                step="5"
+                density="compact"
+                hint="Entre series"
+                persistent-hint
+                @update:model-value="(value) => setRestSeconds(index, value)"
               />
             </v-col>
           </v-row>

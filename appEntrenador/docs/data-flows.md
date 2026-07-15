@@ -51,12 +51,14 @@
 ## Ejecución de rutina (Workout Player)
 
 1. Cliente pulsa **Comenzar** en el dashboard → `/client/workout/:routineId`.
-2. Frontend carga `GET /me/routines` (incluye `last_log` por ejercicio si hay historial) y orquesta con `useWorkoutSession` (serie, descanso, auto-avance).
-3. El Player muestra “Último: X kg × Y” de forma informativa; **no** autocompleta los inputs con ese historial.
-4. Al terminar, `POST /me/workout-sessions` persiste peso/reps por serie.
-5. En la siguiente sesión, ese log queda disponible como `last_log` (match por `client_id` + nombre de ejercicio; los ids de línea de deep copy no afectan).
-6. Trainer consulta `GET /clients/:id/workout-sessions` y ve el historial en la ficha del alumno; `GET /clients/:id/routines` también incluye `last_log` por ejercicio.
-7. Cliente consulta `GET /me/workout-sessions` en **Mi progreso** (`/client/progress`) — Feature 021; solo lectura de sesiones propias.
+2. Frontend carga `GET /me/routines` (incluye `last_log` por ejercicio si hay historial) y muestra **Comenzar entrenamiento**.
+3. En ese tap se desbloquea el audio HTML5 (`useTimer.unlockAudio`) y arranca `useWorkoutSession` (serie, descanso, auto-avance).
+4. El descanso usa `targetEndTime` (wall clock) + `visibilitychange`: al volver del background se recalcula `targetEndTime - Date.now()`; si ya expiró, contador a 0, beep y avance de serie. No se confía en ticks que resten `1` cada segundo.
+5. El Player muestra “Último: X kg × Y” de forma informativa; **no** autocompleta los inputs con ese historial.
+6. Al terminar, `POST /me/workout-sessions` persiste peso/reps por serie.
+7. En la siguiente sesión, ese log queda disponible como `last_log` (match por `client_id` + nombre de ejercicio; los ids de línea de deep copy no afectan).
+8. Trainer consulta `GET /clients/:id/workout-sessions` y ve el historial en la ficha del alumno; `GET /clients/:id/routines` también incluye `last_log` por ejercicio.
+9. Cliente consulta `GET /me/workout-sessions` en **Mi progreso** (`/client/progress`) — Feature 021; solo lectura de sesiones propias.
 
 ## Memoria de progresión (Feature 019)
 

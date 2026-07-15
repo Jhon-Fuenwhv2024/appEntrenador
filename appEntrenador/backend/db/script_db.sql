@@ -66,6 +66,8 @@ CREATE TABLE ejercicios (
     repeticiones INT NOT NULL,
     indicaciones TEXT,
     peso DECIMAL(6,2) NOT NULL,
+    rest_time_seconds INT NOT NULL DEFAULT 90
+      COMMENT 'Descanso entre series (segundos); Feature 028',
     INDEX idx_ejercicios_exercise (exercise_id),
     FOREIGN KEY (rutina_id) REFERENCES rutinas(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -165,6 +167,8 @@ CREATE TABLE template_exercises (
     series INT NOT NULL,
     repeticiones INT NOT NULL,
     peso DECIMAL(6,2) NOT NULL,
+    rest_time_seconds INT NOT NULL DEFAULT 90
+      COMMENT 'Descanso entre series (segundos); Feature 028',
     indicaciones TEXT NULL,
     sort_order INT NOT NULL DEFAULT 0,
     INDEX idx_template_exercises_template (template_id),

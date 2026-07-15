@@ -18,10 +18,12 @@ const saving = shallowRef(false);
 const saved = shallowRef(false);
 const formError = shallowRef('');
 const sessionRoutineName = shallowRef('');
+/** Routine payload kept until the user taps "Comenzar entrenamiento" (audio unlock). */
+const pendingRoutine = shallowRef(null);
 
 const {
   phase,
-  restSecondsLeft,
+  restFormattedTime,
   actualWeight,
   actualReps,
   logs,
@@ -34,6 +36,7 @@ const {
   start,
   completeSet,
   skipRest,
+  unlockAudio,
 } = useWorkoutSession();
 
 const exerciseHint = computed(() => (
@@ -43,13 +46,6 @@ const exerciseHint = computed(() => (
 const exerciseCounter = computed(() => {
   if (!totalExercises.value) return '';
   return `Ejercicio ${exerciseIndex.value + 1} de ${totalExercises.value}`;
-});
-
-const restClock = computed(() => {
-  const s = restSecondsLeft.value;
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m}:${String(sec).padStart(2, '0')}`;
 });
 
 async function persistSession() {
@@ -79,10 +75,11 @@ async function persistSession() {
   }
 }
 
-async function loadAndStart() {
+async function loadRoutine() {
   try {
     loading.value = true;
     loadError.value = '';
+    pendingRoutine.value = null;
     const routineId = Number(route.params.routineId);
     const response = await getMyRoutines();
     const list = response.data.data ?? [];
@@ -92,13 +89,23 @@ async function loadAndStart() {
       return;
     }
     sessionRoutineName.value = routine.nombre_rutina || '';
-    start(routine);
+    pendingRoutine.value = routine;
   } catch (error) {
     console.error('Error cargando rutina para el player:', error);
     loadError.value = getApiErrorMessage(error, 'No se pudo cargar la rutina');
   } finally {
     loading.value = false;
   }
+}
+
+/**
+ * First user gesture: unlock HTMLAudioElement (autoplay policy) then start session.
+ */
+function onBeginWorkout() {
+  if (!pendingRoutine.value) return;
+  unlockAudio();
+  start(pendingRoutine.value);
+  pendingRoutine.value = null;
 }
 
 function onCompleteSet() {
@@ -133,7 +140,7 @@ onMounted(() => {
     router.push('/');
     return;
   }
-  loadAndStart();
+  loadRoutine();
 });
 </script>
 
@@ -157,6 +164,21 @@ onMounted(() => {
         <v-btn variant="text" @click="goBack">Volver</v-btn>
       </template>
     </v-alert>
+
+    <main
+      v-else-if="phase === 'idle' && pendingRoutine"
+      class="player-main player-main--ready"
+    >
+      <p class="player-step">Listo</p>
+      <h1 class="player-title">{{ sessionRoutineName || 'Tu rutina' }}</h1>
+      <p class="player-rest-copy mb-4">
+        Cuando pulses comenzar, el temporizador de descanso podrá avisarte con sonido
+        aunque minimices el navegador.
+      </p>
+      <button type="button" class="player-cta" @click="onBeginWorkout">
+        Comenzar entrenamiento
+      </button>
+    </main>
 
     <main v-else-if="phase === 'working' && currentExercise" class="player-main">
       <div class="player-scroll">
@@ -221,13 +243,13 @@ onMounted(() => {
 
     <main v-else-if="phase === 'resting'" class="player-main player-main--rest">
       <p class="player-step">Descanso</p>
-      <h1 class="player-rest-clock">{{ restClock }}</h1>
+      <h1 class="player-rest-clock" aria-live="polite">{{ restFormattedTime }}</h1>
       <p class="player-rest-copy">
         Respira. La siguiente serie empieza en breve
         <span class="text-muted">({{ restDuration }}s)</span>.
       </p>
       <button type="button" class="player-cta player-cta--ghost" @click="skipRest">
-        Saltar descanso
+        Omitir descanso
       </button>
     </main>
 
@@ -344,7 +366,8 @@ onMounted(() => {
 }
 
 .player-main--rest,
-.player-main--done {
+.player-main--done,
+.player-main--ready {
   align-items: center;
   justify-content: center;
   text-align: center;

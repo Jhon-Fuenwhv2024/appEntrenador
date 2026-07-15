@@ -13,6 +13,7 @@ Trainfit usa una migración modular gradual. La estructura actual mantiene compa
 - `src/features/auth/`: vistas de login/registro y llamadas de auth.
 - `src/features/trainer/`: portal del entrenador, clientes, invitaciones (`InvitesManager` en Alumnos + `InviteClientAction` en Inicio), rutinas (`ClientRoutinesView`), lista de alumnos (`ClientsListView`), biblioteca de plantillas (`LibraryView` en `/trainer/library`), placeholder `TrainerSettingsView` (024). Inicio (`TrainerDashboardView`) es hub de métricas + invitación + CTA a Alumnos.
 - `src/features/client/`: portal del cliente — rutinas (`ClientDashboardView`), progreso (`ClientProgressView`), perfil (`ClientProfileView`), player (`WorkoutPlayerView`).
+  - Descanso resiliente (Feature 028): `composables/useTimer.js` (timestamp + Page Visibility + beep `assets/sounds/rest-complete.wav`) integrado en `useWorkoutSession`.
 - `src/shared/components/WorkoutSessionHistoryList.vue`: historial expandible de sesiones (cliente + ficha trainer).
 - `src/components/Dashboard.vue`: composición por rol; enruta a trainer o client sin contener lógica de feature.
 

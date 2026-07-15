@@ -57,6 +57,7 @@ erDiagram
     int repeticiones
     text indicaciones
     decimal peso
+    int rest_time_seconds "default 90"
   }
 
   exercises {
@@ -111,6 +112,7 @@ erDiagram
     int series
     int repeticiones
     decimal peso
+    int rest_time_seconds "default 90"
     text indicaciones
     int sort_order
   }
@@ -136,9 +138,11 @@ Rutina diaria asignada a un alumno (`alumno_id` → `usuarios`).
 
 ### `ejercicios` (líneas de rutina)
 
-Detalle de una rutina concreta: nombre (denormalizado), series, repeticiones, peso e indicaciones. **No** es el catálogo del sistema. El peso aquí es **prescripción**, no historial de ejecución.
+Detalle de una rutina concreta: nombre (denormalizado), series, repeticiones, peso, `rest_time_seconds` (Feature 028; default 90) e indicaciones. **No** es el catálogo del sistema. El peso aquí es **prescripción**, no historial de ejecución.
 
 **Feature 022:** `exercise_id INT NULL` → FK a `exercises(id)` con `ON DELETE SET NULL`. Si el catálogo borra un ejercicio, la línea de rutina permanece con `nombre` intacto y `exercise_id = NULL`.
+
+**Feature 028:** `rest_time_seconds INT NOT NULL DEFAULT 90` — descanso entre series (0–900). Migración: [`backend/db/migrations/012_rest_time_seconds.sql`](../backend/db/migrations/012_rest_time_seconds.sql). Misma columna en `template_exercises` (se copia al asignar).
 
 ### `exercises` (catálogo / diccionario)
 
