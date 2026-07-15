@@ -37,6 +37,25 @@ async function getByUserId(req, res) {
   }
 }
 
+async function authorizeByUserId(req, res, next) {
+  try {
+    const userId = Number(req.params.userId);
+    if (!Number.isInteger(userId) || userId < 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId inválido.',
+        message: 'userId inválido.',
+        code: 400,
+      });
+    }
+
+    await profileService.assertCanAccessProfile(req.user, userId);
+    return next();
+  } catch (error) {
+    return sendError(res, error, 'Error autorizando edición de perfil:');
+  }
+}
+
 async function upsertByUserId(req, res) {
   try {
     const userId = Number(req.params.userId);
@@ -67,6 +86,7 @@ async function upsertByUserId(req, res) {
 }
 
 module.exports = {
+  authorizeByUserId,
   getByUserId,
   upsertByUserId,
 };
