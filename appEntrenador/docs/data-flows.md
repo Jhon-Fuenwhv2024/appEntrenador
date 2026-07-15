@@ -64,3 +64,11 @@
 2. No se usa `ejercicios.id` / `exercise_id` de la línea actual: al reasignar plantillas (018) esos ids cambian y el historial se perdería.
 3. Payload: `ejercicios[].last_log = { weight, reps, date } | null`.
 4. UI: hint en Workout Player; sin prefill de inputs.
+
+## Composición corporal (Feature 026)
+
+1. Trainer abre la ficha del alumno (`/trainer/clients/:id`) → panel **Composición corporal**.
+2. Al abrir el modal de nueva medición, el frontend toma el último log (si existe) y pre-llena solo `height_cm`; peso y circunferencias quedan vacíos.
+3. `POST /clients/:clientId/body-composition` (o `PUT .../:logId`): el service calcula `bmi = weight_kg / (height_cm/100)²` y persiste; ignora cualquier `bmi` del body.
+4. Ownership: trainer solo alumnos con `usuarios.trainer_id = req.user.id`; `recorded_by` = trainer autenticado.
+5. Cliente en **Mi progreso** (`/client/progress`) llama `GET /me/body-composition` — solo lectura, sin UI de escritura.

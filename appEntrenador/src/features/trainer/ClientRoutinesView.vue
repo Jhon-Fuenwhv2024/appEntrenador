@@ -21,6 +21,7 @@ import {
 } from './api/routinesApi.js';
 import { createTemplate } from './api/templatesApi.js';
 import { getClientWorkoutSessions } from './api/workoutSessionsApi.js';
+import BodyCompositionPanel from './components/BodyCompositionPanel.vue';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const DEFAULT_TARGET_MUSCLE = 'General';
@@ -56,8 +57,11 @@ const snackbar = reactive({
 });
 
 const pageTitle = computed(() => (
-  client.value ? `Rutinas de ${client.value.nombre}` : 'Rutinas del alumno'
+  client.value ? client.value.nombre : 'Alumno'
 ));
+
+const routinesCount = computed(() => routines.value.length);
+const sessionsCount = computed(() => workoutSessions.value.length);
 
 const catalogByName = computed(() => {
   const map = new Map();
@@ -357,21 +361,26 @@ onMounted(() => {
 <template>
   <AppShell role="trainer" active="clients">
     <main class="main-content flex-grow-1 overflow-y-auto">
-      <header class="dashboard-header">
+      <header class="dashboard-header ficha-header">
         <div class="header-left">
           <v-btn
             variant="text"
             color="#8B929E"
-            class="mb-2 px-0"
+            class="ficha-back px-0"
+            size="small"
             prepend-icon="mdi-arrow-left"
             @click="router.push('/trainer/clients')"
           >
-            Volver a alumnos
+            Alumnos
           </v-btn>
           <h1 class="header-title">{{ pageTitle }}</h1>
-          <p v-if="client" class="header-greeting">
-            @{{ client.username }}
-          </p>
+          <div v-if="client" class="ficha-meta">
+            <span class="ficha-meta__user">@{{ client.username }}</span>
+            <span class="ficha-meta__dot" aria-hidden="true">·</span>
+            <span><strong>{{ routinesCount }}</strong> rutinas</span>
+            <span class="ficha-meta__dot" aria-hidden="true">·</span>
+            <span><strong>{{ sessionsCount }}</strong> sesiones</span>
+          </div>
         </div>
         <div class="header-right">
           <button
@@ -386,211 +395,304 @@ onMounted(() => {
         </div>
       </header>
 
-      <div class="content-panel pt-0">
-        <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-6" />
+      <div class="ficha-body">
+        <v-progress-linear
+          v-if="loading"
+          indeterminate
+          color="primary"
+          class="mb-3"
+          height="2"
+        />
 
         <template v-else>
-          <v-row class="mb-2">
-            <v-col cols="12">
-              <ProfileFormCard
-                title="Perfil"
-                :profile="clientProfile"
-                :saving="savingProfile"
-                @save="onSaveProfile"
-              />
-            </v-col>
-          </v-row>
+          <ProfileFormCard
+            title="Perfil"
+            :profile="clientProfile"
+            :saving="savingProfile"
+            @save="onSaveProfile"
+          />
 
-          <v-row>
-            <v-col cols="12" md="5">
-              <div class="functional-card">
-                <h3 class="card-section-title mb-1">
-                  {{ editingId ? 'Editar rutina' : 'Nueva rutina' }}
-                </h3>
-                <v-btn
-                  variant="text"
-                  color="primary"
-                  size="small"
-                  class="mb-4 px-0"
-                  prepend-icon="mdi-dumbbell"
-                  @click="router.push('/trainer/library/exercises')"
-                >
-                  Abrir catálogo
-                </v-btn>
+          <div class="ficha-grid">
+            <!-- Columna principal: rutinas -->
+            <div class="ficha-col">
+              <section class="ficha-panel routine-editor">
+                <div class="ficha-panel__head">
+                  <div>
+                    <h2 class="ficha-panel__title">
+                      {{ editingId ? 'Editar rutina' : 'Nueva rutina' }}
+                    </h2>
+                    <p class="ficha-panel__hint">Asigna día, nombre y la carga de cada ejercicio</p>
+                  </div>
+                  <v-btn
+                    variant="text"
+                    color="primary"
+                    size="x-small"
+                    class="px-1"
+                    prepend-icon="mdi-dumbbell"
+                    @click="router.push('/trainer/library/exercises')"
+                  >
+                    Catálogo
+                  </v-btn>
+                </div>
 
-                <v-select
-                  v-model="form.dia_semana"
-                  :items="DAYS"
-                  label="Día de la semana"
-                  density="compact"
-                  class="mb-3"
-                  color="primary"
-                  bg-color="surface"
-                  :menu-props="{ contentClass: 'tf-overlay-menu', maxHeight: 280 }"
-                  :list-props="{ bgColor: 'surface', color: undefined }"
-                />
-
-                <v-text-field
-                  v-model="form.nombre_rutina"
-                  label="Nombre de la rutina"
-                  density="compact"
-                  class="mb-4"
-                />
+                <div class="routine-meta-row">
+                  <label class="field-block field-block--day">
+                    <span class="field-cap">Día</span>
+                    <v-select
+                      v-model="form.dia_semana"
+                      :items="DAYS"
+                      density="compact"
+                      variant="outlined"
+                      hide-details
+                      color="primary"
+                      :menu-props="{ contentClass: 'tf-overlay-menu', maxHeight: 280 }"
+                      :list-props="{ bgColor: 'surface', color: undefined }"
+                    />
+                  </label>
+                  <label class="field-block field-block--name">
+                    <span class="field-cap">Nombre de la rutina</span>
+                    <v-text-field
+                      v-model="form.nombre_rutina"
+                      placeholder="Ej. Empuje, Piernas…"
+                      density="compact"
+                      variant="outlined"
+                      hide-details
+                      color="primary"
+                    />
+                  </label>
+                </div>
 
                 <div
                   v-for="(ex, index) in form.ejercicios"
                   :key="index"
-                  class="exercise-form-block mb-4"
+                  class="exercise-form-block"
                 >
-                  <div class="d-flex justify-space-between align-center mb-2">
-                    <span class="text-caption text-medium-emphasis">Ejercicio {{ index + 1 }}</span>
+                  <div class="exercise-form-block__head">
+                    <span class="exercise-form-label">Ejercicio {{ index + 1 }}</span>
                     <v-btn
                       v-if="form.ejercicios.length > 1"
                       icon="mdi-close"
                       size="x-small"
                       variant="text"
+                      aria-label="Quitar ejercicio"
                       @click="removeExerciseRow(index)"
                     />
                   </div>
-                  <v-autocomplete
-                    :model-value="ex.nombre"
-                    :items="catalogExercises"
-                    item-title="name"
-                    item-value="name"
-                    label="Nombre (catálogo o texto libre)"
-                    density="compact"
-                    class="mb-2"
-                    clearable
-                    hide-no-data
-                    auto-select-first
-                    free-solo
-                    :menu-props="{ contentClass: 'tf-overlay-menu', maxHeight: 280 }"
-                    :list-props="{ bgColor: 'surface', color: undefined }"
-                    @update:model-value="(value) => onExerciseNameUpdate(index, value)"
-                  >
-                    <template #item="{ props: itemProps, item }">
-                      <v-list-item
-                        v-bind="itemProps"
-                        :subtitle="item.raw?.target_muscle"
-                      />
-                    </template>
-                  </v-autocomplete>
+
+                  <label class="field-block">
+                    <span class="field-cap">Ejercicio</span>
+                    <v-autocomplete
+                      :model-value="ex.nombre"
+                      :items="catalogExercises"
+                      item-title="name"
+                      item-value="name"
+                      placeholder="Catálogo o texto libre"
+                      density="compact"
+                      variant="outlined"
+                      hide-details="auto"
+                      clearable
+                      hide-no-data
+                      auto-select-first
+                      free-solo
+                      color="primary"
+                      :menu-props="{ contentClass: 'tf-overlay-menu', maxHeight: 280 }"
+                      :list-props="{ bgColor: 'surface', color: undefined }"
+                      @update:model-value="(value) => onExerciseNameUpdate(index, value)"
+                    >
+                      <template #item="{ props: itemProps, item }">
+                        <v-list-item
+                          v-bind="itemProps"
+                          :subtitle="item.raw?.target_muscle"
+                        />
+                      </template>
+                    </v-autocomplete>
+                  </label>
+
                   <v-btn
                     v-if="ex.nombre?.trim() && !isNameInCatalog(ex.nombre)"
-                    size="small"
+                    size="x-small"
                     variant="text"
                     color="primary"
-                    class="mb-2 px-0"
+                    class="exercise-form-block__catalog-btn"
                     :loading="savingCatalogIndex === index"
                     @click="saveExerciseToCatalog(index)"
                   >
                     Guardar en catálogo
                   </v-btn>
-                  <v-row dense>
-                    <v-col cols="12" sm="4">
-                      <v-text-field v-model.number="ex.series" type="number" label="Series" density="compact" min="1" />
-                    </v-col>
-                    <v-col cols="12" sm="4">
-                      <v-text-field v-model.number="ex.repeticiones" type="number" label="Reps" density="compact" min="1" />
-                    </v-col>
-                    <v-col cols="12" sm="4">
-                      <v-text-field v-model.number="ex.peso" type="number" label="Peso (kg)" density="compact" min="0" step="0.5" />
-                    </v-col>
-                  </v-row>
-                  <v-textarea
-                    v-model="ex.indicaciones"
-                    label="Indicaciones"
-                    density="compact"
-                    rows="2"
-                    auto-grow
-                  />
-                </div>
 
-                <v-btn variant="outlined" class="mb-4 tf-btn-muted" block @click="addExerciseRow">
-                  Añadir ejercicio
-                </v-btn>
-
-                <div class="d-flex ga-2 flex-wrap routine-form-actions">
-                  <v-btn
-                    color="primary"
-                    class="font-weight-bold flex-grow-1"
-                    :loading="saving"
-                    @click="handleSave"
-                  >
-                    {{ editingId ? 'Guardar cambios' : 'Crear rutina' }}
-                  </v-btn>
-                  <v-btn v-if="editingId" variant="text" @click="resetForm">Cancelar</v-btn>
-                </div>
-              </div>
-            </v-col>
-
-            <v-col cols="12" md="7">
-              <div v-if="routines.length === 0" class="functional-card">
-                <p class="text-medium-emphasis mb-0">
-                  Este alumno aún no tiene rutinas. Crea la primera a la izquierda.
-                </p>
-              </div>
-
-              <div
-                v-for="routine in routines"
-                :key="routine.id"
-                class="functional-card mb-4"
-              >
-                <div class="d-flex justify-space-between align-start mb-4 flex-wrap ga-2">
-                  <div class="min-w-0">
-                    <div class="text-caption text-cyan mb-1">{{ routine.dia_semana }}</div>
-                    <h3 class="card-section-title mb-0">{{ routine.nombre_rutina }}</h3>
+                  <div class="exercise-metrics" role="group" aria-label="Carga">
+                    <label class="metric">
+                      <span class="field-cap">Series</span>
+                      <v-text-field
+                        v-model.number="ex.series"
+                        type="number"
+                        density="compact"
+                        variant="outlined"
+                        hide-details
+                        min="1"
+                        color="primary"
+                      />
+                    </label>
+                    <label class="metric">
+                      <span class="field-cap">Reps</span>
+                      <v-text-field
+                        v-model.number="ex.repeticiones"
+                        type="number"
+                        density="compact"
+                        variant="outlined"
+                        hide-details
+                        min="1"
+                        color="primary"
+                      />
+                    </label>
+                    <label class="metric metric--peso">
+                      <span class="field-cap">Kg</span>
+                      <v-text-field
+                        v-model.number="ex.peso"
+                        type="number"
+                        density="compact"
+                        variant="outlined"
+                        hide-details
+                        min="0"
+                        step="0.5"
+                        color="primary"
+                      />
+                    </label>
                   </div>
-                  <div class="d-flex ga-1 flex-shrink-0 flex-wrap">
-                    <v-btn
-                      size="small"
-                      variant="text"
+
+                  <label class="field-block">
+                    <span class="field-cap">Indicaciones <em>(opcional)</em></span>
+                    <v-textarea
+                      v-model="ex.indicaciones"
+                      placeholder="Notas técnicas breves"
+                      density="compact"
+                      variant="outlined"
+                      rows="1"
+                      auto-grow
+                      hide-details
                       color="primary"
-                      :loading="savingTemplateId === routine.id"
-                      @click="handleSaveAsTemplate(routine)"
+                      class="exercise-notes"
+                    />
+                  </label>
+                </div>
+
+                <div class="ficha-form-actions">
+                  <v-btn
+                    variant="outlined"
+                    size="small"
+                    class="tf-btn-muted"
+                    @click="addExerciseRow"
+                  >
+                    + Ejercicio
+                  </v-btn>
+                  <div class="ficha-form-actions__primary">
+                    <v-btn
+                      v-if="editingId"
+                      variant="text"
+                      size="small"
+                      @click="resetForm"
                     >
-                      Guardar en Biblioteca
+                      Cancelar
                     </v-btn>
-                    <v-btn size="small" variant="text" color="primary" @click="startEdit(routine)">
-                      Editar
-                    </v-btn>
-                    <v-btn size="small" variant="text" color="error" @click="handleDelete(routine.id)">
-                      Eliminar
+                    <v-btn
+                      color="primary"
+                      class="font-weight-bold"
+                      size="small"
+                      :loading="saving"
+                      @click="handleSave"
+                    >
+                      {{ editingId ? 'Guardar' : 'Crear rutina' }}
                     </v-btn>
                   </div>
                 </div>
+              </section>
 
-                <div class="exercise-list">
-                  <div
-                    v-for="(ejercicio, i) in routine.ejercicios"
-                    :key="ejercicio.id || i"
-                    class="exercise-item"
-                  >
-                    <div class="exercise-num">{{ i + 1 }}</div>
-                    <div class="exercise-details">
-                      <div class="exercise-name">{{ ejercicio.nombre }}</div>
-                      <div class="exercise-meta">
-                        {{ ejercicio.series }} series · {{ ejercicio.repeticiones }} reps · {{ ejercicio.peso }} kg
-                      </div>
-                      <div v-if="ejercicio.indicaciones" class="text-caption mt-1">
-                        {{ ejercicio.indicaciones }}
+              <section class="ficha-panel">
+                <div class="ficha-panel__head">
+                  <h2 class="ficha-panel__title">Rutinas asignadas</h2>
+                  <span class="ficha-panel__count">{{ routinesCount }}</span>
+                </div>
+
+                <p v-if="routines.length === 0" class="ficha-empty">
+                  Sin rutinas aún. Crea la primera arriba.
+                </p>
+
+                <div
+                  v-for="routine in routines"
+                  :key="routine.id"
+                  class="routine-card"
+                >
+                  <div class="routine-card__head">
+                    <div class="min-w-0">
+                      <span class="routine-card__day">{{ routine.dia_semana }}</span>
+                      <h3 class="routine-card__name">{{ routine.nombre_rutina }}</h3>
+                    </div>
+                    <div class="routine-card__actions">
+                      <v-btn
+                        icon="mdi-bookshelf"
+                        size="x-small"
+                        variant="text"
+                        color="primary"
+                        :loading="savingTemplateId === routine.id"
+                        title="Guardar en Biblioteca"
+                        @click="handleSaveAsTemplate(routine)"
+                      />
+                      <v-btn
+                        icon="mdi-pencil"
+                        size="x-small"
+                        variant="text"
+                        color="primary"
+                        title="Editar"
+                        @click="startEdit(routine)"
+                      />
+                      <v-btn
+                        icon="mdi-delete-outline"
+                        size="x-small"
+                        variant="text"
+                        color="error"
+                        title="Eliminar"
+                        @click="handleDelete(routine.id)"
+                      />
+                    </div>
+                  </div>
+                  <div class="exercise-list">
+                    <div
+                      v-for="(ejercicio, i) in routine.ejercicios"
+                      :key="ejercicio.id || i"
+                      class="exercise-item"
+                    >
+                      <div class="exercise-num">{{ i + 1 }}</div>
+                      <div class="exercise-details min-w-0">
+                        <div class="exercise-name">{{ ejercicio.nombre }}</div>
+                        <div class="exercise-meta">
+                          {{ ejercicio.series }}×{{ ejercicio.repeticiones }} · {{ ejercicio.peso }} kg
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </v-col>
-          </v-row>
+              </section>
+            </div>
 
-          <div class="functional-card mt-6">
-            <h3 class="card-section-title mb-2">Historial de entrenamientos</h3>
-            <p class="text-caption text-medium-emphasis mb-4">
-              Sesiones del alumno con peso y reps reales. Toca para ver el detalle por ejercicio.
-            </p>
-            <WorkoutSessionHistoryList
-              :sessions="workoutSessions"
-              empty-text="Aún no hay entrenamientos registrados."
-            />
+            <!-- Columna lateral: composición + sesiones -->
+            <aside class="ficha-col ficha-col--side">
+              <BodyCompositionPanel
+                :client-id="clientId"
+                @notify="({ text, color }) => showNotification(text, color)"
+              />
+
+              <section class="ficha-panel">
+                <div class="ficha-panel__head">
+                  <h2 class="ficha-panel__title">Entrenamientos</h2>
+                  <span class="ficha-panel__hint">Toca para detalle</span>
+                </div>
+                <WorkoutSessionHistoryList
+                  :sessions="workoutSessions"
+                  compact
+                  empty-text="Sin sesiones registradas."
+                />
+              </section>
+            </aside>
           </div>
         </template>
       </div>
@@ -606,74 +708,327 @@ onMounted(() => {
 <style src="../../assets/clientDashboard.css" scoped></style>
 
 <style scoped>
-.functional-card {
+.ficha-header .header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.ficha-back {
+  align-self: flex-start;
+  min-height: 28px !important;
+}
+
+.ficha-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: #8b929e;
+}
+
+.ficha-meta strong {
+  color: #00e5ff;
+  font-weight: 700;
+}
+
+.ficha-meta__user {
+  color: #c5cad3;
+}
+
+.ficha-meta__dot {
+  opacity: 0.45;
+}
+
+.ficha-body {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.5rem 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+@media (min-width: 960px) {
+  .ficha-body {
+    padding: 0.35rem 1.25rem 1.5rem;
+  }
+}
+
+.ficha-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+  align-items: start;
+}
+
+@media (min-width: 960px) {
+  .ficha-grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr);
+    gap: 1rem;
+  }
+}
+
+.ficha-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.ficha-panel {
+  padding: 0.8rem 0.85rem;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 16px;
-  padding: 1.5rem;
+}
+
+.ficha-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  margin-bottom: 0.6rem;
+}
+
+.ficha-panel__title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.ficha-panel__count {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #c5cad3;
+}
+
+.ficha-panel__hint,
+.ficha-empty {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #8b929e;
 }
 
 .exercise-form-block {
-  padding: 0.75rem;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem 0.55rem;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 0.45rem;
+}
+
+.exercise-form-block__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 22px;
+}
+
+.exercise-form-label {
+  font-size: 0.68rem;
+  color: #00e5ff;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.exercise-form-block__catalog-btn {
+  align-self: flex-start;
+  min-height: 22px !important;
+  padding-inline: 0 !important;
+}
+
+.field-cap {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #8b929e;
+  margin-bottom: 0.2rem;
+  line-height: 1.2;
+}
+
+.field-cap em {
+  font-style: normal;
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+.field-block {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.routine-meta-row {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr);
+  gap: 0.45rem;
+  margin-bottom: 0.5rem;
+  align-items: end;
+}
+
+@media (max-width: 520px) {
+  .routine-meta-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.exercise-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.4rem;
+}
+
+.metric {
+  display: block;
+  width: 4.5rem;
+  flex: 0 0 4.5rem;
+}
+
+.metric--peso {
+  width: 5rem;
+  flex-basis: 5rem;
+}
+
+.exercise-notes {
+  margin-top: 0;
+}
+
+.routine-editor :deep(.v-field) {
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.routine-editor :deep(.v-input) {
+  margin-bottom: 0;
+}
+
+.routine-editor :deep(.metric .v-field__input) {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  padding-inline: 0.35rem !important;
+  min-width: 0;
+}
+
+.routine-editor :deep(.metric input) {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.ficha-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.55rem;
+}
+
+.ficha-form-actions__primary {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.routine-card {
+  padding: 0.6rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.16);
+  margin-bottom: 0.45rem;
+}
+
+.routine-card:last-child {
+  margin-bottom: 0;
+}
+
+.routine-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin-bottom: 0.45rem;
+}
+
+.routine-card__day {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #00e5ff;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.routine-card__name {
+  margin: 0.1rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.routine-card__actions {
+  display: flex;
+  flex-shrink: 0;
 }
 
 .exercise-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.35rem;
 }
 
 .exercise-item {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .exercise-num {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
   background: rgba(0, 229, 255, 0.12);
   color: #00e5ff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 700;
   flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .exercise-name {
   font-weight: 600;
+  font-size: 0.8rem;
+  line-height: 1.25;
 }
 
 .exercise-meta {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: #8b929e;
-}
-
-.card-section-title {
-  font-size: 1.1rem;
-  font-weight: 700;
 }
 
 .min-w-0 {
   min-width: 0;
 }
 
-@media (max-width: 600px) {
-  .functional-card {
-    padding: 1rem;
-  }
-
-  .routine-form-actions {
-    flex-direction: column;
-  }
-
-  .routine-form-actions .v-btn {
-    width: 100%;
-  }
+/* BodyCompositionPanel ya trae margen; en columna lateral lo anulamos */
+.ficha-col--side :deep(.bcp) {
+  margin-top: 0;
 }
 </style>

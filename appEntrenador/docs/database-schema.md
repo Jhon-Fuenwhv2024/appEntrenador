@@ -19,6 +19,8 @@ erDiagram
   workout_sessions ||--o{ workout_set_logs : "contiene"
   usuarios ||--o{ routine_templates : "trainer_id"
   routine_templates ||--o{ template_exercises : "contiene"
+  usuarios ||--o{ body_composition_logs : "client_id"
+  usuarios ||--o{ body_composition_logs : "recorded_by"
 
   usuarios {
     int id PK
@@ -187,6 +189,18 @@ Migración plantillas: [`backend/db/migrations/005_routine_templates.sql`](../ba
 ```bash
 cd backend
 node scripts/createRoutineTemplatesTables.js
+```
+
+### `body_composition_logs` (Feature 026)
+
+Historial antropométrico N:1 con el cliente (`client_id` → `usuarios`). `recorded_by` → trainer que registró. `bmi` se calcula en el backend (`weight_kg / (height_cm/100)²`); no se confía en el valor del cliente. Circunferencias y `% grasa` opcionales; todas `DECIMAL(5,2)`.
+
+Migración: [`backend/db/migrations/010_body_composition.sql`](../backend/db/migrations/010_body_composition.sql).
+
+```bash
+cd backend
+npm run db:create-body-composition
+# o: node scripts/createBodyCompositionTable.js
 ```
 
 ## Seed del catálogo

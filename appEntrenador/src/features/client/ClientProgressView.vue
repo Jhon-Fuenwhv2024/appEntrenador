@@ -1,15 +1,15 @@
 <script setup>
 /**
- * Client "Mi progreso" — own workout session history (Feature 021).
+ * Client "Mi progreso" — layout ancho: entrenamientos + composición corporal.
  */
 import { computed, onMounted, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
-import { APP_NAME } from '../../config/app.js';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
 import WorkoutSessionHistoryList from '../../shared/components/WorkoutSessionHistoryList.vue';
 import { getMyWorkoutSessions } from './api/workoutSessionsApi.js';
+import BodyCompositionReadOnly from './components/BodyCompositionReadOnly.vue';
 
 const router = useRouter();
 
@@ -54,12 +54,18 @@ onMounted(() => {
 <template>
   <AppShell role="client" active="progress">
     <main class="main-content flex-grow-1 overflow-y-auto">
-      <header class="dashboard-header">
+      <header class="dashboard-header progress-header">
         <div class="header-left">
           <h1 class="header-title">Mi progreso</h1>
-          <p class="header-greeting text-medium-emphasis">
-            Historial de entrenamientos en {{ APP_NAME }}
-          </p>
+          <div class="progress-inline-stats" aria-label="Resumen">
+            <span class="progress-inline-stats__item">
+              <strong>{{ loading ? '—' : sessions.length }}</strong> sesiones
+            </span>
+            <span class="progress-inline-stats__dot" aria-hidden="true">·</span>
+            <span class="progress-inline-stats__item">
+              <strong>{{ loading ? '—' : completedCount }}</strong> completadas
+            </span>
+          </div>
         </div>
         <div class="header-right">
           <button
@@ -74,41 +80,47 @@ onMounted(() => {
         </div>
       </header>
 
-      <div class="progress-body pa-4 pa-md-6">
-        <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
+      <div class="progress-body">
+        <v-progress-linear
+          v-if="loading"
+          indeterminate
+          color="primary"
+          class="mb-3"
+          height="2"
+        />
 
-        <v-alert v-else-if="loadError" type="error" variant="tonal" class="mb-4">
+        <v-alert
+          v-else-if="loadError"
+          type="error"
+          variant="tonal"
+          density="compact"
+          class="mb-3"
+        >
           {{ loadError }}
           <template #append>
-            <v-btn variant="text" size="small" @click="loadSessions">Reintentar</v-btn>
+            <v-btn variant="text" size="x-small" @click="loadSessions">Reintentar</v-btn>
           </template>
         </v-alert>
 
-        <template v-else>
-          <div class="progress-summary mb-4">
-            <div class="progress-summary__stat">
-              <span class="progress-summary__value">{{ sessions.length }}</span>
-              <span class="progress-summary__label">
-                {{ sessions.length === 1 ? 'sesión' : 'sesiones' }}
-              </span>
+        <div class="progress-grid">
+          <section class="progress-panel">
+            <div class="progress-panel__head">
+              <h2 class="progress-panel__title">Entrenamientos</h2>
+              <span class="progress-panel__hint">Toca para ver series</span>
             </div>
-            <div class="progress-summary__stat">
-              <span class="progress-summary__value">{{ completedCount }}</span>
-              <span class="progress-summary__label">completadas</span>
-            </div>
-          </div>
-
-          <div class="functional-card">
-            <h2 class="card-section-title mb-2">Historial</h2>
-            <p class="text-caption text-medium-emphasis mb-4">
-              Toca una sesión para ver peso y repeticiones por serie.
-            </p>
             <WorkoutSessionHistoryList
+              v-if="!loading && !loadError"
               :sessions="sessions"
-              empty-text="Aún no has registrado entrenamientos. Completa una rutina desde Inicio."
+              compact
+              empty-text="Sin entrenamientos aún. Completa una rutina desde Inicio."
             />
-          </div>
-        </template>
+            <p v-else-if="loading" class="progress-panel__placeholder">Cargando…</p>
+          </section>
+
+          <section class="progress-panel progress-panel--body">
+            <BodyCompositionReadOnly embedded />
+          </section>
+        </div>
       </div>
     </main>
   </AppShell>
@@ -117,56 +129,92 @@ onMounted(() => {
 <style src="../../assets/clientDashboard.css" scoped></style>
 
 <style scoped>
-.progress-body {
-  max-width: 640px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-.progress-summary {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.progress-summary__stat {
-  flex: 1;
+.progress-header .header-left {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.9rem 1rem;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 0.25rem;
+  min-width: 0;
 }
 
-.progress-summary__value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #00e5ff;
-  line-height: 1.1;
-}
-
-.progress-summary__label {
-  font-size: 0.75rem;
+.progress-inline-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
   color: #8b929e;
-  text-transform: lowercase;
 }
 
-.functional-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 16px;
-  padding: 1.5rem;
-}
-
-.card-section-title {
-  font-size: 1.1rem;
+.progress-inline-stats strong {
+  color: #00e5ff;
   font-weight: 700;
 }
 
-@media (max-width: 600px) {
-  .functional-card {
-    padding: 1rem;
+.progress-inline-stats__dot {
+  opacity: 0.5;
+}
+
+.progress-body {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0.75rem 1rem 1.25rem;
+}
+
+@media (min-width: 960px) {
+  .progress-body {
+    padding: 0.5rem 1.5rem 1.5rem;
   }
+}
+
+.progress-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .progress-grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 1rem;
+  }
+}
+
+.progress-panel {
+  padding: 0.85rem 0.9rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-height: 0;
+}
+
+.progress-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.progress-panel__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.progress-panel__hint,
+.progress-panel__placeholder {
+  margin: 0;
+  font-size: 0.68rem;
+  color: #8b929e;
+}
+
+.progress-panel--body {
+  padding: 0;
+  background: transparent;
+  border: 0;
 }
 </style>

@@ -460,3 +460,36 @@ Lista las sesiones propias del cliente autenticado (máx. 50, más recientes pri
 ### `GET /clients/:clientId/workout-sessions` (trainer)
 
 Historial del alumno propio (ownership). Incluye `sets[]` anidados.
+
+## Composición corporal (Feature 026)
+
+Historial antropométrico fechado. El **IMC se calcula solo en el service** (`weight_kg / (height_cm/100)²`, 2 decimales). El body **nunca** debe incluir `bmi` como fuente de verdad (se ignora si llega).
+
+### `GET /me/body-composition` (client)
+
+Lista las mediciones propias del cliente autenticado, ordenadas por `measured_at DESC`. Solo lectura. Ownership: `client_id = req.user.id`.
+
+### `GET /clients/:clientId/body-composition` (trainer)
+
+Lista mediciones del alumno propio (ownership vía `trainer_id`).
+
+### `POST /clients/:clientId/body-composition` (trainer)
+
+Crea una medición. Campos obligatorios: `weight_kg`, `height_cm`. Opcionales: `measured_at` (default hoy), `body_fat_pct`, circunferencias (`chest_cm`, `waist_cm`, `triceps_cm`, `biceps_cm`, `glutes_cm`, `quads_cm`, `calves_cm`, `back_cm`), `notes`.
+
+```json
+{
+  "measured_at": "2026-07-14",
+  "weight_kg": 78.5,
+  "height_cm": 175,
+  "body_fat_pct": 18.2,
+  "waist_cm": 82,
+  "notes": "Post-corte"
+}
+```
+
+`recorded_by` = `req.user.id`. Respuesta `201` con el registro (incluye `bmi` calculado).
+
+### `PUT /clients/:clientId/body-composition/:logId` (trainer)
+
+Actualiza una medición del alumno propio. Misma forma de body que el POST; el IMC se recalcula.

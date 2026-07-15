@@ -14,14 +14,26 @@ defineProps({
     type: String,
     default: 'Aún no hay entrenamientos registrados.',
   },
+  compact: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const expandedId = shallowRef(null);
 
-function formatSessionDate(value) {
+function formatSessionDate(value, compact) {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
+  if (compact) {
+    return date.toLocaleString('es-ES', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
   return date.toLocaleString('es-ES', {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -76,7 +88,7 @@ function toggle(sessionId) {
 </script>
 
 <template>
-  <div class="workout-history">
+  <div class="workout-history" :class="{ 'workout-history--compact': compact }">
     <div v-if="sessions.length === 0" class="workout-history__empty text-medium-emphasis">
       {{ emptyText }}
     </div>
@@ -92,22 +104,24 @@ function toggle(sessionId) {
         :aria-expanded="expandedId === session.id"
         @click="toggle(session.id)"
       >
-        <div class="min-w-0">
-          <div class="workout-history-title">{{ session.routine_name }}</div>
+        <div class="min-w-0 workout-history-main">
+          <div class="workout-history-top">
+            <span class="workout-history-title">{{ session.routine_name }}</span>
+            <span
+              class="session-status"
+              :class="statusClass(session.status)"
+            >
+              {{ statusLabel(session.status) }}
+            </span>
+          </div>
           <div class="workout-history-meta">
-            {{ formatSessionDate(session.finished_at) }}
+            {{ formatSessionDate(session.finished_at, compact) }}
             · {{ exerciseSummary(session) }}
           </div>
-          <span
-            class="session-status"
-            :class="statusClass(session.status)"
-          >
-            {{ statusLabel(session.status) }}
-          </span>
         </div>
         <v-icon
           :icon="expandedId === session.id ? 'mdi-chevron-up' : 'mdi-chevron-down'"
-          size="20"
+          size="18"
           color="#8B929E"
         />
       </button>
@@ -119,12 +133,14 @@ function toggle(sessionId) {
           class="workout-history-group"
         >
           <div class="workout-history-exercise">{{ group.exercise_name }}</div>
-          <div
-            v-for="set in group.sets"
-            :key="set.id"
-            class="workout-history-set"
-          >
-            Serie {{ set.set_number }} · {{ set.reps }} reps · {{ set.weight }} kg
+          <div class="workout-history-set-row">
+            <span
+              v-for="set in group.sets"
+              :key="set.id"
+              class="workout-history-set"
+            >
+              S{{ set.set_number }} {{ set.reps }}×{{ set.weight }}
+            </span>
           </div>
         </div>
       </div>
@@ -134,15 +150,15 @@ function toggle(sessionId) {
 
 <style scoped>
 .workout-history__empty {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .workout-history-item {
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
   background: rgba(0, 0, 0, 0.18);
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.45rem;
 }
 
 .workout-history-item:last-child {
@@ -154,7 +170,7 @@ function toggle(sessionId) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   background: transparent;
   border: 0;
   color: inherit;
@@ -163,25 +179,34 @@ function toggle(sessionId) {
   padding: 0;
 }
 
+.workout-history-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+
 .workout-history-title {
   font-weight: 600;
+  font-size: 0.88rem;
+  line-height: 1.2;
 }
 
 .workout-history-meta {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   color: #8b929e;
   margin-top: 0.15rem;
 }
 
 .session-status {
   display: inline-block;
-  margin-top: 0.35rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
-  padding: 0.15rem 0.45rem;
-  border-radius: 6px;
+  padding: 0.1rem 0.35rem;
+  border-radius: 5px;
+  line-height: 1.2;
 }
 
 .session-status--completed {
@@ -197,30 +222,44 @@ function toggle(sessionId) {
 .workout-history-sets {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.45rem;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding-top: 0.75rem;
-  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .workout-history-group {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
 .workout-history-exercise {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.78rem;
+}
+
+.workout-history-set-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
 }
 
 .workout-history-set {
-  font-size: 0.85rem;
-  color: #8b929e;
-  padding-left: 0.25rem;
+  font-size: 0.7rem;
+  color: #a8afba;
+  padding: 0.12rem 0.35rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  font-variant-numeric: tabular-nums;
 }
 
 .min-w-0 {
   min-width: 0;
+}
+
+.workout-history--compact .workout-history-item {
+  padding: 0.45rem 0.6rem;
+  margin-bottom: 0.35rem;
 }
 </style>

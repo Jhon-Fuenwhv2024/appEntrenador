@@ -13,6 +13,7 @@ const workoutSessionsRoutes = require('./modules/workout-sessions/workout-sessio
 const templatesRoutes = require('./modules/templates/templates.routes');
 const profileRoutes = require('./modules/profile/profile.routes');
 const accountRoutes = require('./modules/account/account.routes');
+const bodyCompositionRoutes = require('./modules/body-composition/body-composition.routes');
 const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
 
 const app = express();
@@ -32,6 +33,7 @@ app.use('/api', workoutSessionsRoutes);
 app.use('/api', templatesRoutes);
 app.use('/api', profileRoutes);
 app.use('/api', accountRoutes);
+app.use('/api', bodyCompositionRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor API modular (JWT) corriendo en http://localhost:${PORT}`);
