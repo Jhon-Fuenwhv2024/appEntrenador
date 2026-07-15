@@ -16,6 +16,7 @@ router.put(
   '/profile/:userId',
   authenticate,
   requireRole('trainer', 'client'),
+  profileController.authorizeByUserId,
   uploadAvatarMiddleware,
   profileController.upsertByUserId,
 );

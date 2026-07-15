@@ -193,6 +193,7 @@ async function upsertProfile(actor, targetUserId, body, uploadedFile) {
 }
 
 module.exports = {
+  assertCanAccessProfile,
   getProfile,
   upsertProfile,
   SEX_OPTIONS,
