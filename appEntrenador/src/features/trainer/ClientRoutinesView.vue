@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref, shallowRef } from 'vue';
+import { computed, defineAsyncComponent, onMounted, reactive, ref, shallowRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import {
@@ -22,6 +22,10 @@ import {
 import { createTemplate } from './api/templatesApi.js';
 import { getClientWorkoutSessions } from './api/workoutSessionsApi.js';
 import BodyCompositionPanel from './components/BodyCompositionPanel.vue';
+
+const ProgressChartsPanel = defineAsyncComponent(() => (
+  import('../../shared/components/ProgressChartsPanel.vue')
+));
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const DEFAULT_TARGET_MUSCLE = 'General';
@@ -55,6 +59,9 @@ const snackbar = reactive({
   text: '',
   color: 'success',
 });
+
+/** ficha | graficas — pestaña de la ficha del alumno */
+const fichaTab = shallowRef('ficha');
 
 const pageTitle = computed(() => (
   client.value ? client.value.nombre : 'Alumno'
@@ -405,28 +412,42 @@ onMounted(() => {
         />
 
         <template v-else>
-          <ProfileFormCard
-            title="Perfil"
-            :profile="clientProfile"
-            :saving="savingProfile"
-            @save="onSaveProfile"
-          />
+          <v-tabs
+            v-model="fichaTab"
+            color="primary"
+            density="compact"
+            class="ficha-tabs mb-3"
+          >
+            <v-tab value="ficha">Ficha</v-tab>
+            <v-tab value="graficas">
+              <v-icon icon="mdi-chart-line" start size="18" />
+              Gráficas
+            </v-tab>
+          </v-tabs>
 
-          <div class="ficha-grid">
-            <!-- Columna principal: rutinas -->
-            <div class="ficha-col">
-              <section class="ficha-panel routine-editor">
-                <div class="ficha-panel__head">
-                  <div>
-                    <h2 class="ficha-panel__title">
-                      {{ editingId ? 'Editar rutina' : 'Nueva rutina' }}
-                    </h2>
-                    <p class="ficha-panel__hint">Asigna día, nombre y la carga de cada ejercicio</p>
-                  </div>
-                  <v-btn
-                    variant="text"
-                    color="primary"
-                    size="x-small"
+          <template v-if="fichaTab === 'ficha'">
+              <ProfileFormCard
+                title="Perfil"
+                :profile="clientProfile"
+                :saving="savingProfile"
+                @save="onSaveProfile"
+              />
+
+              <div class="ficha-grid">
+                <!-- Columna principal: rutinas -->
+                <div class="ficha-col">
+                  <section class="ficha-panel routine-editor">
+                    <div class="ficha-panel__head">
+                      <div>
+                        <h2 class="ficha-panel__title">
+                          {{ editingId ? 'Editar rutina' : 'Nueva rutina' }}
+                        </h2>
+                        <p class="ficha-panel__hint">Asigna día, nombre y la carga de cada ejercicio</p>
+                      </div>
+                      <v-btn
+                        variant="text"
+                        color="primary"
+                        size="x-small"
                     class="px-1"
                     prepend-icon="mdi-dumbbell"
                     @click="router.push('/trainer/library/exercises')"
@@ -694,6 +715,12 @@ onMounted(() => {
               </section>
             </aside>
           </div>
+          </template>
+
+          <ProgressChartsPanel
+            v-else
+            :client-id="clientId"
+          />
         </template>
       </div>
     </main>
@@ -750,6 +777,10 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+}
+
+.ficha-tabs {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 @media (min-width: 960px) {

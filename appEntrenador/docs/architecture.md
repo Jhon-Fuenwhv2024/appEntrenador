@@ -37,7 +37,10 @@ El backend monta módulos bajo `/api` desde `backend/src/server.js`.
 - `backend/src/modules/templates/`: CRUD de plantillas + `POST /templates/:id/assign` (deep copy a `rutinas`/`ejercicios`; Feature 018).
 - `backend/src/modules/exercises/`: catálogo `exercises` — `GET/POST /api/exercises` (trainer: globales + propios). Seed (`backend/scripts/seedExercises.js`) desde clone local de wrkout/exercises.json; `media_url` = raw GitHub. Las líneas de rutina/plantilla pueden vincularse con `exercise_id` + `nombre` denormalizado (Feature 022). Ver [`docs/database-schema.md`](database-schema.md).
 - `backend/src/modules/workout-sessions/`: `POST/GET /me/workout-sessions` (client) y `GET /clients/:id/workout-sessions` (trainer). Feature 012 + 021.
+- `backend/src/modules/body-composition/`: historial antropométrico (Feature 026).
+- `backend/src/modules/progress/`: series para gráficas — `GET /progress/metrics/:clientId`, `GET /progress/exercises/:clientId` (Feature 027).
 - Frontend trainer: `LibraryView` es el hub (tabs Plantillas | Catálogo en `/trainer/library` y `/trainer/library/exercises`); `ClientRoutinesView` / `TemplateFormDialog` usan autocomplete híbrido (`nombre` + `exercise_id`).
+- Frontend gráficas: `src/shared/components/ProgressLineChart.vue` + `ProgressChartsPanel.vue` (chart.js); pestaña en `ClientProgressView` y `ClientRoutinesView`.
 
 Cada módulo sigue la forma `routes -> controller -> service`. Los services concentran consultas MySQL parametrizadas y los controllers traducen a respuestas JSON.
 

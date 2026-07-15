@@ -72,3 +72,12 @@
 3. `POST /clients/:clientId/body-composition` (o `PUT .../:logId`): el service calcula `bmi = weight_kg / (height_cm/100)²` y persiste; ignora cualquier `bmi` del body.
 4. Ownership: trainer solo alumnos con `usuarios.trainer_id = req.user.id`; `recorded_by` = trainer autenticado.
 5. Cliente en **Mi progreso** (`/client/progress`) llama `GET /me/body-composition` — solo lectura, sin UI de escritura.
+
+## Visualización de progreso / gráficas (Feature 027)
+
+1. Cliente (pestaña **Gráficas** en Mi progreso) o trainer (pestaña **Gráficas** en la ficha) llama:
+   - `GET /progress/metrics/:clientId` → peso + IMC ASC.
+   - `GET /progress/exercises/:clientId` → lista de ejercicios con logs; luego `?exerciseId=` / `?exerciseName=` → MAX(weight) por día.
+2. Ownership en service: client solo su id; trainer vía `getClientOwnedByTrainer`.
+3. UI: `ProgressChartsPanel` + `ProgressLineChart` (chart.js / vue-chartjs). Si hay menos de 2 puntos, se oculta el canvas y se muestra mensaje de datos insuficientes.
+4. Fuerza se agrupa por `exercise_name` (misma regla que Feature 019), no por `ejercicios.id` efímero.

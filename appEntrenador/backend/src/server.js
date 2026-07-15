@@ -14,6 +14,7 @@ const templatesRoutes = require('./modules/templates/templates.routes');
 const profileRoutes = require('./modules/profile/profile.routes');
 const accountRoutes = require('./modules/account/account.routes');
 const bodyCompositionRoutes = require('./modules/body-composition/body-composition.routes');
+const progressRoutes = require('./modules/progress/progress.routes');
 const notificationsRoutes = require('./modules/notifications/notifications.routes');
 const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
 const { ensureNotificationsTable } = require('./db/ensureNotificationsTable');
@@ -36,6 +37,7 @@ app.use('/api', templatesRoutes);
 app.use('/api', profileRoutes);
 app.use('/api', accountRoutes);
 app.use('/api', bodyCompositionRoutes);
+app.use('/api', progressRoutes);
 app.use('/api/notifications', notificationsRoutes);
 
 async function start() {

@@ -494,6 +494,53 @@ Crea una medición. Campos obligatorios: `weight_kg`, `height_cm`. Opcionales: `
 
 Actualiza una medición del alumno propio. Misma forma de body que el POST; el IMC se recalcula.
 
+## Progreso / gráficas (Feature 027)
+
+Series temporales para Chart.js. Roles: `trainer` | `client`. Ownership: el cliente solo puede usar su propio `:clientId`; el trainer solo alumnos con `usuarios.trainer_id = req.user.id`.
+
+### `GET /progress/metrics/:clientId`
+
+Historial de `body_composition_logs` ordenado `measured_at ASC`. Respuesta optimizada para ejes X/Y:
+
+```json
+{
+  "success": true,
+  "data": {
+    "labels": ["2026-01-10", "2026-02-10"],
+    "weightKg": [78.5, 77.2],
+    "bmi": [25.61, 25.18]
+  }
+}
+```
+
+### `GET /progress/exercises/:clientId`
+
+Sin query: lista ejercicios distintos con al menos un set en `workout_set_logs` (selector UI).
+
+```json
+{
+  "success": true,
+  "data": {
+    "exercises": [
+      { "exerciseId": 12, "exerciseName": "Press banca", "setCount": 24 }
+    ]
+  }
+}
+```
+
+Con `?exerciseId=X` (o `?exerciseName=` si el id es nulo): `MAX(weight)` por día (`DATE(finished_at)`), agrupando por **nombre** del ejercicio (estable frente a ids de línea de rutina). Orden `ASC`.
+
+```json
+{
+  "success": true,
+  "data": {
+    "exerciseName": "Press banca",
+    "labels": ["2026-03-01", "2026-03-08"],
+    "maxWeight": [60, 62.5]
+  }
+}
+```
+
 ## Notificaciones in-app (Feature 025)
 
 Campana en el dashboard (trainer y client). Eventos:

@@ -1,8 +1,8 @@
 <script setup>
 /**
- * Client "Mi progreso" — layout ancho: entrenamientos + composición corporal.
+ * Client "Mi progreso" — resumen (entrenamientos + composición) y pestaña Gráficas.
  */
-import { computed, onMounted, shallowRef } from 'vue';
+import { computed, defineAsyncComponent, onMounted, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
@@ -11,11 +11,17 @@ import WorkoutSessionHistoryList from '../../shared/components/WorkoutSessionHis
 import { getMyWorkoutSessions } from './api/workoutSessionsApi.js';
 import BodyCompositionReadOnly from './components/BodyCompositionReadOnly.vue';
 
+const ProgressChartsPanel = defineAsyncComponent(() => (
+  import('../../shared/components/ProgressChartsPanel.vue')
+));
+
 const router = useRouter();
 
 const loading = shallowRef(true);
 const loadError = shallowRef('');
 const sessions = shallowRef([]);
+const activeTab = shallowRef('resumen');
+const clientId = shallowRef(null);
 
 const completedCount = computed(() => (
   sessions.value.filter((s) => s.status === 'completed').length
@@ -47,6 +53,7 @@ onMounted(() => {
     router.push('/dashboard');
     return;
   }
+  clientId.value = user.id;
   loadSessions();
 });
 </script>
@@ -81,46 +88,63 @@ onMounted(() => {
       </header>
 
       <div class="progress-body">
-        <v-progress-linear
-          v-if="loading"
-          indeterminate
+        <v-tabs
+          v-model="activeTab"
           color="primary"
-          class="mb-3"
-          height="2"
-        />
-
-        <v-alert
-          v-else-if="loadError"
-          type="error"
-          variant="tonal"
           density="compact"
-          class="mb-3"
+          class="progress-tabs mb-3"
         >
-          {{ loadError }}
-          <template #append>
-            <v-btn variant="text" size="x-small" @click="loadSessions">Reintentar</v-btn>
-          </template>
-        </v-alert>
+          <v-tab value="resumen">Resumen</v-tab>
+          <v-tab value="graficas">Gráficas</v-tab>
+        </v-tabs>
 
-        <div class="progress-grid">
-          <section class="progress-panel">
-            <div class="progress-panel__head">
-              <h2 class="progress-panel__title">Entrenamientos</h2>
-              <span class="progress-panel__hint">Toca para ver series</span>
-            </div>
-            <WorkoutSessionHistoryList
-              v-if="!loading && !loadError"
-              :sessions="sessions"
-              compact
-              empty-text="Sin entrenamientos aún. Completa una rutina desde Inicio."
-            />
-            <p v-else-if="loading" class="progress-panel__placeholder">Cargando…</p>
-          </section>
+        <div v-if="activeTab === 'resumen'">
+          <v-progress-linear
+            v-if="loading"
+            indeterminate
+            color="primary"
+            class="mb-3"
+            height="2"
+          />
 
-          <section class="progress-panel progress-panel--body">
-            <BodyCompositionReadOnly embedded />
-          </section>
+          <v-alert
+            v-else-if="loadError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            class="mb-3"
+          >
+            {{ loadError }}
+            <template #append>
+              <v-btn variant="text" size="x-small" @click="loadSessions">Reintentar</v-btn>
+            </template>
+          </v-alert>
+
+          <div class="progress-grid">
+            <section class="progress-panel">
+              <div class="progress-panel__head">
+                <h2 class="progress-panel__title">Entrenamientos</h2>
+                <span class="progress-panel__hint">Toca para ver series</span>
+              </div>
+              <WorkoutSessionHistoryList
+                v-if="!loading && !loadError"
+                :sessions="sessions"
+                compact
+                empty-text="Sin entrenamientos aún. Completa una rutina desde Inicio."
+              />
+              <p v-else-if="loading" class="progress-panel__placeholder">Cargando…</p>
+            </section>
+
+            <section class="progress-panel progress-panel--body">
+              <BodyCompositionReadOnly embedded />
+            </section>
+          </div>
         </div>
+
+        <ProgressChartsPanel
+          v-else-if="clientId"
+          :client-id="clientId"
+        />
       </div>
     </main>
   </AppShell>
@@ -165,6 +189,10 @@ onMounted(() => {
   .progress-body {
     padding: 0.5rem 1.5rem 1.5rem;
   }
+}
+
+.progress-tabs {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .progress-grid {
