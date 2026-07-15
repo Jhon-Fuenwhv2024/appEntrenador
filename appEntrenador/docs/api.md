@@ -252,6 +252,7 @@ Crea rutina con ejercicios (transacción).
       "repeticiones": 10,
       "peso": 60,
       "rest_time_seconds": 90,
+      "superset_letter": "A",
       "indicaciones": "Controlar la bajada"
     }
   ]
@@ -261,6 +262,8 @@ Crea rutina con ejercicios (transacción).
 `exercise_id` es opcional (`null` = texto libre / líneas legacy). Debe ser un ejercicio del catálogo visible al trainer (global o propio). Se persiste junto al `nombre` denormalizado.
 
 `rest_time_seconds` (Feature 028): descanso entre series en segundos (entero `0`–`900`; default `90` si se omite). El Workout Player usa este valor en el temporizador.
+
+`superset_letter` (Feature 029): letra de grupo superserie/circuito (`A`–`Z` / `0–9`, 1–2 chars; `null` o vacío si no hay grupo). Se copia al asignar plantillas.
 ### `PUT /routines/:routineId` (trainer)
 
 Reemplaza día, nombre y ejercicios de una rutina propia.
@@ -293,13 +296,14 @@ Crea plantilla + líneas (transacción).
       "repeticiones": 10,
       "peso": 60,
       "rest_time_seconds": 90,
+      "superset_letter": "A",
       "indicaciones": ""
     }
   ]
 }
 ```
 
-`exercise_id` opcional; misma semántica que en rutinas de alumno. `rest_time_seconds` se copia al asignar (Feature 028).
+`exercise_id` opcional; misma semántica que en rutinas de alumno. `rest_time_seconds` y `superset_letter` se copian al asignar (Features 028 / 029).
 ### `GET /templates/:id`
 
 Detalle de una plantilla propia.
@@ -332,6 +336,7 @@ Cada ítem de `ejercicios[]` incluye (además de la prescripción):
 
 - `exercise_id` — vínculo al catálogo (nullable; Feature 022)
 - `rest_time_seconds` — descanso entre series prescrito por el trainer (Feature 028; default 90)
+- `superset_letter` — grupo superserie/circuito (nullable; Feature 029)
 - `media_type` / `media_url` — resueltos por `exercise_id` si existe; si no, por nombre (Features 008–009 / 022)
 - `last_log` — memoria de progresión (Feature 019):
 

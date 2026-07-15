@@ -6,6 +6,29 @@ import { createExercise, getExercises } from '../api/exercisesApi.js';
 
 const DEFAULT_REST_SECONDS = 90;
 const DEFAULT_TARGET_MUSCLE = 'General';
+/** Plain strings — avoid object items with null (Vuetify select often fails to bind). */
+const SUPERSET_LETTER_OPTIONS = ['A', 'B', 'C', 'D', 'E'];
+
+const emptyExerciseRow = () => ({
+  nombre: '',
+  exercise_id: null,
+  series: 3,
+  repeticiones: 10,
+  peso: 0,
+  rest_time_seconds: DEFAULT_REST_SECONDS,
+  superset_letter: null,
+  indicaciones: '',
+});
+
+const toSupersetLetter = (value) => {
+  if (value == null || value === '') return null;
+  if (typeof value === 'object') {
+    const nested = value.value ?? value.title ?? '';
+    return toSupersetLetter(nested);
+  }
+  const letter = String(value).trim().toUpperCase();
+  return /^[A-Z0-9]{1,2}$/.test(letter) ? letter : null;
+};
 
 const props = defineProps({
   modelValue: {
@@ -38,9 +61,7 @@ const localSnack = reactive({
 const form = reactive({
   name: '',
   notes: '',
-  exercises: [
-    { nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, rest_time_seconds: DEFAULT_REST_SECONDS, indicaciones: '' },
-  ],
+  exercises: [emptyExerciseRow()],
 });
 
 const toRestSeconds = (value) => {
@@ -102,9 +123,16 @@ const onExerciseNameUpdate = (index, value) => {
 const resetForm = () => {
   form.name = '';
   form.notes = '';
-  form.exercises = [
-    { nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, rest_time_seconds: DEFAULT_REST_SECONDS, indicaciones: '' },
-  ];
+  form.exercises = [emptyExerciseRow()];
+};
+
+/** True when this row shares a letter with an adjacent exercise (visual group). */
+const isSupersetGrouped = (index) => {
+  const letter = form.exercises[index]?.superset_letter;
+  if (!letter) return false;
+  const prev = form.exercises[index - 1]?.superset_letter;
+  const next = form.exercises[index + 1]?.superset_letter;
+  return prev === letter || next === letter;
 };
 
 const fillFromTemplate = (template) => {
@@ -124,9 +152,10 @@ const fillFromTemplate = (template) => {
       repeticiones: Number(ex.repeticiones) || 10,
       peso: Number(ex.peso) || 0,
       rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
+      superset_letter: toSupersetLetter(ex.superset_letter),
       indicaciones: ex.indicaciones || '',
     }))
-    : [{ nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, rest_time_seconds: DEFAULT_REST_SECONDS, indicaciones: '' }];
+    : [emptyExerciseRow()];
 };
 
 const loadCatalog = async () => {
@@ -160,15 +189,7 @@ const close = () => {
 };
 
 const addExercise = () => {
-  form.exercises.push({
-    nombre: '',
-    exercise_id: null,
-    series: 3,
-    repeticiones: 10,
-    peso: 0,
-    rest_time_seconds: DEFAULT_REST_SECONDS,
-    indicaciones: '',
-  });
+  form.exercises.push(emptyExerciseRow());
 };
 
 const removeExercise = (index) => {
@@ -222,6 +243,7 @@ const handleSubmit = () => {
       repeticiones: Number(ex.repeticiones),
       peso: Number(ex.peso),
       rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
+      superset_letter: toSupersetLetter(ex.superset_letter),
       indicaciones: ex.indicaciones,
     })),
   });
@@ -281,6 +303,7 @@ const handleSubmit = () => {
           v-for="(ex, index) in form.exercises"
           :key="index"
           class="exercise-block mb-4"
+          :class="{ 'exercise-block--superset': isSupersetGrouped(index) }"
         >
           <div class="d-flex justify-space-between align-center mb-2">
             <span class="text-caption text-medium-emphasis">Ejercicio {{ index + 1 }}</span>
@@ -372,7 +395,22 @@ const handleSubmit = () => {
                 @update:model-value="(value) => setRestSeconds(index, value)"
               />
             </v-col>
+            <v-col cols="6" sm="3">
+              <v-select
+                v-model="ex.superset_letter"
+                :items="SUPERSET_LETTER_OPTIONS"
+                label="Grupo"
+                placeholder="—"
+                density="compact"
+                clearable
+                :menu-props="{ contentClass: 'tf-overlay-menu' }"
+                :list-props="{ bgColor: 'surface', color: undefined }"
+              />
+            </v-col>
           </v-row>
+          <p v-if="index === 0" class="text-caption text-medium-emphasis mb-2">
+            Misma letra en filas seguidas = superserie (ej. Press y Remo en A).
+          </p>
 
           <v-text-field
             v-model="ex.indicaciones"
@@ -413,5 +451,10 @@ const handleSubmit = () => {
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.exercise-block--superset {
+  border-left: 3px solid rgb(var(--v-theme-primary));
+  background: rgba(0, 229, 255, 0.06);
 }
 </style>

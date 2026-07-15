@@ -35,6 +35,25 @@ function normalizeRestTimeSeconds(raw, nombre) {
   return Math.round(value);
 }
 
+/** Feature 029: empty → null; 1–2 chars A–Z / 0–9. Accepts plain string or { value }. */
+function normalizeSupersetLetter(raw, nombre) {
+  if (raw == null || raw === '') return null;
+  let value = raw;
+  if (typeof value === 'object') {
+    value = value.value ?? value.title ?? '';
+  }
+  if (value == null || value === '') return null;
+  const letter = String(value).trim().toUpperCase();
+  if (!letter) return null;
+  if (!/^[A-Z0-9]{1,2}$/.test(letter)) {
+    throw createHttpError(
+      `Grupo inválido en el ejercicio "${nombre}" (usa A, B, C… o vacío).`,
+      400,
+    );
+  }
+  return letter;
+}
+
 function normalizeExercises(exercises) {
   if (!Array.isArray(exercises) || exercises.length === 0) {
     throw createHttpError('Debes incluir al menos un ejercicio.', 400);
@@ -52,6 +71,10 @@ function normalizeExercises(exercises) {
     );
     const rest_time_seconds = normalizeRestTimeSeconds(
       item.rest_time_seconds,
+      nombre || `#${index + 1}`,
+    );
+    const superset_letter = normalizeSupersetLetter(
+      item.superset_letter,
       nombre || `#${index + 1}`,
     );
 
@@ -79,6 +102,7 @@ function normalizeExercises(exercises) {
       indicaciones,
       peso,
       rest_time_seconds,
+      superset_letter,
       sort_order: index,
     };
   });
@@ -123,6 +147,7 @@ function mapTemplateExerciseRow(exercise) {
     rest_time_seconds: Number.isFinite(Number(exercise.rest_time_seconds))
       ? Number(exercise.rest_time_seconds)
       : DEFAULT_REST_TIME_SECONDS,
+    superset_letter: exercise.superset_letter ?? null,
     indicaciones: exercise.indicaciones,
     sort_order: exercise.sort_order,
   };
@@ -152,7 +177,7 @@ async function fetchTemplatesWithExercises(trainerId, templateId = null) {
   const ids = templates.map((t) => t.id);
   const placeholders = ids.map(() => '?').join(',');
   const [exercises] = await db.query(
-    `SELECT id, template_id, nombre, exercise_id, series, repeticiones, peso, rest_time_seconds, indicaciones, sort_order
+    `SELECT id, template_id, nombre, exercise_id, series, repeticiones, peso, rest_time_seconds, superset_letter, indicaciones, sort_order
      FROM template_exercises
      WHERE template_id IN (${placeholders})
      ORDER BY sort_order ASC, id ASC`,
@@ -205,8 +230,8 @@ async function insertTemplateExerciseLines(connection, templateId, exercises) {
   for (const exercise of exercises) {
     await connection.query(
       `INSERT INTO template_exercises
-         (template_id, nombre, exercise_id, series, repeticiones, peso, rest_time_seconds, indicaciones, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (template_id, nombre, exercise_id, series, repeticiones, peso, rest_time_seconds, superset_letter, indicaciones, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         templateId,
         exercise.nombre,
@@ -215,6 +240,7 @@ async function insertTemplateExerciseLines(connection, templateId, exercises) {
         exercise.repeticiones,
         exercise.peso,
         exercise.rest_time_seconds,
+        exercise.superset_letter,
         exercise.indicaciones || null,
         exercise.sort_order,
       ],
@@ -334,8 +360,8 @@ async function assignTemplate(trainerId, templateId, payload = {}) {
     for (const exercise of template.exercises) {
       await connection.query(
         `INSERT INTO ejercicios
-           (rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, rest_time_seconds)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           (rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, rest_time_seconds, superset_letter)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           routineId,
           exercise.nombre,
@@ -347,6 +373,7 @@ async function assignTemplate(trainerId, templateId, payload = {}) {
           Number.isFinite(Number(exercise.rest_time_seconds))
             ? Number(exercise.rest_time_seconds)
             : DEFAULT_REST_TIME_SECONDS,
+          exercise.superset_letter ?? null,
         ],
       );
     }
@@ -367,7 +394,7 @@ async function assignTemplate(trainerId, templateId, payload = {}) {
   );
 
   const [exercises] = await db.query(
-    `SELECT id, rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, rest_time_seconds
+    `SELECT id, rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, rest_time_seconds, superset_letter
      FROM ejercicios
      WHERE rutina_id = ?
      ORDER BY id ASC`,
@@ -390,6 +417,7 @@ async function assignTemplate(trainerId, templateId, payload = {}) {
       rest_time_seconds: Number.isFinite(Number(exercise.rest_time_seconds))
         ? Number(exercise.rest_time_seconds)
         : DEFAULT_REST_TIME_SECONDS,
+      superset_letter: exercise.superset_letter ?? null,
     })),
   };
 }

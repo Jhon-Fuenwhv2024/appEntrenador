@@ -36,6 +36,25 @@ function normalizeOptionalExerciseId(raw, index, nombre) {
   return id;
 }
 
+/** Feature 029: empty → null; 1–2 chars A–Z / 0–9. Accepts plain string or { value }. */
+function normalizeSupersetLetter(raw, nombre) {
+  if (raw == null || raw === '') return null;
+  let value = raw;
+  if (typeof value === 'object') {
+    value = value.value ?? value.title ?? '';
+  }
+  if (value == null || value === '') return null;
+  const letter = String(value).trim().toUpperCase();
+  if (!letter) return null;
+  if (!/^[A-Z0-9]{1,2}$/.test(letter)) {
+    throw createHttpError(
+      `Grupo inválido en el ejercicio "${nombre}" (usa A, B, C… o vacío).`,
+      400,
+    );
+  }
+  return letter;
+}
+
 function normalizeExercises(ejercicios) {
   if (!Array.isArray(ejercicios) || ejercicios.length === 0) {
     throw createHttpError('Debes incluir al menos un ejercicio.', 400);
@@ -66,6 +85,7 @@ function normalizeExercises(ejercicios) {
     }
 
     const rest_time_seconds = normalizeRestTimeSeconds(item.rest_time_seconds, nombre);
+    const superset_letter = normalizeSupersetLetter(item.superset_letter, nombre);
 
     return {
       nombre,
@@ -75,6 +95,7 @@ function normalizeExercises(ejercicios) {
       indicaciones,
       peso,
       rest_time_seconds,
+      superset_letter,
     };
   });
 }
@@ -112,6 +133,7 @@ function mapExerciseRow(exercise) {
     rest_time_seconds: Number.isFinite(Number(exercise.rest_time_seconds))
       ? Number(exercise.rest_time_seconds)
       : DEFAULT_REST_TIME_SECONDS,
+    superset_letter: exercise.superset_letter ?? null,
   };
 }
 
@@ -131,7 +153,7 @@ async function fetchRoutinesWithExercises(alumnoId) {
   const routineIds = routines.map((r) => r.id);
   const placeholders = routineIds.map(() => '?').join(',');
   const [exercises] = await db.query(
-    `SELECT id, rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, rest_time_seconds
+    `SELECT id, rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, rest_time_seconds, superset_letter
      FROM ejercicios
      WHERE rutina_id IN (${placeholders})
      ORDER BY id ASC`,
@@ -361,8 +383,8 @@ async function insertExerciseLines(connection, routineId, ejercicios) {
   for (const exercise of ejercicios) {
     await connection.query(
       `INSERT INTO ejercicios
-         (rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, rest_time_seconds)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+         (rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, rest_time_seconds, superset_letter)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         routineId,
         exercise.nombre,
@@ -372,6 +394,7 @@ async function insertExerciseLines(connection, routineId, ejercicios) {
         exercise.indicaciones || null,
         exercise.peso,
         exercise.rest_time_seconds,
+        exercise.superset_letter,
       ],
     );
   }

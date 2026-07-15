@@ -58,6 +58,7 @@ erDiagram
     text indicaciones
     decimal peso
     int rest_time_seconds "default 90"
+    string superset_letter "nullable A/B..."
   }
 
   exercises {
@@ -113,6 +114,7 @@ erDiagram
     int repeticiones
     decimal peso
     int rest_time_seconds "default 90"
+    string superset_letter "nullable A/B..."
     text indicaciones
     int sort_order
   }
@@ -138,11 +140,13 @@ Rutina diaria asignada a un alumno (`alumno_id` → `usuarios`).
 
 ### `ejercicios` (líneas de rutina)
 
-Detalle de una rutina concreta: nombre (denormalizado), series, repeticiones, peso, `rest_time_seconds` (Feature 028; default 90) e indicaciones. **No** es el catálogo del sistema. El peso aquí es **prescripción**, no historial de ejecución.
+Detalle de una rutina concreta: nombre (denormalizado), series, repeticiones, peso, `rest_time_seconds` (Feature 028; default 90), `superset_letter` (Feature 029) e indicaciones. **No** es el catálogo del sistema. El peso aquí es **prescripción**, no historial de ejecución.
 
 **Feature 022:** `exercise_id INT NULL` → FK a `exercises(id)` con `ON DELETE SET NULL`. Si el catálogo borra un ejercicio, la línea de rutina permanece con `nombre` intacto y `exercise_id = NULL`.
 
 **Feature 028:** `rest_time_seconds INT NOT NULL DEFAULT 90` — descanso entre series (0–900). Migración: [`backend/db/migrations/012_rest_time_seconds.sql`](../backend/db/migrations/012_rest_time_seconds.sql). Misma columna en `template_exercises` (se copia al asignar).
+
+**Feature 029:** `superset_letter VARCHAR(2) NULL` — letra de grupo superserie/circuito (ej. `A`, `B`). Migración: [`backend/db/migrations/013_superset_letter.sql`](../backend/db/migrations/013_superset_letter.sql). Misma columna en `template_exercises` (se copia al asignar).
 
 ### `exercises` (catálogo / diccionario)
 
@@ -179,7 +183,7 @@ node scripts/migrateInvitesStatus.js
 
 Biblioteca personal del trainer. `routine_templates.trainer_id` aísla ownership. Las líneas viven en `template_exercises` con `exercise_id` opcional → `exercises` (Feature 022, `ON DELETE SET NULL`).
 
-**Deep copy:** al asignar (`POST /templates/:id/assign`) se insertan filas nuevas en `rutinas` + `ejercicios` del alumno (incluye `exercise_id` si existe). No hay FK plantilla↔rutina; editar/borrar la plantilla no muta rutinas ya asignadas.
+**Deep copy:** al asignar (`POST /templates/:id/assign`) se insertan filas nuevas en `rutinas` + `ejercicios` del alumno (incluye `exercise_id`, `rest_time_seconds` y `superset_letter` si existen). No hay FK plantilla↔rutina; editar/borrar la plantilla no muta rutinas ya asignadas.
 
 Migración catálogo link: [`backend/db/migrations/008_exercise_catalog_link.sql`](../backend/db/migrations/008_exercise_catalog_link.sql).
 

@@ -13,6 +13,7 @@
     "db:create-body-composition": "node scripts/createBodyCompositionTable.js",
     "db:create-notifications": "node scripts/createNotificationsTable.js",
     "db:add-rest-time": "node scripts/addRestTimeSeconds.js",
+    "db:add-superset-letter": "node scripts/addSupersetLetter.js",
     "seed:exercises": "node scripts/seedExercises.js"
   },
   "keywords": [],

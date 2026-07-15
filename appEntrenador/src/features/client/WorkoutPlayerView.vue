@@ -33,6 +33,9 @@ const {
   totalExercises,
   progressLabel,
   restDuration,
+  currentSupersetGroup,
+  exercises,
+  currentSetNumber,
   start,
   completeSet,
   skipRest,
@@ -46,6 +49,31 @@ const exerciseHint = computed(() => (
 const exerciseCounter = computed(() => {
   if (!totalExercises.value) return '';
   return `Ejercicio ${exerciseIndex.value + 1} de ${totalExercises.value}`;
+});
+
+const isInSupersetGroup = computed(() => {
+  const group = currentSupersetGroup.value;
+  return group?.letter != null && group.end > group.start;
+});
+
+/** Members of the contiguous superseries for the group card. */
+const supersetGroupMembers = computed(() => {
+  if (!isInSupersetGroup.value) return [];
+  const { start: groupStart, end: groupEnd, letter } = currentSupersetGroup.value;
+  const list = exercises.value;
+  const members = [];
+  for (let i = groupStart; i <= groupEnd; i += 1) {
+    const ex = list[i];
+    if (!ex) continue;
+    members.push({
+      index: i,
+      nombre: ex.nombre,
+      letter,
+      series: Number(ex.series) || 0,
+      active: i === exerciseIndex.value,
+    });
+  }
+  return members;
 });
 
 async function persistSession() {
@@ -183,6 +211,35 @@ onMounted(() => {
     <main v-else-if="phase === 'working' && currentExercise" class="player-main">
       <div class="player-scroll">
         <p class="player-step">{{ exerciseCounter }}</p>
+
+        <v-card
+          v-if="isInSupersetGroup"
+          class="player-superset-card mb-3"
+          bg-color="surface"
+          variant="outlined"
+        >
+          <v-card-title class="player-superset-card__title text-subtitle-2">
+            Superserie {{ currentSupersetGroup.letter }}
+            · Serie {{ currentSetNumber }}
+          </v-card-title>
+          <v-card-text class="pt-0 pb-3">
+            <ul class="player-superset-list">
+              <li
+                v-for="member in supersetGroupMembers"
+                :key="member.index"
+                class="player-superset-list__item"
+                :class="{ 'player-superset-list__item--active': member.active }"
+              >
+                <span class="player-superset-list__badge">{{ member.letter }}</span>
+                <span class="player-superset-list__name">{{ member.nombre }}</span>
+                <span class="player-superset-list__sets">
+                  {{ currentSetNumber }}/{{ member.series }}
+                </span>
+              </li>
+            </ul>
+          </v-card-text>
+        </v-card>
+
         <h1 class="player-title">{{ currentExercise.nombre }}</h1>
         <p class="player-set">{{ progressLabel }}</p>
 
@@ -395,6 +452,71 @@ onMounted(() => {
   color: #00E5FF;
   font-weight: 600;
   font-size: 0.95rem;
+}
+
+.player-superset-card {
+  border-left: 3px solid #00E5FF !important;
+  border-color: rgba(0, 229, 255, 0.35) !important;
+}
+
+.player-superset-card__title {
+  color: #00E5FF;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding-bottom: 4px;
+}
+
+.player-superset-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.player-superset-list__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #8B929E;
+  font-size: 0.9rem;
+}
+
+.player-superset-list__item--active {
+  background: rgba(0, 229, 255, 0.1);
+  color: #fff;
+}
+
+.player-superset-list__badge {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(0, 229, 255, 0.15);
+  color: #00E5FF;
+}
+
+.player-superset-list__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-superset-list__sets {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  opacity: 0.85;
 }
 
 .player-media {

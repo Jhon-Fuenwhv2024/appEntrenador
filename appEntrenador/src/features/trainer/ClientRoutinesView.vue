@@ -47,13 +47,35 @@ const savingTemplateId = shallowRef(null);
 const editingId = shallowRef(null);
 
 const DEFAULT_REST_SECONDS = 90;
+/** Plain strings — avoid object items with null (Vuetify select often fails to bind). */
+const SUPERSET_LETTER_OPTIONS = ['A', 'B', 'C', 'D', 'E'];
+
+const emptyExerciseRow = () => ({
+  nombre: '',
+  exercise_id: null,
+  series: 3,
+  repeticiones: 10,
+  peso: 0,
+  rest_time_seconds: DEFAULT_REST_SECONDS,
+  superset_letter: null,
+  indicaciones: '',
+});
+
+/** Normalize select value for API (null / '' / object → null | 'A'..). */
+const toSupersetLetter = (value) => {
+  if (value == null || value === '') return null;
+  if (typeof value === 'object') {
+    const nested = value.value ?? value.title ?? '';
+    return toSupersetLetter(nested);
+  }
+  const letter = String(value).trim().toUpperCase();
+  return /^[A-Z0-9]{1,2}$/.test(letter) ? letter : null;
+};
 
 const form = reactive({
   dia_semana: 'Lunes',
   nombre_rutina: '',
-  ejercicios: [
-    { nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, rest_time_seconds: DEFAULT_REST_SECONDS, indicaciones: '' },
-  ],
+  ejercicios: [emptyExerciseRow()],
 });
 
 const snackbar = reactive({
@@ -133,21 +155,20 @@ const resetForm = () => {
   editingId.value = null;
   form.dia_semana = 'Lunes';
   form.nombre_rutina = '';
-  form.ejercicios = [
-    { nombre: '', exercise_id: null, series: 3, repeticiones: 10, peso: 0, rest_time_seconds: DEFAULT_REST_SECONDS, indicaciones: '' },
-  ];
+  form.ejercicios = [emptyExerciseRow()];
 };
 
 const addExerciseRow = () => {
-  form.ejercicios.push({
-    nombre: '',
-    exercise_id: null,
-    series: 3,
-    repeticiones: 10,
-    peso: 0,
-    rest_time_seconds: DEFAULT_REST_SECONDS,
-    indicaciones: '',
-  });
+  form.ejercicios.push(emptyExerciseRow());
+};
+
+/** True when this row shares a letter with an adjacent exercise (visual group). */
+const isSupersetGrouped = (index) => {
+  const letter = form.ejercicios[index]?.superset_letter;
+  if (!letter) return false;
+  const prev = form.ejercicios[index - 1]?.superset_letter;
+  const next = form.ejercicios[index + 1]?.superset_letter;
+  return prev === letter || next === letter;
 };
 
 const removeExerciseRow = (index) => {
@@ -282,6 +303,7 @@ const startEdit = (routine) => {
     repeticiones: ex.repeticiones,
     peso: Number(ex.peso) || 0,
     rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
+    superset_letter: toSupersetLetter(ex.superset_letter),
     indicaciones: ex.indicaciones || '',
   }));
 
@@ -300,6 +322,7 @@ const buildPayload = () => ({
     repeticiones: Number(ex.repeticiones),
     peso: Number(ex.peso),
     rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
+    superset_letter: toSupersetLetter(ex.superset_letter),
     indicaciones: ex.indicaciones?.trim() || '',
   })),
 });
@@ -356,6 +379,7 @@ const handleSaveAsTemplate = async (routine) => {
         repeticiones: Number(ex.repeticiones),
         peso: Number(ex.peso),
         rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
+        superset_letter: toSupersetLetter(ex.superset_letter),
         indicaciones: ex.indicaciones || '',
       })),
     });
@@ -507,6 +531,7 @@ onMounted(() => {
                   v-for="(ex, index) in form.ejercicios"
                   :key="index"
                   class="exercise-form-block"
+                  :class="{ 'exercise-form-block--superset': isSupersetGrouped(index) }"
                 >
                   <div class="exercise-form-block__head">
                     <span class="exercise-form-label">Ejercicio {{ index + 1 }}</span>
@@ -615,7 +640,26 @@ onMounted(() => {
                         @update:model-value="(value) => setRestSeconds(index, value)"
                       />
                     </label>
+                    <label class="metric metric--group">
+                      <span class="field-cap">Grupo</span>
+                      <v-select
+                        v-model="ex.superset_letter"
+                        :items="SUPERSET_LETTER_OPTIONS"
+                        placeholder="—"
+                        density="compact"
+                        variant="outlined"
+                        hide-details
+                        clearable
+                        color="primary"
+                        :menu-props="{ contentClass: 'tf-overlay-menu' }"
+                        :list-props="{ bgColor: 'surface', color: undefined }"
+                        aria-label="Grupo superserie — misma letra en ejercicios consecutivos"
+                      />
+                    </label>
                   </div>
+                  <p v-if="index === 0" class="superset-hint">
+                    Misma letra en filas seguidas = superserie (ej. Press y Remo en A).
+                  </p>
 
                   <label class="field-block">
                     <span class="field-cap">Indicaciones <em>(opcional)</em></span>
@@ -720,7 +764,13 @@ onMounted(() => {
                     >
                       <div class="exercise-num">{{ i + 1 }}</div>
                       <div class="exercise-details min-w-0">
-                        <div class="exercise-name">{{ ejercicio.nombre }}</div>
+                        <div class="exercise-name">
+                          <span
+                            v-if="ejercicio.superset_letter"
+                            class="exercise-group-badge"
+                          >{{ ejercicio.superset_letter }}</span>
+                          {{ ejercicio.nombre }}
+                        </div>
                         <div class="exercise-meta">
                           {{ ejercicio.series }}×{{ ejercicio.repeticiones }} · {{ ejercicio.peso }} kg
                           · descanso {{ ejercicio.rest_time_seconds ?? 90 }}s
@@ -897,6 +947,11 @@ onMounted(() => {
   margin-bottom: 0.45rem;
 }
 
+.exercise-form-block--superset {
+  border-left: 3px solid rgb(var(--v-theme-primary));
+  background: rgba(0, 229, 255, 0.06);
+}
+
 .exercise-form-block__head {
   display: flex;
   justify-content: space-between;
@@ -974,6 +1029,34 @@ onMounted(() => {
 .metric--rest {
   width: 6.25rem;
   flex-basis: 6.25rem;
+}
+
+.metric--group {
+  width: 5.5rem;
+  flex-basis: 5.5rem;
+}
+
+.superset-hint {
+  margin: 0;
+  font-size: 0.68rem;
+  color: #8b929e;
+  line-height: 1.35;
+}
+
+.exercise-group-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.25rem;
+  margin-right: 0.35rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #0b0d12;
+  background: rgb(var(--v-theme-primary));
+  vertical-align: middle;
 }
 
 .exercise-notes {

@@ -4,8 +4,55 @@ import { useTimer } from './useTimer.js';
 export const DEFAULT_REST_SECONDS = 90;
 
 /**
+ * Contiguous range of exercises sharing the same non-empty superset_letter.
+ * Empty / null letter → singleton group [index, index].
+ * @param {Array<{ superset_letter?: string|null }>} exercises
+ * @param {number} index
+ * @returns {{ start: number, end: number, letter: string|null }}
+ */
+export function resolveAdjacentSupersetGroup(exercises, index) {
+  const list = Array.isArray(exercises) ? exercises : [];
+  if (index < 0 || index >= list.length) {
+    return { start: index, end: index, letter: null };
+  }
+
+  const raw = list[index]?.superset_letter;
+  const letter = typeof raw === 'string' && raw.trim()
+    ? raw.trim().toUpperCase()
+    : null;
+
+  if (!letter) {
+    return { start: index, end: index, letter: null };
+  }
+
+  let start = index;
+  while (start > 0) {
+    const prev = list[start - 1]?.superset_letter;
+    const prevLetter = typeof prev === 'string' && prev.trim()
+      ? prev.trim().toUpperCase()
+      : null;
+    if (prevLetter !== letter) break;
+    start -= 1;
+  }
+
+  let end = index;
+  while (end < list.length - 1) {
+    const next = list[end + 1]?.superset_letter;
+    const nextLetter = typeof next === 'string' && next.trim()
+      ? next.trim().toUpperCase()
+      : null;
+    if (nextLetter !== letter) break;
+    end += 1;
+  }
+
+  return { start, end, letter };
+}
+
+/**
  * Orchestrates an active workout: current exercise/set, rest timer, local set logs.
  * Rest countdown uses wall-clock timestamps (background-throttling resilient).
+ * Feature 029: within a contiguous superset letter, rest starts only after the
+ * last exercise in the group completes the current set round.
  * @param {{ restSeconds?: number }} [options]
  */
 export function useWorkoutSession(options = {}) {
@@ -21,6 +68,8 @@ export function useWorkoutSession(options = {}) {
   const startedAt = shallowRef(null);
   /** Duration used for the active / last rest (for UI copy). */
   const restDuration = shallowRef(defaultRestSeconds);
+  /** After rest in a multi-exercise group, jump back to this index. */
+  const restReturnExerciseIndex = shallowRef(null);
 
   const {
     secondsLeft: restSecondsLeft,
@@ -48,6 +97,10 @@ export function useWorkoutSession(options = {}) {
     () => exerciseIndex.value >= totalExercises.value - 1,
   );
 
+  const currentSupersetGroup = computed(() => (
+    resolveAdjacentSupersetGroup(exercises.value, exerciseIndex.value)
+  ));
+
   const progressLabel = computed(() => {
     const ex = currentExercise.value;
     if (!ex) return '';
@@ -69,6 +122,13 @@ export function useWorkoutSession(options = {}) {
   }
 
   function advanceToNextSet() {
+    const returnIndex = restReturnExerciseIndex.value;
+    restReturnExerciseIndex.value = null;
+
+    if (returnIndex != null && returnIndex >= 0 && returnIndex < exercises.value.length) {
+      exerciseIndex.value = returnIndex;
+    }
+
     setIndex.value += 1;
     phase.value = 'working';
     syncInputDefaults();
@@ -80,7 +140,8 @@ export function useWorkoutSession(options = {}) {
     advanceToNextSet();
   }
 
-  function startRest() {
+  function startRest({ returnToExerciseIndex = null } = {}) {
+    restReturnExerciseIndex.value = returnToExerciseIndex;
     const seconds = resolveRestSeconds();
     restDuration.value = seconds;
     if (seconds <= 0) {
@@ -108,12 +169,20 @@ export function useWorkoutSession(options = {}) {
     logs.value = [];
     startedAt.value = new Date().toISOString();
     restDuration.value = defaultRestSeconds;
+    restReturnExerciseIndex.value = null;
     syncInputDefaults();
   }
 
   function skipRest() {
     if (phase.value !== 'resting') return;
     finishRest();
+  }
+
+  function goToExercise(nextIndex, nextSetIndex = 0) {
+    exerciseIndex.value = nextIndex;
+    setIndex.value = nextSetIndex;
+    phase.value = 'working';
+    syncInputDefaults();
   }
 
   function completeSet({ weight, reps } = {}) {
@@ -136,16 +205,45 @@ export function useWorkoutSession(options = {}) {
       reps: r,
     });
 
+    const group = resolveAdjacentSupersetGroup(exercises.value, exerciseIndex.value);
+    const inMultiGroup = group.letter != null && group.end > group.start;
+
+    if (inMultiGroup) {
+      // Still more exercises in this group for the same set round → no rest.
+      if (exerciseIndex.value < group.end) {
+        goToExercise(exerciseIndex.value + 1, setIndex.value);
+        return;
+      }
+
+      // Last exercise of the group for this round.
+      const groupHasMoreSets = exercises.value
+        .slice(group.start, group.end + 1)
+        .some((member) => setIndex.value + 1 < (Number(member.series) || 0));
+
+      if (groupHasMoreSets) {
+        startRest({ returnToExerciseIndex: group.start });
+        return;
+      }
+
+      const nextIndex = group.end + 1;
+      if (nextIndex < exercises.value.length) {
+        goToExercise(nextIndex, 0);
+        return;
+      }
+
+      cancelTimer();
+      phase.value = 'finished';
+      return;
+    }
+
+    // Ungrouped / singleton: Feature 028 linear behavior.
     if (!isLastSetOfExercise.value) {
       startRest();
       return;
     }
 
     if (!isLastExercise.value) {
-      exerciseIndex.value += 1;
-      setIndex.value = 0;
-      phase.value = 'working';
-      syncInputDefaults();
+      goToExercise(exerciseIndex.value + 1, 0);
       return;
     }
 
@@ -164,6 +262,7 @@ export function useWorkoutSession(options = {}) {
     logs.value = [];
     startedAt.value = null;
     restDuration.value = defaultRestSeconds;
+    restReturnExerciseIndex.value = null;
   }
 
   onUnmounted(() => {
@@ -187,6 +286,8 @@ export function useWorkoutSession(options = {}) {
     totalSets,
     progressLabel,
     restDuration,
+    currentSupersetGroup,
+    exercises,
     start,
     completeSet,
     skipRest,
