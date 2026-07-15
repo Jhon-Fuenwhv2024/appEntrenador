@@ -1,8 +1,8 @@
 # 031 · Tasks
 
-- [ ] Crear SDD
-- [ ] DDL: Tabla `nutrition_plans`
-- [ ] Backend: Endpoints CRUD de nutrición
-- [ ] Frontend: UI Entrenador (Asignar macros)
-- [ ] Frontend: UI Cliente (Ver macros en Dashboard)
-- [ ] Validar build
+- [x] Crear SDD
+- [x] DDL: Tabla `nutrition_targets` (migración `014` + `script_db.sql`)
+- [x] Backend: Endpoints GET/PUT `/api/nutrition/:clientId`
+- [x] Frontend: UI Entrenador (Asignar macros en ficha)
+- [x] Frontend: UI Cliente (Ver macros en Dashboard)
+- [x] Validar build

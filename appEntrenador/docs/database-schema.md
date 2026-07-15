@@ -21,6 +21,8 @@ erDiagram
   routine_templates ||--o{ template_exercises : "contiene"
   usuarios ||--o{ body_composition_logs : "client_id"
   usuarios ||--o{ body_composition_logs : "recorded_by"
+  usuarios ||--o| nutrition_targets : "client_id"
+  usuarios ||--o{ nutrition_targets : "trainer_id"
 
   usuarios {
     int id PK
@@ -221,6 +223,18 @@ Migración: [`backend/db/migrations/011_notifications.sql`](../backend/db/migrat
 cd backend
 npm run db:create-notifications
 # o: node scripts/createNotificationsTable.js
+```
+
+### `nutrition_targets` (Feature 031)
+
+Objetivo nutricional diario 1:1 con el cliente (`UNIQUE client_id`). Campos: `calories`, `protein_g`, `carbs_g`, `fats_g` (INT positivos). `trainer_id` = entrenador que asignó.
+
+Migración: [`backend/db/migrations/014_nutrition_targets.sql`](../backend/db/migrations/014_nutrition_targets.sql).
+
+```bash
+cd backend
+npm run db:create-nutrition-targets
+# o: node scripts/createNutritionTargetsTable.js
 ```
 
 ## Seed del catálogo

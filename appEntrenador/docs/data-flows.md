@@ -75,6 +75,13 @@
 4. Ownership: trainer solo alumnos con `usuarios.trainer_id = req.user.id`; `recorded_by` = trainer autenticado.
 5. Cliente en **Mi progreso** (`/client/progress`) llama `GET /me/body-composition` — solo lectura, sin UI de escritura.
 
+## Objetivos nutricionales (Feature 031)
+
+1. Trainer en la ficha del alumno (`NutritionTargetsPanel`) carga `GET /nutrition/:clientId` (404 = formulario vacío).
+2. Al editar macros (g), el frontend recalcula calorías con factores Atwater (FDA 21 CFR 101.9): P×4 + C×4 + F×9 kcal; el trainer puede sobrescribir `calories` a mano.
+3. `PUT /nutrition/:clientId` hace UPSERT 1:1 (`UNIQUE client_id`); solo trainer dueño; valida enteros positivos.
+4. Cliente en dashboard ve `MacroSummaryCard` vía el mismo `GET` con su `userId`; empty state si 404.
+
 ## Visualización de progreso / gráficas (Feature 027)
 
 1. Cliente (pestaña **Gráficas** en Mi progreso) o trainer (pestaña **Gráficas** en la ficha) llama:

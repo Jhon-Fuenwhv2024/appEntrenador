@@ -12,6 +12,7 @@
     "db:create-trainers-info": "node scripts/createTrainersInfoTable.js",
     "db:create-body-composition": "node scripts/createBodyCompositionTable.js",
     "db:create-notifications": "node scripts/createNotificationsTable.js",
+    "db:create-nutrition-targets": "node scripts/createNutritionTargetsTable.js",
     "db:add-rest-time": "node scripts/addRestTimeSeconds.js",
     "db:add-superset-letter": "node scripts/addSupersetLetter.js",
     "seed:exercises": "node scripts/seedExercises.js"

@@ -589,3 +589,46 @@ Marca una notificación propia como leída.
 ### `PUT /notifications/read-all`
 
 Marca todas las del usuario autenticado como leídas.
+
+## Nutrición / objetivos diarios (Feature 031)
+
+Tabla `nutrition_targets` (relación 1:1 con el cliente vía `UNIQUE(client_id)`). Macros y calorías en enteros positivos.
+
+### `GET /nutrition/:clientId`
+
+Devuelve el objetivo actual. Autorizado si:
+- el usuario es **trainer** dueño del cliente (`usuarios.trainer_id`), o
+- el usuario es el **cliente** (`req.user.id === clientId`).
+
+`404` si aún no hay plan asignado.
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "client_id": 12,
+    "trainer_id": 3,
+    "calories": 2200,
+    "protein_g": 160,
+    "carbs_g": 220,
+    "fats_g": 70,
+    "created_at": "...",
+    "updated_at": "..."
+  }
+}
+```
+
+### `PUT /nutrition/:clientId` (trainer)
+
+UPSERT del objetivo. Solo el trainer dueño. Body obligatorio (enteros positivos):
+
+```json
+{
+  "calories": 2200,
+  "protein_g": 160,
+  "carbs_g": 220,
+  "fats_g": 70
+}
+```
+

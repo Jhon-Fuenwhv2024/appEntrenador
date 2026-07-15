@@ -22,6 +22,7 @@ import {
 import { createTemplate } from './api/templatesApi.js';
 import { getClientWorkoutSessions } from './api/workoutSessionsApi.js';
 import BodyCompositionPanel from './components/BodyCompositionPanel.vue';
+import NutritionTargetsPanel from './components/NutritionTargetsPanel.vue';
 
 const ProgressChartsPanel = defineAsyncComponent(() => (
   import('../../shared/components/ProgressChartsPanel.vue')
@@ -784,6 +785,11 @@ onMounted(() => {
 
             <!-- Columna lateral: composición + sesiones -->
             <aside class="ficha-col ficha-col--side">
+              <NutritionTargetsPanel
+                :client-id="clientId"
+                @notify="({ text, color }) => showNotification(text, color)"
+              />
+
               <BodyCompositionPanel
                 :client-id="clientId"
                 @notify="({ text, color }) => showNotification(text, color)"
@@ -1183,8 +1189,13 @@ onMounted(() => {
   min-width: 0;
 }
 
-/* BodyCompositionPanel ya trae margen; en columna lateral lo anulamos */
+/* NutritionTargetsPanel / BodyCompositionPanel: margen en columna lateral */
+.ficha-col--side :deep(.ntp),
 .ficha-col--side :deep(.bcp) {
   margin-top: 0;
+}
+
+.ficha-col--side :deep(.bcp) {
+  margin-top: 0.75rem;
 }
 </style>
