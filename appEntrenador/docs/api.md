@@ -632,3 +632,43 @@ UPSERT del objetivo. Solo el trainer dueño. Body obligatorio (enteros positivos
 }
 ```
 
+## Hábitos diarios (Feature 032)
+
+Tablas `habits` + `habit_logs`. Las fechas de completado (`logged_date`) son **cadenas civiles `YYYY-MM-DD`** enviadas por el cliente según su zona local. El backend las valida y las guarda como `DATE` sin convertir a UTC.
+
+### `GET /habits/client/:clientId` (trainer)
+
+Lista hábitos del alumno. Solo el trainer dueño.
+
+### `POST /habits/client/:clientId` (trainer)
+
+Crea hábito. Body: `{ "title": "Beber 2L de agua" }`.
+
+### `DELETE /habits/:id` (trainer)
+
+Elimina el hábito (cascade de logs). Solo el trainer dueño.
+
+### `GET /habits/today?date=YYYY-MM-DD` (client)
+
+Hábitos del cliente autenticado con `is_completed` para esa fecha exacta.
+
+```json
+{
+  "success": true,
+  "data": [
+    { "id": 1, "title": "Beber 2L de agua", "is_completed": false }
+  ]
+}
+```
+
+### `POST /habits/:id/toggle` (client)
+
+Body: `{ "date": "2026-07-15" }`. Si existe el log, lo borra (`completed: false`); si no, lo inserta (`completed: true`).
+
+```json
+{
+  "success": true,
+  "data": { "completed": true, "date": "2026-07-15" }
+}
+```
+

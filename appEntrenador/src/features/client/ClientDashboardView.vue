@@ -10,6 +10,7 @@ import { resolveAvatarSrc } from '../../shared/utils/avatar.js';
 import NotificationBadge from '../../components/notifications/NotificationBadge.vue';
 import { getMyRoutines } from './api/routinesApi.js';
 import MacroSummaryCard from './components/MacroSummaryCard.vue';
+import DailyHabitsChecklist from './components/DailyHabitsChecklist.vue';
 
 const DAY_ORDER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -152,6 +153,8 @@ onMounted(() => {
           :client-id="userId"
           class="mb-6"
         />
+
+        <DailyHabitsChecklist />
 
         <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-6" />
 

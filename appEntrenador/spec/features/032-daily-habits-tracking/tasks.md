@@ -1,8 +1,8 @@
 # 032 · Tasks
 
-- [ ] Crear SDD
-- [ ] DDL: Tablas `habits` y `habit_logs`
-- [ ] Backend: Endpoints de hábitos
-- [ ] Frontend: UI Entrenador (Configuración)
-- [ ] Frontend: UI Cliente (Checklist diario)
-- [ ] Validar build
+- [x] Crear SDD
+- [x] DDL: Tablas `habits` y `habit_logs`
+- [x] Backend: Endpoints de hábitos
+- [x] Frontend: UI Entrenador (Configuración)
+- [x] Frontend: UI Cliente (Checklist diario)
+- [x] Validar build

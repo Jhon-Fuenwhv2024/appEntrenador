@@ -17,8 +17,10 @@ const bodyCompositionRoutes = require('./modules/body-composition/body-compositi
 const progressRoutes = require('./modules/progress/progress.routes');
 const notificationsRoutes = require('./modules/notifications/notifications.routes');
 const nutritionRoutes = require('./modules/nutrition/nutrition.routes');
+const habitsRoutes = require('./modules/habits/habits.routes');
 const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
 const { ensureNotificationsTable } = require('./db/ensureNotificationsTable');
+const { ensureHabitsTables } = require('./db/ensureHabitsTables');
 
 const app = express();
 
@@ -41,12 +43,19 @@ app.use('/api', bodyCompositionRoutes);
 app.use('/api', progressRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api', nutritionRoutes);
+app.use('/api', habitsRoutes);
 
 async function start() {
   try {
     await ensureNotificationsTable();
   } catch (error) {
     console.error('No se pudo asegurar la tabla notifications:', error.message);
+  }
+
+  try {
+    await ensureHabitsTables();
+  } catch (error) {
+    console.error('No se pudo asegurar las tablas de hábitos:', error.message);
   }
 
   app.listen(PORT, () => {
