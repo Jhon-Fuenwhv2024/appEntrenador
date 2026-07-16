@@ -134,7 +134,7 @@ erDiagram
 
 Login y ownership trainer↔cliente. `rol`: `trainer` | `client`. Los clientes pueden tener `trainer_id` apuntando a su entrenador.
 
-**Feature 036:** `is_superadmin BOOLEAN NOT NULL DEFAULT FALSE` — flag oculto de dueño/plataforma (JWT + `GET /me/account`). Migración: [`backend/db/migrations/018_saas_superadmin_and_plans.sql`](../backend/db/migrations/018_saas_superadmin_and_plans.sql).
+**Feature 036:** `is_superadmin BOOLEAN NOT NULL DEFAULT FALSE` — flag oculto de dueño/plataforma (JWT + `GET /me/account`). Migración: [`backend/db/migrations/018_saas_superadmin_and_plans.sql`](../backend/db/migrations/018_saas_superadmin_and_plans.sql). Aplicar en DBs existentes: `npm run db:add-saas-plans` (desde `backend/`). También se asegura al arrancar el server (`ensureSaasColumns`).
 
 ### `alumnos_info`
 

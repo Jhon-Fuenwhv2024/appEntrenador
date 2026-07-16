@@ -27,6 +27,7 @@ const { ensureNotificationsTable } = require('./db/ensureNotificationsTable');
 const { ensureHabitsTables } = require('./db/ensureHabitsTables');
 const { ensureCheckinsTables } = require('./db/ensureCheckinsTables');
 const { ensureMessagesTable } = require('./db/ensureMessagesTable');
+const { ensureSaasColumns } = require('./db/ensureSaasColumns');
 
 const app = express();
 
@@ -78,6 +79,12 @@ async function start() {
     await ensureMessagesTable();
   } catch (error) {
     console.error('No se pudo asegurar la tabla messages:', error.message);
+  }
+
+  try {
+    await ensureSaasColumns();
+  } catch (error) {
+    console.error('No se pudieron asegurar las columnas SaaS:', error.message);
   }
 
   app.listen(PORT, () => {
