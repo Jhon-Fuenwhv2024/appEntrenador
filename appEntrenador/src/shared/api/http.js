@@ -66,4 +66,9 @@ export function getApiErrorMessage(error, fallback = 'Error de conexión con el 
     || fallback;
 }
 
+/** True si el backend respondió 402 (límite FREE / paywall SaaS). */
+export function isPaymentRequiredError(error) {
+  return Number(error?.response?.status || error?.normalized?.code) === 402;
+}
+
 export default http;

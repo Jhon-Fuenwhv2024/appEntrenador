@@ -18,6 +18,10 @@ function normalizeFotoUrl(value) {
   return trimmed;
 }
 
+function toBool(value) {
+  return value === true || value === 1 || value === '1';
+}
+
 function signToken(user) {
   return jwt.sign(
     {
@@ -25,6 +29,7 @@ function signToken(user) {
       username: user.username,
       nombre: user.nombre,
       rol: user.rol,
+      is_superadmin: user.is_superadmin === true,
     },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN },
@@ -38,7 +43,7 @@ function resolveAvatarPublicUrl(file) {
 
 async function loadUserRow(userId) {
   const [rows] = await db.query(
-    `SELECT id, username, nombre, rol
+    `SELECT id, username, nombre, rol, is_superadmin
      FROM usuarios
      WHERE id = ?
      LIMIT 1`,
@@ -57,6 +62,7 @@ async function getMyAccount(userId) {
     username: user.username,
     nombre: user.nombre,
     rol: user.rol,
+    is_superadmin: toBool(user.is_superadmin),
     telefono: null,
     foto_url: null,
   };
@@ -196,6 +202,7 @@ async function updateMyAccount(userId, body = {}, uploadedFile = null) {
       username: account.username,
       nombre: account.nombre,
       rol: account.rol,
+      is_superadmin: account.is_superadmin === true,
     }),
   };
 }

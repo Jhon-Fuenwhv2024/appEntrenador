@@ -31,11 +31,14 @@ Respuesta exitosa:
     "id": 1,
     "username": "usuario",
     "nombre": "Nombre",
-    "rol": "trainer"
+    "rol": "trainer",
+    "is_superadmin": false
   },
   "token": "<jwt>"
 }
 ```
+
+El JWT incluye el claim `is_superadmin` (boolean). No es un tercer rol: los roles siguen siendo `trainer` | `client`.
 
 ### `POST /register`
 
@@ -73,6 +76,16 @@ Genera una invitación `pending` vinculada al trainer autenticado.
 
 Headers: `Authorization: Bearer <token>`
 
+Middleware adicional (Feature 037): `checkTrainerLimits`. Si el trainer está en plan `FREE` y ya tiene **≥ 3** slots (alumnos registrados + invitaciones `pending`), responde `402`:
+
+```json
+{
+  "success": false,
+  "error": "LIMIT_EXCEEDED",
+  "message": "Límite de clientes alcanzado en plan gratuito. Actualiza a PRO."
+}
+```
+
 Respuesta exitosa (`201`):
 
 ```json
@@ -102,6 +115,29 @@ Respuesta `data`: array de `{ id, token, status, trainer_id, fecha_creacion, lin
 Cambia a `revoked` solo si estaba `pending` y pertenece al trainer.
 
 Errores: `404` no encontrada / sin ownership; `400` si no está pendiente.
+
+## SaaS / SuperAdmin (Feature 037)
+
+Base: `/api/saas`. Requiere JWT + `req.user.is_superadmin === true` (`requireSuperAdmin`). Sin el flag: `403 FORBIDDEN`.
+
+### `GET /api/saas/trainers`
+
+Lista todos los trainers con `saas_plan`, `saas_expiration_date` y `client_count` (alumnos + invites pending).
+
+### `PUT /api/saas/trainers/:id/plan`
+
+Body:
+
+```json
+{
+  "saas_plan": "PRO",
+  "saas_expiration_date": "2026-12-31"
+}
+```
+
+`saas_plan`: `FREE` | `PRO`. `saas_expiration_date`: `YYYY-MM-DD` o `null`. UPSERT en `trainers_info`.
+
+UI: `/backoffice` (solo si `is_superadmin` en sesión).
 
 ## Clientes (trainer + JWT)
 

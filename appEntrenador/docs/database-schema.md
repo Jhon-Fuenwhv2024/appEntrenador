@@ -36,6 +36,7 @@ erDiagram
     string nombre
     enum rol
     int trainer_id FK
+    boolean is_superadmin
   }
 
   alumnos_info {
@@ -131,7 +132,7 @@ erDiagram
 
 ### `usuarios`
 
-Login y ownership trainer↔cliente. `rol`: `trainer` | `client`. Los clientes pueden tener `trainer_id` apuntando a su entrenador.
+Login y ownership trainer↔cliente. `rol`: `trainer` | `client`. Los clientes pueden tener `trainer_id` apuntando a su entrenador. `is_superadmin` (BOOLEAN, default FALSE) es el flag de dueño de plataforma (Feature 037); no es un tercer rol.
 
 ### `alumnos_info`
 
@@ -139,7 +140,7 @@ Perfil extendido del alumno (Feature 020). Relación 1:1 con `usuarios` vía `us
 
 ### `trainers_info`
 
-Perfil extendido del entrenador (Feature 024). Relación 1:1 con `usuarios` vía `user_id` (UNIQUE). Campos: `telefono`, `foto_url`. El nombre sigue en `usuarios.nombre`.
+Perfil extendido del entrenador (Feature 024 + 037). Relación 1:1 con `usuarios` vía `user_id` (UNIQUE). Campos: `telefono`, `foto_url`, `saas_plan` (`FREE`|`PRO`, default `FREE`), `saas_expiration_date` (DATE NULL). El nombre sigue en `usuarios.nombre`.
 
 ### `rutinas`
 

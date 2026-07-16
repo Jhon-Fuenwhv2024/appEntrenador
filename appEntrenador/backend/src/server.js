@@ -20,12 +20,14 @@ const nutritionRoutes = require('./modules/nutrition/nutrition.routes');
 const habitsRoutes = require('./modules/habits/habits.routes');
 const checkinsRoutes = require('./modules/checkins/checkins.routes');
 const messagesRoutes = require('./modules/messages/messages.routes');
+const saasRoutes = require('./modules/saas/saas.routes');
 const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
 const { ensurePhotosDir } = require('./middleware/uploadProgressPhotos');
 const { ensureNotificationsTable } = require('./db/ensureNotificationsTable');
 const { ensureHabitsTables } = require('./db/ensureHabitsTables');
 const { ensureCheckinsTables } = require('./db/ensureCheckinsTables');
 const { ensureMessagesTable } = require('./db/ensureMessagesTable');
+const { ensureSaasColumns } = require('./db/ensureSaasColumns');
 
 const app = express();
 
@@ -52,8 +54,15 @@ app.use('/api', nutritionRoutes);
 app.use('/api', habitsRoutes);
 app.use('/api', checkinsRoutes);
 app.use('/api/messages', messagesRoutes);
+app.use('/api/saas', saasRoutes);
 
 async function start() {
+  try {
+    await ensureSaasColumns();
+  } catch (error) {
+    console.error('No se pudieron asegurar las columnas SaaS:', error.message);
+  }
+
   try {
     await ensureNotificationsTable();
   } catch (error) {

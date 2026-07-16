@@ -1,7 +1,8 @@
 <script setup>
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import AppLogo from '../../components/AppLogo.vue';
-import { clearSession } from '../auth/session.js';
+import { clearSession, getSessionUser } from '../auth/session.js';
 import AppBottomNav from './AppBottomNav.vue';
 
 const props = defineProps({
@@ -10,7 +11,7 @@ const props = defineProps({
     required: true,
     validator: (value) => ['trainer', 'client'].includes(value),
   },
-  /** Active nav key: dashboard | clients | messages | library | settings | progress | profile */
+  /** Active nav key: dashboard | clients | messages | library | settings | progress | profile | saas */
   active: {
     type: String,
     default: 'dashboard',
@@ -23,6 +24,8 @@ const props = defineProps({
 });
 
 const router = useRouter();
+
+const isSuperAdmin = computed(() => getSessionUser()?.is_superadmin === true);
 
 const handleLogout = () => {
   clearSession();
@@ -90,6 +93,16 @@ const go = (path) => {
           @click="go('/trainer/settings')"
         >
           <v-icon icon="mdi-cog-outline" size="24" />
+        </button>
+        <button
+          v-if="isSuperAdmin"
+          type="button"
+          class="nav-item"
+          :class="{ active: active === 'saas' }"
+          title="Panel SaaS"
+          @click="go('/backoffice')"
+        >
+          <v-icon icon="mdi-shield-crown" size="24" />
         </button>
       </template>
 

@@ -2,7 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, reactive, shallowRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getMyAccount } from '../../shared/api/accountApi.js';
-import { getApiErrorMessage } from '../../shared/api/http.js';
+import { getApiErrorMessage, isPaymentRequiredError } from '../../shared/api/http.js';
 import { clearSession } from '../../shared/auth/session.js';
 import { resolveAvatarSrc } from '../../shared/utils/avatar.js';
 import AppShell from '../../shared/layout/AppShell.vue';
@@ -15,6 +15,8 @@ import NotificationBadge from '../../components/notifications/NotificationBadge.
 
 /** Tiempo que el link permanece visible antes de ocultarse solo. */
 const INVITE_LINK_VISIBLE_MS = 60_000;
+const PAYWALL_MESSAGE =
+  'Has alcanzado el límite de 3 alumnos de tu plan gratuito. Contacta al soporte para actualizar a PRO y seguir creciendo.';
 
 const router = useRouter();
 const route = useRoute();
@@ -23,6 +25,7 @@ const userName = shallowRef('');
 const fotoUrl = shallowRef(null);
 const invitationLink = shallowRef('');
 const isGeneratingInvitation = shallowRef(false);
+const paywallOpen = shallowRef(false);
 const dashboardStats = reactive({
   clientsCount: 0,
   routinesCount: 0,
@@ -140,6 +143,10 @@ const handleGenerateInvite = async () => {
     );
   } catch (error) {
     console.error('Error al generar invitación:', error);
+    if (isPaymentRequiredError(error)) {
+      paywallOpen.value = true;
+      return;
+    }
     showNotification(getApiErrorMessage(error, 'Error al generar'), 'error');
   } finally {
     isGeneratingInvitation.value = false;
@@ -250,6 +257,24 @@ onUnmounted(() => {
       </div>
     </main>
   </AppShell>
+
+  <v-dialog v-model="paywallOpen" max-width="440">
+    <v-card color="surface">
+      <v-card-title class="text-h6 d-flex align-center ga-2">
+        <v-icon icon="mdi-lock-outline" color="warning" />
+        Límite del plan gratuito
+      </v-card-title>
+      <v-card-text>
+        {{ PAYWALL_MESSAGE }}
+      </v-card-text>
+      <v-card-actions class="pa-4 pt-0">
+        <v-spacer />
+        <v-btn color="primary" @click="paywallOpen = false">
+          Entendido
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 
   <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top">
     {{ snackbar.text }}

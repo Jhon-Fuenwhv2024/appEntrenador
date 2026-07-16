@@ -55,6 +55,7 @@ Orden acordado con IA de nav trainer: **Inicio · Alumnos · Biblioteca · Ajust
 9. **034 · Mensajería Interna (Chat MVP)** — Chat directo entre entrenador y alumnos.
 10. **035 · Dashboard Analítico del Entrenador** — KPIs de negocio (ingresos, retención, actividad).
 11. **036 · Gestión de Pagos / Control de Suscripciones** — Control de morosidad y bloqueo manual de acceso a rutinas.
+12. **037 · Motor SaaS B2B y Panel SuperAdmin** — Flag `is_superadmin`, planes FREE/PRO, `/backoffice`, paywall en invites (Fase 1).
 
 ## Backlog / ideas futuras
 

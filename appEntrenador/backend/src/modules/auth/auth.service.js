@@ -10,6 +10,10 @@ function createHttpError(message, code) {
   return error;
 }
 
+function toBool(value) {
+  return value === true || value === 1 || value === '1';
+}
+
 function signToken(user) {
   return jwt.sign(
     {
@@ -17,6 +21,7 @@ function signToken(user) {
       username: user.username,
       nombre: user.nombre,
       rol: user.rol,
+      is_superadmin: user.is_superadmin === true,
     },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN },
@@ -25,7 +30,7 @@ function signToken(user) {
 
 async function login({ username, password }) {
   const [rows] = await db.query(
-    'SELECT id, username, nombre, rol, password FROM usuarios WHERE username = ?',
+    'SELECT id, username, nombre, rol, password, is_superadmin FROM usuarios WHERE username = ?',
     [username],
   );
 
@@ -45,6 +50,7 @@ async function login({ username, password }) {
     username: user.username,
     nombre: user.nombre,
     rol: user.rol,
+    is_superadmin: toBool(user.is_superadmin),
   };
 
   return {

@@ -5,8 +5,11 @@
  */
 import { computed, onMounted, ref, shallowRef } from 'vue';
 import { useDisplay } from 'vuetify';
-import { getApiErrorMessage } from '../../../shared/api/http.js';
+import { getApiErrorMessage, isPaymentRequiredError } from '../../../shared/api/http.js';
 import { createInvite, listInvites, revokeInvite } from '../api/invitationsApi.js';
+
+const PAYWALL_MESSAGE =
+  'Has alcanzado el límite de 3 alumnos de tu plan gratuito. Contacta al soporte para actualizar a PRO y seguir creciendo.';
 
 const emit = defineEmits(['notify']);
 
@@ -17,6 +20,7 @@ const creating = shallowRef(false);
 const revokingId = shallowRef(null);
 const invites = ref([]);
 const lastCreatedLink = shallowRef('');
+const paywallOpen = shallowRef(false);
 
 const STATUS_META = {
   pending: { label: 'Pendiente', color: 'warning' },
@@ -97,6 +101,10 @@ const handleCreate = async () => {
     );
   } catch (error) {
     console.error('Error al generar invitación:', error);
+    if (isPaymentRequiredError(error)) {
+      paywallOpen.value = true;
+      return;
+    }
     notify(getApiErrorMessage(error, 'Error al generar invitación'), 'error');
   } finally {
     creating.value = false;
@@ -299,6 +307,24 @@ onMounted(() => {
         </tbody>
       </v-table>
     </div>
+
+    <v-dialog v-model="paywallOpen" max-width="440">
+      <v-card color="surface">
+        <v-card-title class="text-h6 d-flex align-center ga-2">
+          <v-icon icon="mdi-lock-outline" color="warning" />
+          Límite del plan gratuito
+        </v-card-title>
+        <v-card-text>
+          {{ PAYWALL_MESSAGE }}
+        </v-card-text>
+        <v-card-actions class="pa-4 pt-0">
+          <v-spacer />
+          <v-btn color="primary" @click="paywallOpen = false">
+            Entendido
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
