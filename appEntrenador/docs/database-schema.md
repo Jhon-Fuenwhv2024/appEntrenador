@@ -23,6 +23,9 @@ erDiagram
   usuarios ||--o{ body_composition_logs : "recorded_by"
   usuarios ||--o| nutrition_targets : "client_id"
   usuarios ||--o{ nutrition_targets : "trainer_id"
+  usuarios ||--o{ weekly_checkins : "client_id"
+  weekly_checkins ||--o{ progress_photos : "checkin_id"
+  usuarios ||--o{ progress_photos : "client_id"
 
   usuarios {
     int id PK
@@ -235,6 +238,17 @@ Migración: [`backend/db/migrations/014_nutrition_targets.sql`](../backend/db/mi
 cd backend
 npm run db:create-nutrition-targets
 # o: node scripts/createNutritionTargetsTable.js
+```
+
+### `weekly_checkins` + `progress_photos` (Feature 033)
+
+Check-in semanal de biofeedback (sueño / estrés / dieta, escala 1–5) y fotos opcionales (`pose_type`: `front` | `side` | `back`). `checkin_id` en fotos es nullable (`ON DELETE SET NULL`). Fechas `created_at` / `taken_at` como `DATE` civil.
+
+Migración: [`backend/db/migrations/016_weekly_checkins_progress_photos.sql`](../backend/db/migrations/016_weekly_checkins_progress_photos.sql). Al arrancar, `ensureCheckinsTables` aplica `CREATE TABLE IF NOT EXISTS`. Archivos en `backend/public/uploads/photos`.
+
+```bash
+cd backend
+npm run test:feature-033
 ```
 
 ## Seed del catálogo

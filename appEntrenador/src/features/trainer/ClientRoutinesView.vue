@@ -22,6 +22,7 @@ import {
 import { createTemplate } from './api/templatesApi.js';
 import { getClientWorkoutSessions } from './api/workoutSessionsApi.js';
 import BodyCompositionPanel from './components/BodyCompositionPanel.vue';
+import CheckinsHistoryPanel from './components/CheckinsHistoryPanel.vue';
 import DailyHabitsPanel from './components/DailyHabitsPanel.vue';
 import NutritionTargetsPanel from './components/NutritionTargetsPanel.vue';
 
@@ -465,6 +466,10 @@ onMounted(() => {
             class="ficha-tabs mb-3"
           >
             <v-tab value="ficha">Ficha</v-tab>
+            <v-tab value="checkins">
+              <v-icon icon="mdi-clipboard-pulse-outline" start size="18" />
+              Check-ins
+            </v-tab>
             <v-tab value="graficas">
               <v-icon icon="mdi-chart-line" start size="18" />
               Gráficas
@@ -815,6 +820,16 @@ onMounted(() => {
             </aside>
           </div>
           </template>
+
+          <section
+            v-else-if="fichaTab === 'checkins'"
+            class="ficha-panel checkins-tab-panel"
+          >
+            <CheckinsHistoryPanel
+              :client-id="clientId"
+              @notify="({ text, color }) => showNotification(text, color)"
+            />
+          </section>
 
           <ProgressChartsPanel
             v-else

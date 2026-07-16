@@ -672,3 +672,61 @@ Body: `{ "date": "2026-07-15" }`. Si existe el log, lo borra (`completed: false`
 }
 ```
 
+## Check-in semanal y fotos de progreso (Feature 033)
+
+Tablas `weekly_checkins` + `progress_photos`. Fotos opcionales (JPG/PNG, máx. 5 MB). Almacenamiento local en `backend/public/uploads/photos`, servido en `/uploads/photos/...`.
+
+### `POST /checkins` (client)
+
+`multipart/form-data`. Campos: `sleep_quality`, `stress_level`, `diet_adherence` (enteros 1–5), `notes` (opcional), `created_at` (opcional, `YYYY-MM-DD`; por defecto hoy local). Archivos opcionales: `front`, `side`, `back`.
+
+Respuesta (`201`):
+
+```json
+{
+  "success": true,
+  "message": "Check-in registrado",
+  "data": {
+    "id": 1,
+    "client_id": 5,
+    "created_at": "2026-07-15",
+    "sleep_quality": 4,
+    "stress_level": 2,
+    "diet_adherence": 5,
+    "notes": "Me siento bien",
+    "photos": [
+      {
+        "id": 1,
+        "client_id": 5,
+        "checkin_id": 1,
+        "image_url": "/uploads/photos/client_5_front_….jpg",
+        "pose_type": "front",
+        "taken_at": "2026-07-15"
+      }
+    ]
+  }
+}
+```
+
+### `GET /checkins/client/:clientId` (trainer | client)
+
+Historial cronológico con fotos asociadas. Trainer: solo alumnos propios. Client: solo su propio `clientId`.
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "client_id": 5,
+      "created_at": "2026-07-15",
+      "sleep_quality": 4,
+      "stress_level": 2,
+      "diet_adherence": 5,
+      "notes": null,
+      "photos": []
+    }
+  ]
+}
+```
+

@@ -2,7 +2,7 @@
 /**
  * Client "Mi progreso" — resumen (entrenamientos + composición) y pestaña Gráficas.
  */
-import { computed, defineAsyncComponent, onMounted, shallowRef } from 'vue';
+import { computed, defineAsyncComponent, onMounted, ref, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
@@ -10,6 +10,7 @@ import AppShell from '../../shared/layout/AppShell.vue';
 import WorkoutSessionHistoryList from '../../shared/components/WorkoutSessionHistoryList.vue';
 import { getMyWorkoutSessions } from './api/workoutSessionsApi.js';
 import BodyCompositionReadOnly from './components/BodyCompositionReadOnly.vue';
+import WeeklyCheckinDialog from './components/WeeklyCheckinDialog.vue';
 
 const ProgressChartsPanel = defineAsyncComponent(() => (
   import('../../shared/components/ProgressChartsPanel.vue')
@@ -22,6 +23,26 @@ const loadError = shallowRef('');
 const sessions = shallowRef([]);
 const activeTab = shallowRef('resumen');
 const clientId = shallowRef(null);
+const checkinDialogOpen = shallowRef(false);
+const snackbar = ref(false);
+const snackbarText = shallowRef('');
+const snackbarColor = shallowRef('success');
+
+function openCheckinDialog() {
+  checkinDialogOpen.value = true;
+}
+
+function onCheckinSubmitted() {
+  snackbarText.value = 'Check-in enviado. ¡Gracias!';
+  snackbarColor.value = 'success';
+  snackbar.value = true;
+}
+
+function onCheckinError(message) {
+  snackbarText.value = message || 'No se pudo enviar el check-in';
+  snackbarColor.value = 'error';
+  snackbar.value = true;
+}
 
 const completedCount = computed(() => (
   sessions.value.filter((s) => s.status === 'completed').length
@@ -120,6 +141,24 @@ onMounted(() => {
             </template>
           </v-alert>
 
+          <section class="progress-panel progress-checkin-cta mb-3">
+            <div class="progress-checkin-cta__body">
+              <div>
+                <h2 class="progress-panel__title">Check-in semanal</h2>
+                <p class="progress-panel__hint">
+                  Sueño, estrés y dieta en 30 segundos · fotos opcionales
+                </p>
+              </div>
+              <v-btn
+                color="primary"
+                prepend-icon="mdi-clipboard-check-outline"
+                @click="openCheckinDialog"
+              >
+                Hacer Check-in Semanal
+              </v-btn>
+            </div>
+          </section>
+
           <div class="progress-grid">
             <section class="progress-panel">
               <div class="progress-panel__head">
@@ -147,6 +186,16 @@ onMounted(() => {
         />
       </div>
     </main>
+
+    <WeeklyCheckinDialog
+      v-model="checkinDialogOpen"
+      @submitted="onCheckinSubmitted"
+      @error="onCheckinError"
+    />
+
+    <v-snackbar v-model="snackbar" :color="snackbarColor" timeout="3500">
+      {{ snackbarText }}
+    </v-snackbar>
   </AppShell>
 </template>
 
@@ -244,5 +293,13 @@ onMounted(() => {
   padding: 0;
   background: transparent;
   border: 0;
+}
+
+.progress-checkin-cta__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 </style>

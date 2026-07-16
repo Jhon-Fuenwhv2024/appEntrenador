@@ -1,9 +1,9 @@
 # 033 · Tasks
 
-- [ ] Crear SDD
-- [ ] DDL: Tablas fotos y check-ins
-- [ ] Backend: Configurar subida de archivos
-- [ ] Backend: Endpoints CRUD
-- [ ] Frontend: UI Cliente (Subir fotos y Check-in)
-- [ ] Frontend: UI Entrenador (Revisar progreso)
-- [ ] Validar build
+- [x] Crear SDD
+- [x] DDL: Tablas fotos y check-ins
+- [x] Backend: Configurar subida de archivos
+- [x] Backend: Endpoints CRUD
+- [x] Frontend: UI Cliente (Subir fotos y Check-in)
+- [x] Frontend: UI Entrenador (Revisar progreso)
+- [x] Validar build

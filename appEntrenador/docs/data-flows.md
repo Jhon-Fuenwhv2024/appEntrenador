@@ -82,6 +82,13 @@
 3. `PUT /nutrition/:clientId` hace UPSERT 1:1 (`UNIQUE client_id`); solo trainer dueño; valida enteros positivos.
 4. Cliente en dashboard ve `MacroSummaryCard` vía el mismo `GET` con su `userId`; empty state si 404.
 
+## Check-in semanal y fotos (Feature 033)
+
+1. Cliente en **Mi progreso** abre el modal **Hacer Check-in Semanal** (`WeeklyCheckinDialog`).
+2. Envía `POST /checkins` como `multipart/form-data` (ratings 1–5 + notas; fotos `front`/`side`/`back` opcionales, ≤5 MB).
+3. Backend (transacción): inserta `weekly_checkins` y, si hay archivos, filas en `progress_photos` con `image_url` bajo `/uploads/photos/…`.
+4. Trainer en la ficha del alumno (pestaña **Check-ins**) carga `GET /checkins/client/:clientId` y ve timeline + miniaturas ampliables.
+
 ## Visualización de progreso / gráficas (Feature 027)
 
 1. Cliente (pestaña **Gráficas** en Mi progreso) o trainer (pestaña **Gráficas** en la ficha) llama:
