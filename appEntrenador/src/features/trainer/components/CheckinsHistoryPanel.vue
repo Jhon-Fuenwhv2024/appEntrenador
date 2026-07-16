@@ -3,9 +3,9 @@
  * Historial de check-ins del alumno (vista entrenador).
  * Timeline + miniaturas con visor ampliado.
  */
-import { computed, onMounted, ref, shallowRef, watch } from 'vue';
-import { API_ORIGIN, getApiErrorMessage } from '../../../shared/api/http.js';
-import { getClientCheckins } from '../api/checkinsApi.js';
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import { getApiErrorMessage } from '../../../shared/api/http.js';
+import { getCheckinPhoto, getClientCheckins } from '../api/checkinsApi.js';
 
 const POSE_LABELS = {
   front: 'Frente',
@@ -29,6 +29,8 @@ const viewerOpen = shallowRef(false);
 const viewerSrc = shallowRef('');
 const viewerCaption = shallowRef('');
 const poseFilter = shallowRef('all');
+const photoObjectUrls = new Set();
+let loadGeneration = 0;
 
 const poseFilterItems = [
   { title: 'Todas las poses', value: 'all' },
@@ -37,14 +39,30 @@ const poseFilterItems = [
   { title: 'Espalda', value: 'back' },
 ];
 
-function resolvePhotoSrc(imageUrl) {
-  const url = typeof imageUrl === 'string' ? imageUrl.trim() : '';
-  if (!url) return '';
-  if (/^https?:\/\//i.test(url) || url.startsWith('blob:') || url.startsWith('data:')) {
-    return url;
+function revokePhotoObjectUrls() {
+  for (const url of photoObjectUrls) {
+    URL.revokeObjectURL(url);
   }
-  const path = url.startsWith('/') ? url : `/${url}`;
-  return `${API_ORIGIN}${path}`;
+  photoObjectUrls.clear();
+}
+
+async function loadProtectedPhotoUrls(items, generation) {
+  const photos = items.flatMap((item) => item.photos || []);
+  await Promise.all(photos.map(async (photo) => {
+    try {
+      const response = await getCheckinPhoto(photo.id);
+      const objectUrl = URL.createObjectURL(response.data);
+      if (generation !== loadGeneration) {
+        URL.revokeObjectURL(objectUrl);
+        return;
+      }
+      photoObjectUrls.add(objectUrl);
+      photo.display_url = objectUrl;
+    } catch (error) {
+      console.error(`Error cargando foto de check-in ${photo.id}:`, error);
+      photo.display_url = '';
+    }
+  }));
 }
 
 function formatDateLabel(isoDate) {
@@ -95,12 +113,22 @@ const emptyMessage = computed(() => {
 
 async function loadCheckins() {
   if (!props.clientId) return;
+  const generation = ++loadGeneration;
+  revokePhotoObjectUrls();
+  viewerOpen.value = false;
+  viewerSrc.value = '';
+
   try {
     loading.value = true;
     loadError.value = '';
     const response = await getClientCheckins(props.clientId);
-    checkins.value = response.data.data ?? [];
+    const items = response.data.data ?? [];
+    await loadProtectedPhotoUrls(items, generation);
+    if (generation === loadGeneration) {
+      checkins.value = items;
+    }
   } catch (error) {
+    if (generation !== loadGeneration) return;
     console.error('Error cargando check-ins:', error);
     const status = error?.response?.status || error?.normalized?.code;
     loadError.value = status === 404
@@ -109,12 +137,15 @@ async function loadCheckins() {
     checkins.value = [];
     emit('notify', { text: loadError.value, color: 'error' });
   } finally {
-    loading.value = false;
+    if (generation === loadGeneration) {
+      loading.value = false;
+    }
   }
 }
 
 function openViewer(photo) {
-  viewerSrc.value = resolvePhotoSrc(photo.image_url);
+  if (!photo.display_url) return;
+  viewerSrc.value = photo.display_url;
   viewerCaption.value = `${POSE_LABELS[photo.pose_type] || photo.pose_type} · ${formatDateLabel(photo.taken_at)}`;
   viewerOpen.value = true;
 }
@@ -124,9 +155,13 @@ watch(
   () => {
     loadCheckins();
   },
+  { immediate: true },
 );
 
-onMounted(loadCheckins);
+onBeforeUnmount(() => {
+  loadGeneration += 1;
+  revokePhotoObjectUrls();
+});
 
 defineExpose({ reload: loadCheckins });
 </script>
@@ -242,10 +277,12 @@ defineExpose({ reload: loadCheckins });
                 type="button"
                 class="checkin-thumb"
                 :title="POSE_LABELS[photo.pose_type] || photo.pose_type"
+                :disabled="!photo.display_url"
                 @click="openViewer(photo)"
               >
                 <img
-                  :src="resolvePhotoSrc(photo.image_url)"
+                  v-if="photo.display_url"
+                  :src="photo.display_url"
                   :alt="POSE_LABELS[photo.pose_type] || photo.pose_type"
                   loading="lazy"
                 >

@@ -11,6 +11,24 @@ function ensurePhotosDir() {
   fs.mkdirSync(PHOTOS_DIR, { recursive: true });
 }
 
+function cleanupProgressPhotoFiles(filesByField) {
+  if (!filesByField || typeof filesByField !== 'object') return;
+
+  for (const files of Object.values(filesByField)) {
+    if (!Array.isArray(files)) continue;
+    for (const file of files) {
+      if (!file?.path) continue;
+      try {
+        fs.unlinkSync(file.path);
+      } catch (error) {
+        if (error.code !== 'ENOENT') {
+          console.error('No se pudo limpiar una foto de progreso:', error.message);
+        }
+      }
+    }
+  }
+}
+
 const storage = multer.diskStorage({
   destination(_req, _file, cb) {
     try {
@@ -64,6 +82,8 @@ function uploadProgressPhotosMiddleware(req, res, next) {
   uploadProgressPhotos(req, res, (error) => {
     if (!error) return next();
 
+    cleanupProgressPhotoFiles(req.files);
+
     if (error instanceof multer.MulterError) {
       if (error.code === 'LIMIT_FILE_SIZE') {
         return res.status(400).json({
@@ -105,6 +125,7 @@ function resolvePhotoPublicUrl(filename) {
 
 module.exports = {
   uploadProgressPhotosMiddleware,
+  cleanupProgressPhotoFiles,
   ensurePhotosDir,
   PHOTOS_DIR,
   MAX_FILE_SIZE,

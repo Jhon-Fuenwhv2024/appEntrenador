@@ -246,11 +246,12 @@ npm run db:create-nutrition-targets
 
 Check-in semanal de biofeedback (sueño / estrés / dieta, escala 1–5) y fotos opcionales (`pose_type`: `front` | `side` | `back`). `checkin_id` en fotos es nullable (`ON DELETE SET NULL`). Fechas `created_at` / `taken_at` como `DATE` civil.
 
-Migración: [`backend/db/migrations/016_weekly_checkins_progress_photos.sql`](../backend/db/migrations/016_weekly_checkins_progress_photos.sql). Al arrancar, `ensureCheckinsTables` aplica `CREATE TABLE IF NOT EXISTS`. Archivos en `backend/public/uploads/photos`.
+Migración: [`backend/db/migrations/016_weekly_checkins_progress_photos.sql`](../backend/db/migrations/016_weekly_checkins_progress_photos.sql). Al arrancar, `ensureCheckinsTables` aplica `CREATE TABLE IF NOT EXISTS`. Archivos en `backend/public/uploads/photos`, sin exposición estática; `image_url` es un localizador interno y la lectura pública del API se transforma en `/api/checkins/photos/:photoId`.
 
 ```bash
 cd backend
 npm run test:feature-033
+npm run test:checkins-security
 ```
 
 ### `messages` (Feature 034)

@@ -674,7 +674,7 @@ Body: `{ "date": "2026-07-15" }`. Si existe el log, lo borra (`completed: false`
 
 ## Check-in semanal y fotos de progreso (Feature 033)
 
-Tablas `weekly_checkins` + `progress_photos`. Fotos opcionales (JPG/PNG, máx. 5 MB). Almacenamiento local en `backend/public/uploads/photos`, servido en `/uploads/photos/...`.
+Tablas `weekly_checkins` + `progress_photos`. Fotos opcionales (JPG/PNG, máx. 5 MB). Almacenamiento local en `backend/public/uploads/photos`; los archivos no son públicos y solo se descargan por un endpoint autenticado con validación de ownership.
 
 ### `POST /checkins` (client)
 
@@ -699,7 +699,7 @@ Respuesta (`201`):
         "id": 1,
         "client_id": 5,
         "checkin_id": 1,
-        "image_url": "/uploads/photos/client_5_front_….jpg",
+        "image_url": "/api/checkins/photos/1",
         "pose_type": "front",
         "taken_at": "2026-07-15"
       }
@@ -729,6 +729,10 @@ Historial cronológico con fotos asociadas. Trainer: solo alumnos propios. Clien
   ]
 }
 ```
+
+### `GET /checkins/photos/:photoId` (trainer | client)
+
+Descarga autenticada de una foto. Client: solo fotos propias. Trainer: solo fotos de alumnos vinculados. Responde el binario con `Cache-Control: private, no-store`; `/uploads/photos/...` no se expone de forma estática.
 
 ## Mensajería interna (Feature 034)
 

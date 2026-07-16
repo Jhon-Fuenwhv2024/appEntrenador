@@ -14,6 +14,13 @@ router.post(
 );
 
 router.get(
+  '/checkins/photos/:photoId',
+  authenticate,
+  requireRole('trainer', 'client'),
+  checkinsController.getPhoto,
+);
+
+router.get(
   '/checkins/client/:clientId',
   authenticate,
   requireRole('trainer', 'client'),

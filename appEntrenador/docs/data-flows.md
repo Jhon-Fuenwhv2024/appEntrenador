@@ -86,8 +86,9 @@
 
 1. Cliente en **Mi progreso** abre el modal **Hacer Check-in Semanal** (`WeeklyCheckinDialog`).
 2. Envía `POST /checkins` como `multipart/form-data` (ratings 1–5 + notas; fotos `front`/`side`/`back` opcionales, ≤5 MB).
-3. Backend (transacción): inserta `weekly_checkins` y, si hay archivos, filas en `progress_photos` con `image_url` bajo `/uploads/photos/…`.
-4. Trainer en la ficha del alumno (pestaña **Check-ins**) carga `GET /checkins/client/:clientId` y ve timeline + miniaturas ampliables.
+3. Backend (transacción): inserta `weekly_checkins` y, si hay archivos, filas en `progress_photos` con un localizador interno bajo `/uploads/photos/…`. Si la validación o persistencia falla, elimina los archivos que Multer ya escribió.
+4. Trainer en la ficha del alumno (pestaña **Check-ins**) carga `GET /checkins/client/:clientId`.
+5. Cada miniatura se descarga con JWT desde `GET /checkins/photos/:photoId`; el service vuelve a validar que el trainer sea dueño del alumno. El directorio de fotos no se sirve de forma estática.
 
 ## Visualización de progreso / gráficas (Feature 027)
 

@@ -1,6 +1,5 @@
 require('dotenv').config();
 
-const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const { PORT } = require('./config/env');
@@ -20,7 +19,7 @@ const nutritionRoutes = require('./modules/nutrition/nutrition.routes');
 const habitsRoutes = require('./modules/habits/habits.routes');
 const checkinsRoutes = require('./modules/checkins/checkins.routes');
 const messagesRoutes = require('./modules/messages/messages.routes');
-const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
+const { AVATARS_DIR, ensureAvatarsDir } = require('./middleware/uploadAvatar');
 const { ensurePhotosDir } = require('./middleware/uploadProgressPhotos');
 const { ensureNotificationsTable } = require('./db/ensureNotificationsTable');
 const { ensureHabitsTables } = require('./db/ensureHabitsTables');
@@ -34,7 +33,7 @@ ensurePhotosDir();
 
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+app.use('/uploads/avatars', express.static(AVATARS_DIR));
 
 app.use('/api', authRoutes);
 app.use('/api/invites', invitesRoutes);

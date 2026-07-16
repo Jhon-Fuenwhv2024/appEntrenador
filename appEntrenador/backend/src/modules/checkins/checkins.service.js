@@ -91,11 +91,12 @@ function formatDateField(value) {
 }
 
 function mapPhotoRow(row) {
+  const id = Number(row.id);
   return {
-    id: Number(row.id),
+    id,
     client_id: Number(row.client_id),
     checkin_id: row.checkin_id != null ? Number(row.checkin_id) : null,
-    image_url: row.image_url,
+    image_url: `/api/checkins/photos/${id}`,
     pose_type: row.pose_type,
     taken_at: formatDateField(row.taken_at),
   };
@@ -139,6 +140,43 @@ function unlinkQuietly(absolutePath) {
   } catch {
     // best-effort cleanup
   }
+}
+
+async function assertCanAccessClient(requester, clientId) {
+  if (requester.rol === 'client') {
+    if (Number(requester.id) !== clientId) {
+      throw createHttpError('No puedes ver check-ins de otro usuario.', 403);
+    }
+    return;
+  }
+
+  if (requester.rol === 'trainer') {
+    await clientsService.getClientOwnedByTrainer(clientId, requester.id);
+    return;
+  }
+
+  throw createHttpError('Rol no autorizado.', 403);
+}
+
+function resolveStoredPhotoPath(imageUrl) {
+  const storagePrefix = '/uploads/photos/';
+  const storedPath = typeof imageUrl === 'string' ? imageUrl.trim() : '';
+  if (!storedPath.startsWith(storagePrefix)) {
+    throw createHttpError('Foto no encontrada.', 404);
+  }
+
+  const filename = storedPath.slice(storagePrefix.length);
+  if (!filename || filename !== path.basename(filename)) {
+    throw createHttpError('Foto no encontrada.', 404);
+  }
+
+  const photosRoot = path.resolve(PHOTOS_DIR);
+  const absolutePath = path.resolve(photosRoot, filename);
+  if (path.dirname(absolutePath) !== photosRoot) {
+    throw createHttpError('Foto no encontrada.', 404);
+  }
+
+  return absolutePath;
 }
 
 /**
@@ -232,16 +270,7 @@ async function createForClient(clientId, body, filesByField) {
  */
 async function listByClient(requester, clientIdParam) {
   const clientId = parsePositiveId(clientIdParam, 'clientId');
-
-  if (requester.rol === 'client') {
-    if (Number(requester.id) !== clientId) {
-      throw createHttpError('No puedes ver check-ins de otro usuario.', 403);
-    }
-  } else if (requester.rol === 'trainer') {
-    await clientsService.getClientOwnedByTrainer(clientId, requester.id);
-  } else {
-    throw createHttpError('Rol no autorizado.', 403);
-  }
+  await assertCanAccessClient(requester, clientId);
 
   const [checkinRows] = await db.query(
     `SELECT id, client_id, created_at, sleep_quality, stress_level, diet_adherence, notes
@@ -280,9 +309,41 @@ async function listByClient(requester, clientIdParam) {
   ));
 }
 
+/**
+ * GET /api/checkins/photos/:photoId — archivo protegido por ownership.
+ */
+async function getPhotoForRequester(requester, photoIdParam) {
+  const photoId = parsePositiveId(photoIdParam, 'photoId');
+  const [rows] = await db.query(
+    `SELECT id, client_id, image_url
+     FROM progress_photos
+     WHERE id = ?
+     LIMIT 1`,
+    [photoId],
+  );
+
+  if (rows.length === 0) {
+    throw createHttpError('Foto no encontrada.', 404);
+  }
+
+  const photo = rows[0];
+  await assertCanAccessClient(requester, Number(photo.client_id));
+  const absolutePath = resolveStoredPhotoPath(photo.image_url);
+
+  try {
+    await fs.promises.access(absolutePath, fs.constants.R_OK);
+  } catch {
+    throw createHttpError('Foto no encontrada.', 404);
+  }
+
+  return { absolutePath };
+}
+
 module.exports = {
   createForClient,
+  getPhotoForRequester,
   listByClient,
   parseLocalDateString,
+  resolveStoredPhotoPath,
   todayLocalDateString,
 };
