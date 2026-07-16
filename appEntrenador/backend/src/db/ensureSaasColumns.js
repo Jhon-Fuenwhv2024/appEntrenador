@@ -16,7 +16,38 @@ async function columnExists(table, column) {
  * Asegura columnas SaaS B2B en DBs ya existentes (script_db.sql no se re-ejecuta).
  * Feature 036 / 037 Fase 1.
  */
+async function tableExists(table) {
+  const [rows] = await db.query(
+    `SELECT COUNT(*) AS cnt
+     FROM information_schema.TABLES
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = ?`,
+    [table],
+  );
+  return Number(rows[0]?.cnt) > 0;
+}
+
 async function ensureSaasColumns() {
+  if (!(await tableExists('usuarios'))) {
+    throw new Error('Tabla usuarios no existe; importa script_db.sql primero.');
+  }
+
+  if (!(await tableExists('trainers_info'))) {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS trainers_info (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        telefono VARCHAR(20) NULL,
+        foto_url VARCHAR(255) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_trainers_info_user (user_id),
+        CONSTRAINT fk_trainers_info_user
+          FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB
+    `);
+  }
+
   if (!(await columnExists('usuarios', 'is_superadmin'))) {
     await db.query(
       `ALTER TABLE usuarios
