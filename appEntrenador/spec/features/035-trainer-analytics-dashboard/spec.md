@@ -1,5 +1,7 @@
 # 035 · Dashboard Analítico del Entrenador
 
+# estado: pendiente
+
 ## Objetivo
 Reemplaza la vista de Inicio actual con métricas reales: "Clientes activos vs inactivos", "Ingresos estimados", "Invitaciones por vencer", "Últimos entrenamientos completados".
 
