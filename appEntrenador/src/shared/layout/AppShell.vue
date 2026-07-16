@@ -10,7 +10,7 @@ const props = defineProps({
     required: true,
     validator: (value) => ['trainer', 'client'].includes(value),
   },
-  /** Active nav key: dashboard | clients | library | settings | progress | profile */
+  /** Active nav key: dashboard | clients | messages | library | settings | progress | profile */
   active: {
     type: String,
     default: 'dashboard',
@@ -67,6 +67,15 @@ const go = (path) => {
         <button
           type="button"
           class="nav-item"
+          :class="{ active: active === 'messages' }"
+          title="Mensajes"
+          @click="go('/trainer/messages')"
+        >
+          <v-icon icon="mdi-message-text-outline" size="24" />
+        </button>
+        <button
+          type="button"
+          class="nav-item"
           :class="{ active: active === 'library' }"
           title="Biblioteca"
           @click="go('/trainer/library')"
@@ -102,6 +111,15 @@ const go = (path) => {
           @click="go('/client/progress')"
         >
           <v-icon icon="mdi-chart-timeline-variant" size="24" />
+        </button>
+        <button
+          type="button"
+          class="nav-item"
+          :class="{ active: active === 'messages' }"
+          title="Mensajes"
+          @click="go('/client/messages')"
+        >
+          <v-icon icon="mdi-message-text-outline" size="24" />
         </button>
         <button
           type="button"

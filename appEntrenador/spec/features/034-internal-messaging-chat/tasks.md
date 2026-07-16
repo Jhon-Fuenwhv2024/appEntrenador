@@ -1,8 +1,8 @@
 # 034 · Tasks
 
-- [ ] Crear SDD
-- [ ] DDL: Tabla `messages`
-- [ ] Backend: Endpoints de chat
-- [ ] Frontend: UI de Chat (Entrenador y Cliente)
-- [ ] Frontend: Optimización de lista de mensajes
-- [ ] Validar build
+- [x] Crear SDD
+- [x] DDL: Tabla `messages`
+- [x] Backend: Endpoints de chat
+- [x] Frontend: UI de Chat (Entrenador y Cliente)
+- [x] Frontend: Optimización de lista de mensajes
+- [x] Validar build

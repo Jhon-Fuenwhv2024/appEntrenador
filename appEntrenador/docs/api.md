@@ -730,3 +730,70 @@ Historial cronológico con fotos asociadas. Trainer: solo alumnos propios. Clien
 }
 ```
 
+## Mensajería interna (Feature 034)
+
+Tabla `messages`. Transporte en tiempo real: **SSE** (`text/event-stream`), sin Socket.io. Conexiones en memoria (`sseManager` Map `userId → res`).
+
+Ownership: client solo con su entrenador (`usuarios.trainer_id`); trainer solo con alumnos propios.
+
+### `GET /messages/stream` (trainer | client)
+
+Suscripción SSE. Auth: `Authorization: Bearer` **o** query `?token=<jwt>` (EventSource no puede enviar headers).
+
+Headers de respuesta: `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`.
+
+Eventos: `data: <JSON mensaje>\n\n`. Comentarios de heartbeat periódicos.
+
+### `GET /messages/partner` (client)
+
+Devuelve el entrenador asignado como único partner de chat.
+
+```json
+{
+  "success": true,
+  "data": { "id": 2, "nombre": "Coach", "username": "coach", "rol": "trainer" }
+}
+```
+
+### `GET /messages/:partnerId` (trainer | client)
+
+Historial cronológico. Marca `is_read = TRUE` los mensajes no leídos donde el usuario autenticado es el receptor.
+
+```json
+{
+  "success": true,
+  "data": {
+    "partner": { "id": 5, "nombre": "Alumno", "username": "alumno", "rol": "client" },
+    "messages": [
+      {
+        "id": 1,
+        "sender_id": 2,
+        "receiver_id": 5,
+        "content": "Hola",
+        "is_read": true,
+        "created_at": "2026-07-15T19:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### `POST /messages` (trainer | client)
+
+Body: `{ "receiverId": 5, "content": "Texto" }`. Persiste y, si el destinatario está conectado al stream, empuja el mensaje por SSE.
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 2,
+    "sender_id": 2,
+    "receiver_id": 5,
+    "content": "Texto",
+    "is_read": false,
+    "created_at": "2026-07-15T19:01:00.000Z"
+  },
+  "message": "Mensaje enviado"
+}
+```
+

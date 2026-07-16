@@ -19,11 +19,13 @@ const notificationsRoutes = require('./modules/notifications/notifications.route
 const nutritionRoutes = require('./modules/nutrition/nutrition.routes');
 const habitsRoutes = require('./modules/habits/habits.routes');
 const checkinsRoutes = require('./modules/checkins/checkins.routes');
+const messagesRoutes = require('./modules/messages/messages.routes');
 const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
 const { ensurePhotosDir } = require('./middleware/uploadProgressPhotos');
 const { ensureNotificationsTable } = require('./db/ensureNotificationsTable');
 const { ensureHabitsTables } = require('./db/ensureHabitsTables');
 const { ensureCheckinsTables } = require('./db/ensureCheckinsTables');
+const { ensureMessagesTable } = require('./db/ensureMessagesTable');
 
 const app = express();
 
@@ -49,6 +51,7 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api', nutritionRoutes);
 app.use('/api', habitsRoutes);
 app.use('/api', checkinsRoutes);
+app.use('/api/messages', messagesRoutes);
 
 async function start() {
   try {
@@ -67,6 +70,12 @@ async function start() {
     await ensureCheckinsTables();
   } catch (error) {
     console.error('No se pudo asegurar las tablas de check-ins:', error.message);
+  }
+
+  try {
+    await ensureMessagesTable();
+  } catch (error) {
+    console.error('No se pudo asegurar la tabla messages:', error.message);
   }
 
   app.listen(PORT, () => {

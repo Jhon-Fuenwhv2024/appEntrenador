@@ -8,7 +8,7 @@ const props = defineProps({
     required: true,
     validator: (value) => ['trainer', 'client'].includes(value),
   },
-  /** Override active key: dashboard | clients | library | settings | progress | profile */
+  /** Override active key: dashboard | clients | messages | library | settings | progress | profile */
   active: {
     type: String,
     default: '',
@@ -32,6 +32,12 @@ const trainerItems = [
     to: '/trainer/clients',
   },
   {
+    key: 'messages',
+    label: 'Chat',
+    icon: 'mdi-message-text-outline',
+    to: '/trainer/messages',
+  },
+  {
     key: 'library',
     label: 'Biblioteca',
     icon: 'mdi-bookshelf',
@@ -45,7 +51,7 @@ const trainerItems = [
   },
 ];
 
-/** Client: Inicio + Progreso + Perfil (máx. 3; no añade slot al trainer). */
+/** Client nav: Inicio + Progreso + Chat + Perfil */
 const clientItems = [
   {
     key: 'dashboard',
@@ -58,6 +64,12 @@ const clientItems = [
     label: 'Progreso',
     icon: 'mdi-chart-timeline-variant',
     to: '/client/progress',
+  },
+  {
+    key: 'messages',
+    label: 'Chat',
+    icon: 'mdi-message-text-outline',
+    to: '/client/messages',
   },
   {
     key: 'profile',
@@ -74,11 +86,13 @@ const resolvedActive = computed(() => {
 
   const path = route.path;
   if (path.startsWith('/trainer/clients')) return 'clients';
+  if (path.startsWith('/trainer/messages')) return 'messages';
   if (path.startsWith('/trainer/library') || path.startsWith('/trainer/exercises')) {
     return 'library';
   }
   if (path.startsWith('/trainer/settings')) return 'settings';
   if (path.startsWith('/client/progress')) return 'progress';
+  if (path.startsWith('/client/messages')) return 'messages';
   if (path.startsWith('/client/profile')) return 'profile';
   if (path === '/dashboard' || path === '/') return 'dashboard';
   return '';

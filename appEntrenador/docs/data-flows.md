@@ -97,3 +97,12 @@
 2. Ownership en service: client solo su id; trainer vía `getClientOwnedByTrainer`.
 3. UI: `ProgressChartsPanel` + `ProgressLineChart` (chart.js / vue-chartjs). Si hay menos de 2 puntos, se oculta el canvas y se muestra mensaje de datos insuficientes.
 4. Fuerza se agrupa por `exercise_name` (misma regla que Feature 019), no por `ejercicios.id` efímero.
+
+## Mensajería interna SSE (Feature 034)
+
+1. Cliente abre `/client/messages` → `GET /messages/partner` resuelve el trainer asignado; trainer abre `/trainer/messages` y elige alumno de `GET /clients`.
+2. `GET /messages/:partnerId` carga historial cronológico y marca `is_read = TRUE` los mensajes donde el usuario actual es receptor.
+3. Al montar el chat, el frontend abre `EventSource` a `/api/messages/stream?token=<JWT>` (EventSource no admite header `Authorization`).
+4. `POST /messages` persiste en MySQL; si el `receiver_id` tiene conexión SSE en el `Map` in-memory, el servidor hace `res.write('data: …\n\n')`.
+5. Al desmontar la vista, `eventSource.close()` elimina fugas; el backend limpia el Map en `req.on('close')`.
+6. Ownership estricto: client solo con su `trainer_id`; trainer solo con alumnos propios.

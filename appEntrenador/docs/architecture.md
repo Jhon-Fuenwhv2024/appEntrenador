@@ -43,6 +43,7 @@ El backend monta módulos bajo `/api` desde `backend/src/server.js`.
 - `backend/src/modules/nutrition/`: objetivos diarios macros/calorías — `GET/PUT /api/nutrition/:clientId` (Feature 031).
 - `backend/src/modules/habits/`: hábitos diarios trainer→client (Feature 032).
 - `backend/src/modules/checkins/`: check-in semanal + fotos de progreso opcionales (Feature 033). Multer en `uploads/photos`.
+- `backend/src/modules/messages/`: chat interno trainer↔cliente vía REST + SSE in-memory (Feature 034). Sin Socket.io.
 - Frontend trainer: `LibraryView` es el hub (tabs Plantillas | Catálogo en `/trainer/library` y `/trainer/library/exercises`); `ClientRoutinesView` / `TemplateFormDialog` usan autocomplete híbrido (`nombre` + `exercise_id`).
 - Frontend gráficas: `src/shared/components/ProgressLineChart.vue` + `ProgressChartsPanel.vue` (chart.js); pestaña en `ClientProgressView` y `ClientRoutinesView`.
 

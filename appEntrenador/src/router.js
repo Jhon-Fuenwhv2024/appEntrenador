@@ -10,6 +10,8 @@ import TrainerSettingsView from './features/trainer/TrainerSettingsView.vue';
 import WorkoutPlayerView from './features/client/WorkoutPlayerView.vue';
 import ClientProfileView from './features/client/ClientProfileView.vue';
 import ClientProgressView from './features/client/ClientProgressView.vue';
+import TrainerInboxView from './features/messaging/TrainerInboxView.vue';
+import ClientChatView from './features/messaging/ClientChatView.vue';
 import { getSessionUser, isAuthenticated } from './shared/auth/session.js';
 
 const routes = [
@@ -37,6 +39,12 @@ const routes = [
     meta: { requiresAuth: true, role: 'client' },
   },
   {
+    path: '/client/messages',
+    name: 'ClientMessages',
+    component: ClientChatView,
+    meta: { requiresAuth: true, role: 'client' },
+  },
+  {
     path: '/client/profile',
     name: 'ClientProfile',
     component: ClientProfileView,
@@ -58,6 +66,12 @@ const routes = [
     path: '/trainer/clients/:clientId',
     name: 'ClientRoutines',
     component: ClientRoutinesView,
+    meta: { requiresAuth: true, role: 'trainer' },
+  },
+  {
+    path: '/trainer/messages',
+    name: 'TrainerMessages',
+    component: TrainerInboxView,
     meta: { requiresAuth: true, role: 'trainer' },
   },
   {

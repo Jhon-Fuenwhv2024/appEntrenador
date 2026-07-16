@@ -26,6 +26,8 @@ erDiagram
   usuarios ||--o{ weekly_checkins : "client_id"
   weekly_checkins ||--o{ progress_photos : "checkin_id"
   usuarios ||--o{ progress_photos : "client_id"
+  usuarios ||--o{ messages : "sender_id"
+  usuarios ||--o{ messages : "receiver_id"
 
   usuarios {
     int id PK
@@ -250,6 +252,12 @@ Migración: [`backend/db/migrations/016_weekly_checkins_progress_photos.sql`](..
 cd backend
 npm run test:feature-033
 ```
+
+### `messages` (Feature 034)
+
+Chat 1:1 trainer↔cliente. `sender_id` / `receiver_id` → `usuarios`. `is_read` por defecto `FALSE`. Índices en ambos FKs. Tiempo real vía SSE in-process (no Pub/Sub).
+
+Migración: [`backend/db/migrations/017_messages.sql`](../backend/db/migrations/017_messages.sql). Al arrancar, `ensureMessagesTable` aplica `CREATE TABLE IF NOT EXISTS`.
 
 ## Seed del catálogo
 
