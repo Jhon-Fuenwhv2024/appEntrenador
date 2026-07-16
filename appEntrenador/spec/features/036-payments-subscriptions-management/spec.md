@@ -1,6 +1,6 @@
 # 036 · Motor SaaS B2B y Panel SuperAdmin (Gestión Manual)
 
-**Estado:** pendiente
+**Estado:** en progreso (Fase 1 implementada: schema, middlewares, `/api/saas`, panel SuperAdmin, paywall FREE)
 **Depende de:** 011 (Autenticación / Usuarios)
 
 ## Qué hace

@@ -64,6 +64,7 @@ async function onSaveProfile({ fields, fotoFile, done }) {
           id: account.value.id,
           rol: account.value.rol,
           nombre: account.value.nombre,
+          is_superadmin: account.value.is_superadmin === true,
         },
       });
     }

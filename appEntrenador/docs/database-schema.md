@@ -36,6 +36,7 @@ erDiagram
     string nombre
     enum rol
     int trainer_id FK
+    bool is_superadmin
   }
 
   alumnos_info {
@@ -133,6 +134,8 @@ erDiagram
 
 Login y ownership trainer↔cliente. `rol`: `trainer` | `client`. Los clientes pueden tener `trainer_id` apuntando a su entrenador.
 
+**Feature 036:** `is_superadmin BOOLEAN NOT NULL DEFAULT FALSE` — flag oculto de dueño/plataforma (JWT + `GET /me/account`). Migración: [`backend/db/migrations/018_saas_superadmin_and_plans.sql`](../backend/db/migrations/018_saas_superadmin_and_plans.sql). Aplicar en DBs existentes: `npm run db:add-saas-plans` (desde `backend/`). También se asegura al arrancar el server (`ensureSaasColumns`).
+
 ### `alumnos_info`
 
 Perfil extendido del alumno (Feature 020). Relación 1:1 con `usuarios` vía `user_id` (UNIQUE). Campos: `telefono`, `fecha_nacimiento`, `sexo`, `lesiones`, `objetivo`, `foto_url`, `ultimo_acceso`. `foto_url` guarda ruta relativa (`/uploads/avatars/user_<id>.jpg`) o `NULL` (avatar por defecto en frontend).
@@ -141,6 +144,7 @@ Perfil extendido del alumno (Feature 020). Relación 1:1 con `usuarios` vía `us
 
 Perfil extendido del entrenador (Feature 024). Relación 1:1 con `usuarios` vía `user_id` (UNIQUE). Campos: `telefono`, `foto_url`. El nombre sigue en `usuarios.nombre`.
 
+**Feature 036:** `saas_plan ENUM('FREE','PRO') NOT NULL DEFAULT 'FREE'`, `saas_expiration_date DATE NULL`. Plan gratuito limita a 3 slots (alumnos + invites pending) vía middleware en `POST /invites`.
 ### `rutinas`
 
 Rutina diaria asignada a un alumno (`alumno_id` → `usuarios`).

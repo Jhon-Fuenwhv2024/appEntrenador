@@ -17,6 +17,7 @@ function signToken(user) {
       username: user.username,
       nombre: user.nombre,
       rol: user.rol,
+      is_superadmin: Boolean(user.is_superadmin),
     },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN },
@@ -25,7 +26,7 @@ function signToken(user) {
 
 async function login({ username, password }) {
   const [rows] = await db.query(
-    'SELECT id, username, nombre, rol, password FROM usuarios WHERE username = ?',
+    'SELECT id, username, nombre, rol, is_superadmin, password FROM usuarios WHERE username = ?',
     [username],
   );
 
@@ -45,6 +46,7 @@ async function login({ username, password }) {
     username: user.username,
     nombre: user.nombre,
     rol: user.rol,
+    is_superadmin: Boolean(user.is_superadmin),
   };
 
   return {
