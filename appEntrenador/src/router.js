@@ -12,6 +12,7 @@ import ClientProfileView from './features/client/ClientProfileView.vue';
 import ClientProgressView from './features/client/ClientProgressView.vue';
 import TrainerInboxView from './features/messaging/TrainerInboxView.vue';
 import ClientChatView from './features/messaging/ClientChatView.vue';
+import SuperAdminDashboardView from './features/saas/SuperAdminDashboardView.vue';
 import { getSessionUser, isAuthenticated } from './shared/auth/session.js';
 
 const routes = [
@@ -98,6 +99,12 @@ const routes = [
     component: ExercisesCatalogView,
     meta: { requiresAuth: true, role: 'trainer' },
   },
+  {
+    path: '/backoffice',
+    name: 'SuperAdminBackoffice',
+    component: SuperAdminDashboardView,
+    meta: { requiresAuth: true, requiresSuperAdmin: true },
+  },
 ];
 
 const router = createRouter({
@@ -114,6 +121,10 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.guestOnly && authenticated && to.path === '/') {
+    return { path: '/dashboard' };
+  }
+
+  if (to.meta.requiresSuperAdmin && user?.is_superadmin !== true) {
     return { path: '/dashboard' };
   }
 

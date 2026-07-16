@@ -17,7 +17,7 @@ function sendAuthError(res, message, code) {
 }
 
 /**
- * Verifica Bearer JWT y pobla req.user = { id, username, nombre, rol }.
+ * Verifica Bearer JWT y pobla req.user = { id, username, nombre, rol, is_superadmin }.
  */
 function authenticate(req, res, next) {
   const header = req.headers.authorization || '';
@@ -39,6 +39,7 @@ function authenticate(req, res, next) {
       username: payload.username,
       nombre: payload.nombre,
       rol: payload.rol,
+      is_superadmin: Boolean(payload.is_superadmin),
     };
 
     return next();

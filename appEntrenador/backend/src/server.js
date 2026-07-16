@@ -20,6 +20,7 @@ const nutritionRoutes = require('./modules/nutrition/nutrition.routes');
 const habitsRoutes = require('./modules/habits/habits.routes');
 const checkinsRoutes = require('./modules/checkins/checkins.routes');
 const messagesRoutes = require('./modules/messages/messages.routes');
+const saasRoutes = require('./modules/saas/saas.routes');
 const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
 const { ensurePhotosDir } = require('./middleware/uploadProgressPhotos');
 const { ensureNotificationsTable } = require('./db/ensureNotificationsTable');
@@ -52,6 +53,7 @@ app.use('/api', nutritionRoutes);
 app.use('/api', habitsRoutes);
 app.use('/api', checkinsRoutes);
 app.use('/api/messages', messagesRoutes);
+app.use('/api/saas', saasRoutes);
 
 async function start() {
   try {

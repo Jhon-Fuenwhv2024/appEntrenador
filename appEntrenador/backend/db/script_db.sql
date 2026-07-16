@@ -11,6 +11,7 @@ CREATE TABLE usuarios (
     nombre VARCHAR(100) NOT NULL,
     rol ENUM('trainer', 'client') NOT NULL DEFAULT 'client',
     trainer_id INT NULL,
+    is_superadmin BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_usuarios_trainer
       FOREIGN KEY (trainer_id) REFERENCES usuarios(id) ON DELETE SET NULL
@@ -38,6 +39,8 @@ CREATE TABLE trainers_info (
     user_id INT NOT NULL,
     telefono VARCHAR(20) NULL,
     foto_url VARCHAR(255) NULL,
+    saas_plan ENUM('FREE', 'PRO') NOT NULL DEFAULT 'FREE',
+    saas_expiration_date DATE NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_trainers_info_user (user_id),

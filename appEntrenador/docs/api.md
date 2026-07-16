@@ -31,11 +31,14 @@ Respuesta exitosa:
     "id": 1,
     "username": "usuario",
     "nombre": "Nombre",
-    "rol": "trainer"
+    "rol": "trainer",
+    "is_superadmin": false
   },
   "token": "<jwt>"
 }
 ```
+
+El JWT incluye los mismos claims (`id`, `username`, `nombre`, `rol`, `is_superadmin`). El middleware `authenticate` puebla `req.user.is_superadmin` como booleano.
 
 ### `POST /register`
 
@@ -70,6 +73,16 @@ Base: `/api/invites`. Ownership estricto por `trainer_id = req.user.id`. Sin env
 ### `POST /invites`
 
 Genera una invitación `pending` vinculada al trainer autenticado.
+
+**Feature 036 / 037:** middleware `checkTrainerLimits`. Si el plan es `FREE` y `(alumnos + invites pending) >= 3` → **402**:
+
+```json
+{
+  "success": false,
+  "error": "LIMIT_EXCEEDED",
+  "message": "Límite de clientes alcanzado en plan gratuito. Actualiza a PRO."
+}
+```
 
 Headers: `Authorization: Bearer <token>`
 
@@ -157,6 +170,7 @@ Devuelve datos de cuenta:
   "username": "coach",
   "nombre": "Juan Coach",
   "rol": "trainer",
+  "is_superadmin": false,
   "telefono": "3001112233",
   "foto_url": "/uploads/avatars/user_1.jpg"
 }
@@ -164,6 +178,7 @@ Devuelve datos de cuenta:
 
 - Trainer: `telefono` / `foto_url` desde `trainers_info` (o `null`).
 - Client: mismos campos desde `alumnos_info` si existen.
+- `is_superadmin` viene de `usuarios` (Feature 036).
 
 ### `PUT /me/account`
 
@@ -187,6 +202,55 @@ Body JSON:
 Valida bcrypt de la actual, hashea la nueva. La sesión JWT actual **sigue válida** (no fuerza re-login).
 
 UI trainer: `/trainer/settings` (perfil colapsable + cambio de contraseña).
+
+## SaaS SuperAdmin (Feature 036 / 037 Fase 1)
+
+Base: `/api/saas`. Requiere JWT + `req.user.is_superadmin === true` (`requireSuperAdmin`). Sin el flag → **403**:
+
+```json
+{
+  "success": false,
+  "error": "FORBIDDEN",
+  "message": "Acceso exclusivo de administrador"
+}
+```
+
+### `GET /saas/trainers`
+
+Lista trainers con plan y ocupación:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "username": "coach",
+      "nombre": "Juan",
+      "saas_plan": "FREE",
+      "saas_expiration_date": null,
+      "client_count": 2
+    }
+  ]
+}
+```
+
+`client_count` = alumnos `rol=client` + invitaciones `pending`.
+
+### `PUT /saas/trainers/:id/plan`
+
+Body:
+
+```json
+{
+  "saas_plan": "PRO",
+  "saas_expiration_date": "2027-01-31"
+}
+```
+
+`saas_plan`: `FREE` | `PRO`. `saas_expiration_date`: `YYYY-MM-DD` o `null`. UPSERT en `trainers_info`.
+
+UI: `/backoffice` (solo superadmin).
 
 ## Perfil alumno (`alumnos_info` · Feature 020)
 

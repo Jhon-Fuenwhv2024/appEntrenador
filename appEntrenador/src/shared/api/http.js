@@ -66,4 +66,14 @@ export function getApiErrorMessage(error, fallback = 'Error de conexión con el 
     || fallback;
 }
 
+/** True when the API rejected the request due to SaaS FREE plan limits (402). */
+export function isPaymentRequiredError(error) {
+  return error?.response?.status === 402
+    || error?.normalized?.code === 402
+    || error?.response?.data?.error === 'LIMIT_EXCEEDED';
+}
+
+export const FREE_PLAN_LIMIT_MESSAGE =
+  'Has alcanzado el límite de 3 alumnos de tu plan gratuito. Contacta al soporte para actualizar a PRO y seguir creciendo.';
+
 export default http;
