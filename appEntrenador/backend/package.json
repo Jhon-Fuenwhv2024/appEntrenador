@@ -16,6 +16,7 @@
     "db:add-rest-time": "node scripts/addRestTimeSeconds.js",
     "db:add-superset-letter": "node scripts/addSupersetLetter.js",
     "test:feature-033": "node scripts/test-feature-033.js",
+    "test:checkins-security": "node --test test/checkins-security.test.js",
     "seed:exercises": "node scripts/seedExercises.js"
   },
   "keywords": [],

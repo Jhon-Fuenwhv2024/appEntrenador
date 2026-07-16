@@ -1,4 +1,7 @@
 const checkinsService = require('./checkins.service');
+const {
+  cleanupProgressPhotoFiles,
+} = require('../../middleware/uploadProgressPhotos');
 
 function sendError(res, error, context) {
   const rawCode = error.code;
@@ -35,6 +38,7 @@ async function create(req, res) {
       data,
     });
   } catch (error) {
+    cleanupProgressPhotoFiles(req.files);
     return sendError(res, error, 'Error creando check-in:');
   }
 }
@@ -54,7 +58,35 @@ async function listByClient(req, res) {
   }
 }
 
+/**
+ * GET /api/checkins/photos/:photoId
+ */
+async function getPhoto(req, res) {
+  try {
+    const { absolutePath } = await checkinsService.getPhotoForRequester(
+      req.user,
+      req.params.photoId,
+    );
+    res.set({
+      'Cache-Control': 'private, no-store',
+      'X-Content-Type-Options': 'nosniff',
+    });
+    return res.sendFile(absolutePath, (error) => {
+      if (!error) return;
+      console.error('Error enviando foto de check-in:', error);
+      if (!res.headersSent) {
+        sendError(res, error, 'Error enviando foto de check-in:');
+      } else {
+        res.destroy();
+      }
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error obteniendo foto de check-in:');
+  }
+}
+
 module.exports = {
   create,
+  getPhoto,
   listByClient,
 };
