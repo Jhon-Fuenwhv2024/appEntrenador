@@ -179,6 +179,52 @@ UI trainer: lista en `/trainer/clients` (`ClientsListView`). La búsqueda por no
 
 Detalle de un cliente propio.
 
+### `GET /clients/:clientId/overview` (Feature 039)
+
+Agregado 360 para la ficha del alumno (solo trainer dueño). Incluye perfil, conteos, última sesión, último check-in, targets nutricionales y slots null-safe para membresía / PRs / consistencia (040–042).
+
+```json
+{
+  "success": true,
+  "data": {
+    "client": { "id": 2, "nombre": "Ana", "username": "ana" },
+    "profile": {
+      "user_id": 2,
+      "nombre": "Ana",
+      "username": "ana",
+      "objetivo": "Hipertrofia",
+      "foto_url": "/uploads/avatars/user_2.jpg"
+    },
+    "counts": { "routines": 3, "sessions": 12, "checkins": 4 },
+    "lastSession": {
+      "id": 10,
+      "routine_name": "Empuje",
+      "finished_at": "2026-07-16T18:00:00.000Z",
+      "status": "completed"
+    },
+    "lastCheckin": {
+      "id": 5,
+      "created_at": "2026-07-14",
+      "sleep_quality": 4,
+      "stress_level": 2,
+      "diet_adherence": 5
+    },
+    "nutritionTargets": {
+      "calories": 2200,
+      "protein_g": 160,
+      "carbs_g": 200,
+      "fats_g": 70
+    },
+    "membership": null,
+    "consistencyScore": null,
+    "prsThisMonth": null
+  },
+  "message": "Overview del alumno"
+}
+```
+
+UI: `/trainer/clients/:clientId` (`Client360View`) con secciones vía `?tab=` (`resumen` | `programacion` | `nutricion` | `medidas` | `checkins` | `graficas` | `chat`).
+
 ## Cuenta / Ajustes (Feature 024)
 
 Endpoints del usuario autenticado (`req.user.id`). Trainer y client.
@@ -684,7 +730,7 @@ Devuelve el objetivo actual. Autorizado si:
 - el usuario es **trainer** dueño del cliente (`usuarios.trainer_id`), o
 - el usuario es el **cliente** (`req.user.id === clientId`).
 
-`404` si aún no hay plan asignado.
+Si aún no hay plan asignado: `200` con `"data": null` (no es error).
 
 ```json
 {
@@ -701,6 +747,12 @@ Devuelve el objetivo actual. Autorizado si:
     "updated_at": "..."
   }
 }
+```
+
+Sin plan:
+
+```json
+{ "success": true, "data": null }
 ```
 
 ### `PUT /nutrition/:clientId` (trainer)

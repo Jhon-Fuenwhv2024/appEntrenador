@@ -83,10 +83,8 @@ async function getForRequester(requester, clientId) {
   }
 
   const target = await getByClientId(clientId);
-  if (!target) {
-    throw createHttpError('No hay objetivos nutricionales asignados.', 404);
-  }
-  return target;
+  // Empty plan is a valid state (trainer still filling the form) — not an error.
+  return target || null;
 }
 
 /**

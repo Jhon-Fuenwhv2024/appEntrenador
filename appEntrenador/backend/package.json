@@ -17,6 +17,7 @@
     "db:add-superset-letter": "node scripts/addSupersetLetter.js",
     "db:add-saas-plans": "node scripts/addSaasSuperadminAndPlans.js",
     "test:feature-033": "node scripts/test-feature-033.js",
+    "test:feature-039": "node scripts/test-feature-039.js",
     "seed:exercises": "node scripts/seedExercises.js"
   },
   "keywords": [],

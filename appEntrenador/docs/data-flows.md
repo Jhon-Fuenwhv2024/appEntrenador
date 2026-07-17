@@ -35,9 +35,17 @@
 
 ## Asignación y lectura de rutinas
 
-1. Trainer abre la lista en `/trainer/clients` (o CTA desde Inicio) y entra a `/trainer/clients/:id` para crear/editar rutinas vía API.
+1. Trainer abre la lista en `/trainer/clients` (o CTA desde Inicio) y entra a `/trainer/clients/:id` (ficha 360) para crear/editar rutinas vía API en la sección Programación.
 2. Service valida ownership trainer↔cliente en cada escritura.
 3. Cliente autenticado `GET /me/routines` y el portal muestra plan del día / semana (con media del catálogo si hay match por nombre).
+
+## Ficha 360 del alumno (Feature 039)
+
+1. Trainer abre `/trainer/clients/:clientId` → `Client360View` carga `GET /clients/:id/overview` (perfil + última sesión + conteos + último check-in + nutrition targets + slots 040–042).
+2. Cabecera sticky muestra avatar/objetivo/última sesión; navegación por `?tab=` (Resumen · Programación · Nutrición & Hábitos · Medidas · Check-ins · Gráficas · Chat).
+3. Resumen usa widgets de decisión + historial de sesiones (`GET /clients/:id/workout-sessions`).
+4. Programación reutiliza CRUD de rutinas; paneles existentes (nutrición, hábitos, body-comp, check-ins, gráficas, perfil, chat) se montan por sección sin perder CRUD.
+5. Ownership: el overview y cada panel validan `trainer_id` del alumno.
 
 ## Dashboard immersivo del cliente (Feature 038)
 

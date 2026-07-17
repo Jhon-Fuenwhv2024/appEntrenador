@@ -12,6 +12,12 @@ router.get(
 );
 router.get('/clients', authenticate, requireRole('trainer'), clientsController.getClients);
 router.get(
+  '/clients/:clientId/overview',
+  authenticate,
+  requireRole('trainer'),
+  clientsController.getClientOverview,
+);
+router.get(
   '/clients/:clientId',
   authenticate,
   requireRole('trainer'),

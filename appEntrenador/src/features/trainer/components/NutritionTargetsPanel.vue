@@ -61,8 +61,14 @@ async function loadTarget() {
     loading.value = true;
     loadError.value = '';
     const response = await getClientNutrition(props.clientId);
-    applyTarget(response.data.data);
+    const data = response.data?.data ?? null;
+    if (data) {
+      applyTarget(data);
+    } else {
+      resetForm();
+    }
   } catch (error) {
+    // Compat: backends antiguos devolvían 404 cuando no había plan.
     const code = error?.normalized?.code || error?.response?.status;
     if (code === 404) {
       resetForm();
@@ -114,10 +120,7 @@ async function onSave() {
     emit('notify', { text: 'Objetivos nutricionales guardados', color: 'success' });
   } catch (error) {
     console.error('Error guardando objetivos nutricionales:', error);
-    const status = error?.response?.status || error?.normalized?.code;
-    const msg = status === 404
-      ? 'API de nutrición no disponible. Reinicia el backend (npm start).'
-      : getApiErrorMessage(error, 'No se pudieron guardar los objetivos');
+    const msg = getApiErrorMessage(error, 'No se pudieron guardar los objetivos');
     emit('notify', { text: msg, color: 'error' });
   } finally {
     saving.value = false;

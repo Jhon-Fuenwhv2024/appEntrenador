@@ -181,9 +181,108 @@ async function getDashboardStats(trainerId) {
   };
 }
 
+/**
+ * Aggregated 360 overview for a client owned by the trainer.
+ * Slots membership / consistencyScore / prsThisMonth stay null until features 040–042.
+ */
+async function getClientOverview(clientId, trainerId) {
+  if (!Number.isInteger(clientId) || clientId <= 0) {
+    throw createHttpError('clientId inválido.', 400);
+  }
+
+  const client = await getClientOwnedByTrainer(clientId, trainerId);
+
+  const [[profileRow]] = await db.query(
+    `SELECT telefono, fecha_nacimiento, sexo, lesiones, objetivo, foto_url, ultimo_acceso
+     FROM alumnos_info
+     WHERE user_id = ?
+     LIMIT 1`,
+    [clientId],
+  );
+
+  const [[counts]] = await db.query(
+    `SELECT
+       (SELECT COUNT(*) FROM rutinas WHERE alumno_id = ?) AS routines_count,
+       (SELECT COUNT(*) FROM workout_sessions WHERE client_id = ?) AS sessions_count,
+       (SELECT COUNT(*) FROM weekly_checkins WHERE client_id = ?) AS checkins_count`,
+    [clientId, clientId, clientId],
+  );
+
+  const [sessionRows] = await db.query(
+    `SELECT id, client_id, routine_id, routine_name, started_at, finished_at, status, created_at
+     FROM workout_sessions
+     WHERE client_id = ?
+     ORDER BY COALESCE(finished_at, started_at, created_at) DESC, id DESC
+     LIMIT 1`,
+    [clientId],
+  );
+
+  const [checkinRows] = await db.query(
+    `SELECT id, client_id, created_at, sleep_quality, stress_level, diet_adherence, notes
+     FROM weekly_checkins
+     WHERE client_id = ?
+     ORDER BY created_at DESC, id DESC
+     LIMIT 1`,
+    [clientId],
+  );
+
+  const [nutritionRows] = await db.query(
+    `SELECT id, client_id, trainer_id, calories, protein_g, carbs_g, fats_g, created_at, updated_at
+     FROM nutrition_targets
+     WHERE client_id = ?
+     LIMIT 1`,
+    [clientId],
+  );
+
+  const DEFAULT_AVATAR_MARKERS = new Set(['', 'default_avatar.png', 'null', 'undefined']);
+  const rawFoto = profileRow?.foto_url;
+  let fotoUrl = null;
+  if (rawFoto != null) {
+    const trimmed = String(rawFoto).trim();
+    if (trimmed && !DEFAULT_AVATAR_MARKERS.has(trimmed)) {
+      fotoUrl = trimmed;
+    }
+  }
+
+  return {
+    client: {
+      id: client.id,
+      nombre: client.nombre,
+      username: client.username,
+    },
+    profile: {
+      user_id: client.id,
+      nombre: client.nombre,
+      username: client.username,
+      telefono: profileRow?.telefono ?? null,
+      fecha_nacimiento: profileRow?.fecha_nacimiento
+        ? String(profileRow.fecha_nacimiento).slice(0, 10)
+        : null,
+      sexo: profileRow?.sexo ?? null,
+      lesiones: profileRow?.lesiones ?? null,
+      objetivo: profileRow?.objetivo ?? null,
+      foto_url: fotoUrl,
+      ultimo_acceso: profileRow?.ultimo_acceso ?? null,
+    },
+    counts: {
+      routines: Number(counts.routines_count) || 0,
+      sessions: Number(counts.sessions_count) || 0,
+      checkins: Number(counts.checkins_count) || 0,
+    },
+    lastSession: sessionRows[0] || null,
+    lastCheckin: checkinRows[0] || null,
+    nutritionTargets: nutritionRows[0] || null,
+    // Feature slots (040 / 041 / 042) — null-safe until those APIs exist
+    membership: null,
+    consistencyScore: null,
+    prsThisMonth: null,
+  };
+}
+
 module.exports = {
   getClientsForTrainer,
   getClientOwnedByTrainer,
   getDashboardStats,
+  getClientOverview,
   createHttpError,
 };

@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import LoginView from './features/auth/LoginView.vue';
 import Dashboard from './components/Dashboard.vue';
 import RegisterView from './features/auth/RegisterView.vue';
-import ClientRoutinesView from './features/trainer/ClientRoutinesView.vue';
+import Client360View from './features/trainer/client-360/Client360View.vue';
 import ExercisesCatalogView from './features/trainer/ExercisesCatalogView.vue';
 import ClientsListView from './features/trainer/ClientsListView.vue';
 import LibraryView from './features/trainer/LibraryView.vue';
@@ -66,7 +66,7 @@ const routes = [
   {
     path: '/trainer/clients/:clientId',
     name: 'ClientRoutines',
-    component: ClientRoutinesView,
+    component: Client360View,
     meta: { requiresAuth: true, role: 'trainer' },
   },
   {

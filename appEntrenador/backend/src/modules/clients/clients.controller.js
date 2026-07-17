@@ -41,6 +41,21 @@ async function getClientById(req, res) {
   }
 }
 
+async function getClientOverview(req, res) {
+  try {
+    const clientId = Number(req.params.clientId);
+    const data = await clientsService.getClientOverview(clientId, req.user.id);
+
+    return res.json({
+      success: true,
+      data,
+      message: 'Overview del alumno',
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error al consultar overview del cliente:');
+  }
+}
+
 async function getDashboard(req, res) {
   try {
     const data = await clientsService.getDashboardStats(req.user.id);
@@ -57,5 +72,6 @@ async function getDashboard(req, res) {
 module.exports = {
   getClients,
   getClientById,
+  getClientOverview,
   getDashboard,
 };
