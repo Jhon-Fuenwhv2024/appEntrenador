@@ -29,7 +29,8 @@
 .v-btn__overlay,
 .v-card__overlay,
 .v-chip__overlay,
-.v-field__overlay {
+.v-field__overlay,
+.v-expansion-panel-title__overlay {
   background-color: var(--tf-primary) !important;
   opacity: 0 !important;
 }

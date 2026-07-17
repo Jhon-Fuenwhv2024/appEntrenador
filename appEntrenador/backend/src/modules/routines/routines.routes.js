@@ -11,6 +11,14 @@ router.get(
   routinesController.listMine,
 );
 
+/** Feature 038 — agregador dashboard cliente (rutina hoy + hábitos + macros). */
+router.get(
+  '/me/today',
+  authenticate,
+  requireRole('client'),
+  routinesController.getToday,
+);
+
 router.get(
   '/clients/:clientId/routines',
   authenticate,

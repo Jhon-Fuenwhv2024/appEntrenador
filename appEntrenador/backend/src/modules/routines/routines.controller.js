@@ -45,6 +45,33 @@ async function listMine(req, res) {
   }
 }
 
+/**
+ * Feature 038 — dashboard immersivo del cliente (una sola petición).
+ * Query: date=YYYY-MM-DD (fecha civil local del dispositivo).
+ */
+async function getToday(req, res) {
+  try {
+    const bundle = await routinesService.getTodayBundle(
+      req.user.id,
+      req.query.date,
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        todayRoutine: bundle.todayRoutine,
+        todayCompleted: Boolean(bundle.todayCompleted),
+        habits: bundle.habits,
+        macros: bundle.macros,
+        date: bundle.date,
+        weekday: bundle.weekday,
+      },
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error cargando resumen de hoy:');
+  }
+}
+
 async function create(req, res) {
   try {
     const clientId = Number(req.params.clientId);
@@ -124,6 +151,7 @@ async function remove(req, res) {
 module.exports = {
   listForClient,
   listMine,
+  getToday,
   create,
   update,
   remove,

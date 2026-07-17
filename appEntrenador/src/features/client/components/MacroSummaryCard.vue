@@ -1,6 +1,7 @@
 <script setup>
 /**
  * Tarjeta cliente: resumen de objetivos nutricionales diarios (solo lectura).
+ * Puede hidratarse desde GET /me/today (Feature 038) vía initialTarget + skipFetch.
  */
 import { computed, onMounted, shallowRef, watch } from 'vue';
 import { getApiErrorMessage } from '../../../shared/api/http.js';
@@ -10,6 +11,21 @@ const props = defineProps({
   clientId: {
     type: Number,
     required: true,
+  },
+  /** Objetivos ya cargados por el agregador /me/today (o null). */
+  initialTarget: {
+    type: Object,
+    default: undefined,
+  },
+  /** Si true, no llama a GET /nutrition/:id (usa initialTarget). */
+  skipFetch: {
+    type: Boolean,
+    default: false,
+  },
+  /** Layout denso para el home immersivo. */
+  compact: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -24,29 +40,41 @@ const macros = computed(() => {
   return [
     {
       key: 'protein',
+      short: 'P',
       label: 'Proteína',
       grams: t.protein_g,
       color: '#EF5350',
-      barClass: 'macro-bar--protein',
     },
     {
       key: 'carbs',
+      short: 'C',
       label: 'Carbohidratos',
       grams: t.carbs_g,
       color: '#42A5F5',
-      barClass: 'macro-bar--carbs',
     },
     {
       key: 'fats',
+      short: 'G',
       label: 'Grasas',
       grams: t.fats_g,
       color: '#FFCA28',
-      barClass: 'macro-bar--fats',
     },
   ];
 });
 
+function applyInitialTarget(value) {
+  target.value = value ?? null;
+  empty.value = !target.value;
+  loadError.value = '';
+  loading.value = false;
+}
+
 async function loadTarget() {
+  if (props.skipFetch) {
+    applyInitialTarget(props.initialTarget);
+    return;
+  }
+
   if (!props.clientId) return;
   try {
     loading.value = true;
@@ -75,7 +103,14 @@ async function loadTarget() {
 watch(
   () => props.clientId,
   () => {
-    loadTarget();
+    if (!props.skipFetch) loadTarget();
+  },
+);
+
+watch(
+  () => props.initialTarget,
+  (next) => {
+    if (props.skipFetch) applyInitialTarget(next);
   },
 );
 
@@ -85,73 +120,106 @@ onMounted(() => {
 </script>
 
 <template>
-  <v-card class="macro-summary" variant="flat" rounded="lg">
-    <v-card-title class="macro-summary__title">
-      <v-icon icon="mdi-food-apple-outline" size="22" class="mr-2" color="primary" />
-      Tus Objetivos Diarios
-    </v-card-title>
-
-    <v-card-text>
-      <v-progress-linear
-        v-if="loading"
-        indeterminate
-        color="primary"
-        class="mb-2"
-        height="2"
-      />
-
-      <v-alert
-        v-else-if="loadError"
-        type="error"
-        variant="tonal"
-        density="compact"
-      >
-        {{ loadError }}
-        <template #append>
-          <v-btn variant="text" size="x-small" @click="loadTarget">Reintentar</v-btn>
-        </template>
-      </v-alert>
-
-      <div v-else-if="empty" class="macro-summary__empty">
-        <v-icon icon="mdi-silverware-fork-knife" size="36" color="#8B929E" class="mb-3" />
-        <p class="macro-summary__empty-title">
-          Tu entrenador aún no ha asignado tus objetivos nutricionales
-        </p>
-        <p class="macro-summary__empty-desc">
-          Cuando los configure, verás aquí tus calorías y macros diarios.
-        </p>
-      </div>
-
-      <div v-else-if="target" class="macro-summary__body">
-        <div class="macro-summary__calories">
-          <span class="macro-summary__cal-value">{{ target.calories }}</span>
-          <span class="macro-summary__cal-unit">kcal</span>
-        </div>
-        <p class="macro-summary__cal-label">Calorías objetivo</p>
-
-        <div class="macro-summary__macros">
-          <div
-            v-for="macro in macros"
-            :key="macro.key"
-            class="macro-summary__row"
-          >
-            <div class="macro-summary__row-head">
-              <span class="macro-summary__macro-label">{{ macro.label }}</span>
-              <span class="macro-summary__macro-grams" :style="{ color: macro.color }">
-                {{ macro.grams }} g
-              </span>
-            </div>
-            <v-progress-linear
-              :model-value="100"
-              :color="macro.color"
-              height="8"
-              rounded
-              class="macro-summary__bar"
-            />
+  <v-card
+    class="macro-summary"
+    :class="{ 'macro-summary--compact': compact }"
+    variant="flat"
+    rounded="lg"
+  >
+    <template v-if="compact && target && !loading && !loadError">
+      <div class="macro-summary__compact">
+        <div class="macro-summary__compact-head">
+          <div class="macro-summary__compact-titles">
+            <p class="macro-summary__compact-title">
+              <v-icon icon="mdi-food-apple-outline" size="16" color="primary" class="mr-1" />
+              Nutrición
+            </p>
+            <p class="macro-summary__compact-hint">
+              Objetivos diarios de tu entrenador
+            </p>
+          </div>
+          <div class="macro-summary__kcal">
+            <span class="macro-summary__kcal-value">{{ target.calories }}</span>
+            <span class="macro-summary__kcal-unit">kcal/día</span>
           </div>
         </div>
+        <div class="macro-summary__chips">
+          <span
+            v-for="macro in macros"
+            :key="macro.key"
+            class="macro-summary__chip"
+          >
+            <span class="macro-summary__chip-dot" :style="{ background: macro.color }" />
+            <span class="macro-summary__chip-label">{{ macro.label }}</span>
+            <span class="macro-summary__chip-grams" :style="{ color: macro.color }">
+              {{ macro.grams }}g
+            </span>
+          </span>
+        </div>
       </div>
-    </v-card-text>
+    </template>
+
+    <template v-else>
+      <v-card-title class="macro-summary__title">
+        <v-icon icon="mdi-food-apple-outline" size="20" class="mr-2" color="primary" />
+        Nutrición · objetivos diarios
+      </v-card-title>
+
+      <v-card-text class="pt-2">
+        <v-progress-linear
+          v-if="loading"
+          indeterminate
+          color="primary"
+          class="mb-2"
+          height="2"
+        />
+
+        <v-alert
+          v-else-if="loadError"
+          type="error"
+          variant="tonal"
+          density="compact"
+        >
+          {{ loadError }}
+          <template #append>
+            <v-btn variant="text" size="x-small" @click="loadTarget">Reintentar</v-btn>
+          </template>
+        </v-alert>
+
+        <div v-else-if="empty" class="macro-summary__empty">
+          <p class="macro-summary__empty-title">
+            Aún no hay objetivos nutricionales
+          </p>
+        </div>
+
+        <div v-else-if="target" class="macro-summary__body">
+          <div class="macro-summary__calories">
+            <span class="macro-summary__cal-value">{{ target.calories }}</span>
+            <span class="macro-summary__cal-unit">kcal</span>
+          </div>
+          <div class="macro-summary__macros">
+            <div
+              v-for="macro in macros"
+              :key="macro.key"
+              class="macro-summary__row"
+            >
+              <div class="macro-summary__row-head">
+                <span class="macro-summary__macro-label">{{ macro.label }}</span>
+                <span class="macro-summary__macro-grams" :style="{ color: macro.color }">
+                  {{ macro.grams }} g
+                </span>
+              </div>
+              <v-progress-linear
+                :model-value="100"
+                :color="macro.color"
+                height="6"
+                rounded
+              />
+            </div>
+          </div>
+        </div>
+      </v-card-text>
+    </template>
   </v-card>
 </template>
 
@@ -161,32 +229,115 @@ onMounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.macro-summary--compact {
+  border-radius: 12px !important;
+}
+
+.macro-summary__compact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.macro-summary__compact-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.macro-summary__compact-titles {
+  min-width: 0;
+}
+
+.macro-summary__compact-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.macro-summary__compact-hint {
+  margin: 2px 0 0;
+  font-size: 0.68rem;
+  color: #8b929e;
+  line-height: 1.3;
+}
+
+.macro-summary__kcal {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.macro-summary__kcal-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: rgb(var(--v-theme-primary));
+  line-height: 1;
+}
+
+.macro-summary__kcal-unit {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #8b929e;
+  text-transform: uppercase;
+}
+
+.macro-summary__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.macro-summary__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.macro-summary__chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.macro-summary__chip-label {
+  color: #8b929e;
+}
+
 .macro-summary__title {
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 700;
   display: flex;
   align-items: center;
-  padding-bottom: 0;
+  padding: 12px 16px 0;
 }
 
 .macro-summary__empty {
   text-align: center;
-  padding: 1.25rem 0.5rem 0.75rem;
+  padding: 0.5rem 0;
 }
 
 .macro-summary__empty-title {
-  margin: 0 0 0.35rem;
-  font-size: 0.92rem;
-  font-weight: 600;
-  line-height: 1.35;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.macro-summary__empty-desc {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   color: #8b929e;
-  line-height: 1.4;
 }
 
 .macro-summary__body {
@@ -199,32 +350,27 @@ onMounted(() => {
   justify-content: center;
   gap: 0.35rem;
   line-height: 1;
+  margin-bottom: 0.85rem;
 }
 
 .macro-summary__cal-value {
-  font-size: 2.5rem;
+  font-size: 1.85rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: rgb(var(--v-theme-primary));
 }
 
 .macro-summary__cal-unit {
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #8b929e;
   text-transform: uppercase;
 }
 
-.macro-summary__cal-label {
-  margin: 0.35rem 0 1.25rem;
-  font-size: 0.75rem;
-  color: #8b929e;
-}
-
 .macro-summary__macros {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.65rem;
   text-align: left;
 }
 
@@ -232,20 +378,16 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.2rem;
 }
 
 .macro-summary__macro-label {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
 .macro-summary__macro-grams {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 700;
-}
-
-.macro-summary__bar {
-  opacity: 0.95;
 }
 </style>

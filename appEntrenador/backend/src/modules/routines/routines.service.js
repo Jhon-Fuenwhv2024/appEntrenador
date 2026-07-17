@@ -1,8 +1,20 @@
 const db = require('../../config/db');
 const clientsService = require('../clients/clients.service');
 const exercisesService = require('../exercises/exercises.service');
+const habitsService = require('../habits/habits.service');
+const nutritionService = require('../nutrition/nutrition.service');
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+/** Sunday-first index aligned with Date#getUTCDay(). */
+const DAYS_BY_UTC_WEEKDAY = [
+  'Domingo',
+  'Lunes',
+  'Martes',
+  'Miércoles',
+  'Jueves',
+  'Viernes',
+  'Sábado',
+];
 /** Default rest between sets (Feature 028). */
 const DEFAULT_REST_TIME_SECONDS = 90;
 const MAX_REST_TIME_SECONDS = 900;
@@ -379,6 +391,75 @@ async function listMyRoutines(clientId) {
   return enrichRoutinesWithLastLogs(withMedia, clientId);
 }
 
+/**
+ * Weekday label (es) from civil YYYY-MM-DD without TZ shift.
+ */
+function weekdayLabelFromLocalDate(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const utcWeekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return DAYS_BY_UTC_WEEKDAY[utcWeekday];
+}
+
+function fallbackUtcDateString() {
+  const now = new Date();
+  const y = now.getUTCFullYear();
+  const m = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(now.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * True if the client finished this routine on the given civil date (YYYY-MM-DD).
+ */
+async function hasCompletedRoutineOnDate(clientId, routineId, dateStr) {
+  if (!routineId) return false;
+
+  const [rows] = await db.query(
+    `SELECT id
+     FROM workout_sessions
+     WHERE client_id = ?
+       AND routine_id = ?
+       AND status = 'completed'
+       AND DATE(COALESCE(finished_at, created_at)) = ?
+     LIMIT 1`,
+    [clientId, routineId, dateStr],
+  );
+
+  return rows.length > 0;
+}
+
+/**
+ * Feature 038: aggregator for client immersive dashboard.
+ * todayRoutine is null when there is no routine for the requested weekday (rest day).
+ */
+async function getTodayBundle(clientId, dateParam) {
+  const date = habitsService.parseLocalDateString(
+    dateParam || fallbackUtcDateString(),
+    'date',
+  );
+  const weekday = weekdayLabelFromLocalDate(date);
+
+  const [routines, habits, macrosRow] = await Promise.all([
+    listMyRoutines(clientId),
+    habitsService.listTodayForClient(clientId, date),
+    nutritionService.getByClientId(clientId),
+  ]);
+
+  const todayRoutine = routines.find((r) => r.dia_semana === weekday) || null;
+  const todayCompleted = todayRoutine
+    ? await hasCompletedRoutineOnDate(clientId, todayRoutine.id, date)
+    : false;
+
+  return {
+    date,
+    weekday,
+    todayRoutine,
+    todayCompleted,
+    habits,
+    macros: macrosRow || null,
+  };
+}
+
 async function insertExerciseLines(connection, routineId, ejercicios) {
   for (const exercise of ejercicios) {
     await connection.query(
@@ -477,6 +558,7 @@ async function deleteRoutine(trainerId, routineId) {
 module.exports = {
   listRoutinesForClientAsTrainer,
   listMyRoutines,
+  getTodayBundle,
   createRoutine,
   updateRoutine,
   deleteRoutine,

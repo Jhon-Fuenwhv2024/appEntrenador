@@ -39,6 +39,13 @@
 2. Service valida ownership trainer↔cliente en cada escritura.
 3. Cliente autenticado `GET /me/routines` y el portal muestra plan del día / semana (con media del catálogo si hay match por nombre).
 
+## Dashboard immersivo del cliente (Feature 038)
+
+1. Cliente en Inicio (`ClientDashboardView`) llama `GET /me/today?date=YYYY-MM-DD` (fecha civil local del dispositivo).
+2. El service agrega en paralelo: rutinas del alumno → match por `dia_semana`, hábitos de `/habits/today`, y `nutrition_targets` (o `null`).
+3. Si no hay rutina para ese weekday, `todayRoutine = null` → UI “Día de descanso”; si hay, hero + CTA **Empezar** → `/client/workout/:routineId`.
+4. Hábitos y macros se hidratan desde la misma respuesta (sin round-trips extra); el toggle de hábitos sigue siendo `POST /habits/:id/toggle`.
+
 ## Plantillas → deep copy al alumno (Feature 018)
 
 1. Trainer crea/edita plantillas en `/trainer/library` (`POST/PATCH /templates`) o guarda una rutina existente con “Guardar en Biblioteca”.
@@ -50,7 +57,7 @@
 
 ## Ejecución de rutina (Workout Player)
 
-1. Cliente pulsa **Comenzar** en el dashboard → `/client/workout/:routineId`.
+1. Cliente pulsa **Empezar** en el hero del dashboard → `/client/workout/:routineId`.
 2. Frontend carga `GET /me/routines` (incluye `last_log` por ejercicio si hay historial) y muestra **Comenzar entrenamiento**.
 3. En ese tap se desbloquea el audio HTML5 (`useTimer.unlockAudio`) y arranca `useWorkoutSession` (serie, descanso, auto-avance).
 4. El descanso usa `targetEndTime` (wall clock) + `visibilitychange`: al volver del background se recalcula `targetEndTime - Date.now()`; si ya expiró, contador a 0, beep y avance de serie. No se confía en ticks que resten `1` cada segundo.
@@ -80,7 +87,7 @@
 1. Trainer en la ficha del alumno (`NutritionTargetsPanel`) carga `GET /nutrition/:clientId` (404 = formulario vacío).
 2. Al editar macros (g), el frontend recalcula calorías con factores Atwater (FDA 21 CFR 101.9): P×4 + C×4 + F×9 kcal; el trainer puede sobrescribir `calories` a mano.
 3. `PUT /nutrition/:clientId` hace UPSERT 1:1 (`UNIQUE client_id`); solo trainer dueño; valida enteros positivos.
-4. Cliente en dashboard ve `MacroSummaryCard` vía el mismo `GET` con su `userId`; empty state si 404.
+4. Cliente en dashboard ve macros vía `GET /me/today` (campo `macros`) o, si se usa el card suelto, `GET /nutrition/:clientId`; sin targets → no se muestra la capa secundaria.
 
 ## Check-in semanal y fotos (Feature 033)
 

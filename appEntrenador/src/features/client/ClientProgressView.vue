@@ -1,16 +1,19 @@
 <script setup>
 /**
- * Client "Mi progreso" — resumen (entrenamientos + composición) y pestaña Gráficas.
+ * Client "Mi progreso" — KPIs + actividad visual + historial inteligente + gráficas.
  */
-import { computed, defineAsyncComponent, onMounted, ref, shallowRef } from 'vue';
+import { defineAsyncComponent, onMounted, ref, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
-import WorkoutSessionHistoryList from '../../shared/components/WorkoutSessionHistoryList.vue';
 import { getMyWorkoutSessions } from './api/workoutSessionsApi.js';
 import BodyCompositionReadOnly from './components/BodyCompositionReadOnly.vue';
+import ProgressActivityBars from './components/ProgressActivityBars.vue';
+import ProgressKpiStrip from './components/ProgressKpiStrip.vue';
+import ProgressSmartHistory from './components/ProgressSmartHistory.vue';
 import WeeklyCheckinDialog from './components/WeeklyCheckinDialog.vue';
+import { useProgressSessions } from './composables/useProgressSessions.js';
 
 const ProgressChartsPanel = defineAsyncComponent(() => (
   import('../../shared/components/ProgressChartsPanel.vue')
@@ -28,6 +31,16 @@ const snackbar = ref(false);
 const snackbarText = shallowRef('');
 const snackbarColor = shallowRef('success');
 
+const {
+  totalSessions,
+  completedCount,
+  currentStreak,
+  sessionsLast7Days,
+  weeklyActivity,
+  recentSessions,
+  sessionsByMonth,
+} = useProgressSessions(sessions);
+
 function openCheckinDialog() {
   checkinDialogOpen.value = true;
 }
@@ -43,10 +56,6 @@ function onCheckinError(message) {
   snackbarColor.value = 'error';
   snackbar.value = true;
 }
-
-const completedCount = computed(() => (
-  sessions.value.filter((s) => s.status === 'completed').length
-));
 
 async function loadSessions() {
   try {
@@ -84,18 +93,22 @@ onMounted(() => {
     <main class="main-content flex-grow-1 overflow-y-auto">
       <header class="dashboard-header progress-header">
         <div class="header-left">
+          <p class="header-date mb-1">
+            <v-icon icon="mdi-chart-timeline-variant" size="14" class="mr-1" />
+            Seguimiento
+          </p>
           <h1 class="header-title">Mi progreso</h1>
-          <div class="progress-inline-stats" aria-label="Resumen">
-            <span class="progress-inline-stats__item">
-              <strong>{{ loading ? '—' : sessions.length }}</strong> sesiones
-            </span>
-            <span class="progress-inline-stats__dot" aria-hidden="true">·</span>
-            <span class="progress-inline-stats__item">
-              <strong>{{ loading ? '—' : completedCount }}</strong> completadas
-            </span>
-          </div>
         </div>
-        <div class="header-right">
+        <div class="header-right progress-header__actions">
+          <button
+            type="button"
+            class="progress-checkin-header-btn"
+            title="Check-in semanal"
+            @click="openCheckinDialog"
+          >
+            <v-icon icon="mdi-clipboard-check-outline" size="16" />
+            <span>Check-in</span>
+          </button>
           <button
             type="button"
             class="header-logout-btn"
@@ -119,7 +132,7 @@ onMounted(() => {
           <v-tab value="graficas">Gráficas</v-tab>
         </v-tabs>
 
-        <div v-if="activeTab === 'resumen'">
+        <div v-if="activeTab === 'resumen'" class="progress-resumen">
           <v-progress-linear
             v-if="loading"
             indeterminate
@@ -141,48 +154,37 @@ onMounted(() => {
             </template>
           </v-alert>
 
-          <section class="progress-panel progress-checkin-cta mb-3">
-            <div class="progress-checkin-cta__body">
-              <div>
-                <h2 class="progress-panel__title">Check-in semanal</h2>
-                <p class="progress-panel__hint">
-                  Sueño, estrés y dieta en 30 segundos · fotos opcionales
-                </p>
-              </div>
-              <v-btn
-                color="primary"
-                prepend-icon="mdi-clipboard-check-outline"
-                @click="openCheckinDialog"
-              >
-                Hacer Check-in Semanal
-              </v-btn>
-            </div>
+          <ProgressKpiStrip
+            class="mb-3"
+            :loading="loading"
+            :total-sessions="totalSessions"
+            :completed-count="completedCount"
+            :current-streak="currentStreak"
+            :sessions-last7-days="sessionsLast7Days"
+          />
+
+          <ProgressActivityBars
+            class="mb-3"
+            :loading="loading"
+            :weeks="weeklyActivity"
+          />
+
+          <ProgressSmartHistory
+            v-if="!loading && !loadError"
+            class="mb-3"
+            :recent-sessions="recentSessions"
+            :sessions-by-month="sessionsByMonth"
+          />
+
+          <section class="progress-panel progress-panel--body">
+            <BodyCompositionReadOnly embedded />
           </section>
-
-          <div class="progress-grid">
-            <section class="progress-panel">
-              <div class="progress-panel__head">
-                <h2 class="progress-panel__title">Entrenamientos</h2>
-                <span class="progress-panel__hint">Toca para ver series</span>
-              </div>
-              <WorkoutSessionHistoryList
-                v-if="!loading && !loadError"
-                :sessions="sessions"
-                compact
-                empty-text="Sin entrenamientos aún. Completa una rutina desde Inicio."
-              />
-              <p v-else-if="loading" class="progress-panel__placeholder">Cargando…</p>
-            </section>
-
-            <section class="progress-panel progress-panel--body">
-              <BodyCompositionReadOnly embedded />
-            </section>
-          </div>
         </div>
 
         <ProgressChartsPanel
           v-else-if="clientId"
           :client-id="clientId"
+          :sessions="sessions"
         />
       </div>
     </main>
@@ -205,38 +207,47 @@ onMounted(() => {
 .progress-header .header-left {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.15rem;
   min-width: 0;
 }
 
-.progress-inline-stats {
+.progress-header__actions {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.8rem;
-  color: #8b929e;
+  gap: 8px;
 }
 
-.progress-inline-stats strong {
+.progress-checkin-header-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  background: rgba(0, 229, 255, 0.12);
   color: #00e5ff;
+  font-size: 0.75rem;
   font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
-.progress-inline-stats__dot {
-  opacity: 0.5;
+.progress-checkin-header-btn:hover {
+  background: rgba(0, 229, 255, 0.18);
 }
 
 .progress-body {
   width: 100%;
-  max-width: 1180px;
+  max-width: 560px;
   margin: 0 auto;
-  padding: 0.75rem 1rem 1.25rem;
+  padding: 0.5rem 0.15rem 1.25rem;
 }
 
 @media (min-width: 960px) {
   .progress-body {
-    padding: 0.5rem 1.5rem 1.5rem;
+    max-width: 720px;
+    padding: 0.5rem 0.5rem 1.5rem;
   }
 }
 
@@ -244,62 +255,14 @@ onMounted(() => {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.progress-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.85rem;
-  align-items: start;
-}
-
-@media (min-width: 900px) {
-  .progress-grid {
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-    gap: 1rem;
-  }
-}
-
-.progress-panel {
-  padding: 0.85rem 0.9rem;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  min-height: 0;
-}
-
-.progress-panel__head {
+.progress-resumen {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.25rem 0.75rem;
-  margin-bottom: 0.65rem;
-}
-
-.progress-panel__title {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.progress-panel__hint,
-.progress-panel__placeholder {
-  margin: 0;
-  font-size: 0.68rem;
-  color: #8b929e;
+  flex-direction: column;
 }
 
 .progress-panel--body {
   padding: 0;
   background: transparent;
   border: 0;
-}
-
-.progress-checkin-cta__body {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
 }
 </style>

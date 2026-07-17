@@ -210,6 +210,196 @@ HEADER
 }
 
 /* ===========================
+FEATURE 038 — Home cliente compacto
+=========================== */
+
+.client-home__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.client-home__intro {
+  min-width: 0;
+  flex: 1;
+}
+
+.client-home__date {
+  margin: 0 0 2px;
+  font-size: 12px;
+  color: #8B929E;
+  letter-spacing: 0.02em;
+}
+
+.client-home__hello {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #FFFFFF;
+}
+
+/* Slot futuro 040/042: sin UI visible hasta que exista contenido */
+.client-home__future-slot {
+  display: none;
+}
+
+.client-home__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.client-home__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  display: block;
+  flex-shrink: 0;
+}
+
+.client-home__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.client-home__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.client-home__secondary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.today-hero {
+  position: relative;
+  padding: 14px 14px;
+  border-radius: 16px;
+  background:
+    radial-gradient(110% 80% at 0% 0%, rgba(0, 229, 255, 0.18), transparent 55%),
+    #13161D;
+  border: 1px solid rgba(0, 229, 255, 0.16);
+  overflow: hidden;
+}
+
+.today-hero__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.today-hero__copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.today-hero__eyebrow {
+  margin: 0 0 2px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #00E5FF;
+}
+
+.today-hero__title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: #FFFFFF;
+}
+
+.today-hero__title--rest {
+  font-size: 1.15rem;
+}
+
+.today-hero__meta {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: #8B929E;
+  letter-spacing: 0.01em;
+}
+
+.today-hero__cta {
+  flex-shrink: 0;
+  min-height: 44px !important;
+  min-width: 7.5rem;
+  font-size: 0.9rem !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.today-hero__done-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 7.5rem;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: rgba(76, 175, 80, 0.16);
+  border: 1px solid rgba(76, 175, 80, 0.45);
+  color: #81c784;
+  font-size: 0.85rem;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.today-hero__row--done {
+  margin-bottom: 2px;
+}
+
+.today-hero__repeat {
+  align-self: flex-start;
+  min-height: 28px !important;
+  padding-inline: 0 !important;
+  font-size: 0.78rem !important;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.today-hero__rest {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .client-home__hello {
+    font-size: 1.2rem;
+  }
+
+  .today-hero__row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .today-hero__cta,
+  .today-hero__done-badge {
+    width: 100%;
+    min-height: 48px !important;
+  }
+}
+
+/* ===========================
 STAT CARDS
 =========================== */
 

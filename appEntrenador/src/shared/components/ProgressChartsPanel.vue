@@ -1,13 +1,15 @@
 <script setup>
 /**
- * Panel de gráficas de progreso (métricas corporales + fuerza por ejercicio).
+ * Panel de gráficas de progreso (actividad + métricas corporales + fuerza).
  * Usado en Mi Progreso (cliente) y ficha del alumno (trainer).
  */
 import { computed, defineAsyncComponent, onMounted, shallowRef, watch } from 'vue';
 import { getApiErrorMessage } from '../api/http.js';
 import { getProgressExercises, getProgressMetrics } from '../api/progressApi.js';
+import { useProgressSessions } from '../../features/client/composables/useProgressSessions.js';
 
 const ProgressLineChart = defineAsyncComponent(() => import('./ProgressLineChart.vue'));
+const ProgressBarChart = defineAsyncComponent(() => import('./ProgressBarChart.vue'));
 
 const props = defineProps({
   clientId: {
@@ -19,7 +21,38 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /** Sesiones del cliente para gráfica de actividad (opcional). */
+  sessions: {
+    type: Array,
+    default: () => [],
+  },
 });
+
+const activityPeriod = shallowRef('week');
+const {
+  weeklyActivity,
+  monthlyActivity,
+  completedCount,
+  allSessionsByMonth,
+} = useProgressSessions(computed(() => props.sessions));
+
+const activityLabels = computed(() => (
+  activityPeriod.value === 'week'
+    ? weeklyActivity.value.map((w) => w.label)
+    : monthlyActivity.value.map((m) => m.label)
+));
+
+const activityValues = computed(() => (
+  activityPeriod.value === 'week'
+    ? weeklyActivity.value.map((w) => w.count)
+    : monthlyActivity.value.map((m) => m.count)
+));
+
+const activityHint = computed(() => (
+  activityPeriod.value === 'week'
+    ? 'Sesiones completadas por semana'
+    : 'Sesiones completadas por mes'
+));
 
 const loadingMetrics = shallowRef(true);
 const loadingExercises = shallowRef(false);
@@ -174,6 +207,45 @@ defineExpose({ reloadAll });
 
 <template>
   <div class="progress-charts" :class="{ 'progress-charts--compact': compact }">
+    <section v-if="sessions.length || completedCount" class="progress-charts__block">
+      <div class="progress-charts__head">
+        <div>
+          <h3 class="progress-charts__title">Actividad de entrenamiento</h3>
+          <span class="progress-charts__hint">{{ activityHint }}</span>
+        </div>
+        <v-btn-toggle
+          v-model="activityPeriod"
+          density="compact"
+          color="primary"
+          variant="outlined"
+          divided
+          mandatory
+          class="progress-charts__toggle"
+        >
+          <v-btn value="week" size="small">Semana</v-btn>
+          <v-btn value="month" size="small">Mes</v-btn>
+        </v-btn-toggle>
+      </div>
+
+      <ProgressBarChart
+        :labels="activityLabels"
+        :values="activityValues"
+        :dataset-label="activityPeriod === 'week' ? 'Sesiones / semana' : 'Sesiones / mes'"
+        empty-text="Completa entrenamientos para ver tu actividad aquí."
+      />
+
+      <div v-if="allSessionsByMonth.length" class="progress-charts__months">
+        <span
+          v-for="month in allSessionsByMonth.slice(0, 6)"
+          :key="month.key"
+          class="progress-charts__month-chip"
+        >
+          {{ month.label.split(' ')[0] }}
+          <strong>{{ month.count }}</strong>
+        </span>
+      </div>
+    </section>
+
     <section class="progress-charts__block">
       <div class="progress-charts__head">
         <h3 class="progress-charts__title">Evolución corporal</h3>
@@ -301,9 +373,9 @@ defineExpose({ reloadAll });
 .progress-charts__head {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 0.25rem 0.75rem;
+  gap: 0.5rem 0.75rem;
   margin-bottom: 0.65rem;
 }
 
@@ -316,8 +388,38 @@ defineExpose({ reloadAll });
 }
 
 .progress-charts__hint {
+  display: block;
+  margin-top: 2px;
   font-size: 0.68rem;
   color: #8b929e;
+}
+
+.progress-charts__toggle {
+  flex-shrink: 0;
+}
+
+.progress-charts__months {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.progress-charts__month-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  color: #8b929e;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.progress-charts__month-chip strong {
+  color: #00e5ff;
+  font-weight: 700;
 }
 
 .progress-charts__select {

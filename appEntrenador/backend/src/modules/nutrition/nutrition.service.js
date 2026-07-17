@@ -124,6 +124,7 @@ async function upsertForTrainer(trainerId, clientId, payload) {
 }
 
 module.exports = {
+  getByClientId,
   getForRequester,
   upsertForTrainer,
 };

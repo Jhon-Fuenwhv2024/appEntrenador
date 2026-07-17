@@ -105,7 +105,16 @@ const go = (to) => {
 </script>
 
 <template>
-  <nav class="app-bottom-nav" aria-label="Navegación principal">
+  <!--
+    Nav custom (no v-bottom-navigation): Trainfit no usa v-app/v-layout,
+    y Vuetify exige layout inyectado para v-bottom-navigation.
+    Estilo dark/cyan vía appShell.css (active = primary).
+  -->
+  <nav
+    class="app-bottom-nav"
+    :class="{ 'app-bottom-nav--client': role === 'client' }"
+    aria-label="Navegación principal"
+  >
     <button
       v-for="item in items"
       :key="item.key"

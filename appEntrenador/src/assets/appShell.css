@@ -127,6 +127,7 @@ SHELL BODY (scroll container)
 BOTTOM NAV (mobile)
 =========================== */
 
+/* BOTTOM NAV (mobile) — custom; no v-bottom-navigation (requiere v-app) */
 .app-bottom-nav {
   display: none;
   position: fixed;
@@ -173,6 +174,11 @@ BOTTOM NAV (mobile)
 .app-bottom-nav__item.active {
   color: #00E5FF;
   background: rgba(0, 229, 255, 0.08);
+}
+
+.app-bottom-nav--client .app-bottom-nav__item.active {
+  color: rgb(var(--v-theme-primary));
+  background: rgba(0, 229, 255, 0.1);
 }
 
 .app-bottom-nav__label {

@@ -627,22 +627,30 @@ onMounted(() => {
 }
 
 .player-cta {
-  height: 54px;
+  /* Feature 038 — CTA touch-friendly (Mobile-First); color = on-primary */
+  min-height: 64px;
+  height: 64px;
   border: 0;
   border-radius: 16px;
-  background: #00E5FF;
-  color: #0B0D12;
-  font-size: 1.05rem;
+  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  font-size: 1.1rem;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   cursor: pointer;
   width: 100%;
+  box-shadow: 0 8px 24px rgba(0, 229, 255, 0.22);
 }
 
 .player-cta--ghost {
   background: transparent;
-  color: #00E5FF;
+  color: rgb(var(--v-theme-primary));
   border: 1px solid rgba(0, 229, 255, 0.45);
   margin-top: 24px;
+  box-shadow: none;
+  text-transform: none;
+  letter-spacing: 0.02em;
 }
 
 .player-rest-clock {

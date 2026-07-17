@@ -364,6 +364,54 @@ Deep copy a `rutinas` / `ejercicios` del alumno. Body:
 
 UI: `/trainer/library` (`LibraryView`); “Guardar en Biblioteca” desde ficha de alumno.
 
+### `GET /me/today` (client) — Feature 038
+
+Agregador del dashboard immersivo del alumno. Una sola petición con la rutina de hoy, hábitos del día y objetivos de macros.
+
+Headers: `Authorization: Bearer <token>` · rol `client`
+
+Query:
+
+| Param | Obligatorio | Descripción |
+|-------|-------------|-------------|
+| `date` | recomendado | Fecha civil local `YYYY-MM-DD` (misma convención que `/habits/today`). Si se omite, usa UTC del servidor. |
+
+Respuesta exitosa:
+
+```json
+{
+  "success": true,
+  "data": {
+    "todayRoutine": {
+      "id": 12,
+      "alumno_id": 5,
+      "dia_semana": "Jueves",
+      "nombre_rutina": "Full Body A",
+      "ejercicios": []
+    },
+    "habits": [
+      { "id": 1, "title": "Beber 2L de agua", "is_completed": false }
+    ],
+    "macros": {
+      "id": 3,
+      "client_id": 5,
+      "trainer_id": 1,
+      "calories": 2200,
+      "protein_g": 160,
+      "carbs_g": 220,
+      "fats_g": 70
+    },
+    "date": "2026-07-16",
+    "weekday": "Jueves"
+  }
+}
+```
+
+- `todayRoutine` es `null` si no hay rutina para ese `weekday` (estado UI “Día de descanso”).
+- `todayCompleted` es `true` si existe una `workout_sessions` `completed` de esa rutina con fecha civil = `date`.
+- `macros` es `null` si el trainer aún no asignó `nutrition_targets`.
+- Shape de rutina/ejercicios = mismo enriquecimiento que `GET /me/routines` (media, `last_log`, superseries, etc.).
+
 ### `GET /me/routines` (client)
 
 Lista las rutinas del cliente autenticado.

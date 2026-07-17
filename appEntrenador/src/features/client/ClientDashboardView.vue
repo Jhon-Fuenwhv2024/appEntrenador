@@ -1,80 +1,47 @@
 <script setup>
-import { computed, onMounted, ref, shallowRef } from 'vue';
+import { computed, onMounted, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
-import { APP_NAME } from '../../config/app.js';
-import { getApiErrorMessage } from '../../shared/api/http.js';
 import { getProfile } from '../../shared/api/profileApi.js';
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
 import { resolveAvatarSrc } from '../../shared/utils/avatar.js';
 import NotificationBadge from '../../components/notifications/NotificationBadge.vue';
-import { getMyRoutines } from './api/routinesApi.js';
 import MacroSummaryCard from './components/MacroSummaryCard.vue';
 import DailyHabitsChecklist from './components/DailyHabitsChecklist.vue';
-
-const DAY_ORDER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+import { useClientToday } from './composables/useClientToday.js';
 
 const router = useRouter();
 const userName = shallowRef('');
 const userId = shallowRef(null);
 const fotoUrl = shallowRef(null);
-const loading = shallowRef(true);
-const loadError = shallowRef('');
-const routines = ref([]);
+const heroReady = shallowRef(false);
+
+const {
+  loading,
+  loadError,
+  todayRoutine,
+  todayCompleted,
+  habits,
+  macros,
+  heroMeta,
+  loadToday,
+} = useClientToday();
 
 const avatarSrc = computed(() => resolveAvatarSrc(fotoUrl.value));
 
-const fechaActual = computed(() => {
-  const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  const fecha = new Date().toLocaleDateString('es-ES', opciones);
-  return fecha
-    .split(', ')
-    .map((part, index) => {
-      if (index === 0) return part.charAt(0).toUpperCase() + part.slice(1);
-      return part.split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-    })
-    .join(', ');
+const fechaCorta = computed(() => {
+  const raw = new Date().toLocaleDateString('es-ES', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
 });
 
-const todayLabel = computed(() => {
-  const raw = new Date().toLocaleDateString('es-ES', { weekday: 'long' });
-  const normalized = raw.charAt(0).toUpperCase() + raw.slice(1);
-  return DAY_ORDER.find((d) => d.toLowerCase() === normalized.toLowerCase()) || normalized;
+const firstName = computed(() => {
+  const name = (userName.value || '').trim();
+  return name.split(/\s+/)[0] || 'athlete';
 });
-
-const tienePlanActivo = computed(() => routines.value.length > 0);
-
-const sesionHoy = computed(() => {
-  const match = routines.value.find((r) => r.dia_semana === todayLabel.value);
-  return match || routines.value[0] || null;
-});
-
-const routinesByDay = computed(() => {
-  const map = new Map(DAY_ORDER.map((day) => [day, []]));
-  for (const routine of routines.value) {
-    const list = map.get(routine.dia_semana) || [];
-    list.push(routine);
-    map.set(routine.dia_semana, list);
-  }
-  return DAY_ORDER
-    .map((day) => ({ day, items: map.get(day) || [] }))
-    .filter((entry) => entry.items.length > 0);
-});
-
-const loadRoutines = async () => {
-  try {
-    loading.value = true;
-    loadError.value = '';
-    const response = await getMyRoutines();
-    routines.value = response.data.data ?? [];
-  } catch (error) {
-    console.error('Error cargando rutinas del cliente:', error);
-    loadError.value = getApiErrorMessage(error, 'No se pudieron cargar tus rutinas');
-    routines.value = [];
-  } finally {
-    loading.value = false;
-  }
-};
 
 const loadAvatar = async () => {
   if (!userId.value) return;
@@ -92,7 +59,7 @@ const handleLogout = () => {
   router.push('/');
 };
 
-onMounted(() => {
+onMounted(async () => {
   const user = getSessionUser();
 
   if (!user || user.rol !== 'client') {
@@ -103,38 +70,29 @@ onMounted(() => {
   userName.value = user.nombre || '';
   userId.value = user.id;
   loadAvatar();
-  loadRoutines();
+  await loadToday();
+  heroReady.value = true;
 });
 </script>
 
 <template>
   <AppShell role="client" active="dashboard">
-    <main class="main-content flex-grow-1 overflow-y-auto">
-      <header class="dashboard-header">
-        <div class="header-left">
-          <div class="header-date">
-            <v-icon icon="mdi-calendar-blank-outline" size="14"></v-icon>
-            {{ fechaActual }}
-          </div>
-          <h1 class="header-title">{{ APP_NAME }}</h1>
-          <p class="header-greeting">
-            Bienvenido, <span class="text-cyan">{{ userName }}</span>
-          </p>
+    <main class="main-content client-home flex-grow-1 overflow-y-auto">
+      <header class="client-home__header">
+        <div class="client-home__intro">
+          <p class="client-home__date">{{ fechaCorta }}</p>
+          <h1 class="client-home__hello">
+            Hola, <span class="text-cyan">{{ firstName }}</span>
+          </h1>
+          <!-- Reserva invisible para chip membresía (040) + racha (042) -->
+          <div class="client-home__future-slot" data-slot="membership-streak" />
         </div>
 
-        <div class="header-right">
+        <div class="client-home__actions">
           <NotificationBadge />
-
-          <router-link to="/client/profile" class="profile-pill" title="Mi Perfil">
-            <div class="profile-avatar">
-              <img :src="avatarSrc" :alt="`Foto de ${userName}`" class="profile-avatar__img">
-            </div>
-            <div class="profile-info">
-              <div class="profile-name">{{ userName }}</div>
-              <div class="profile-role">Cliente</div>
-            </div>
+          <router-link to="/client/profile" class="client-home__avatar" title="Mi Perfil">
+            <img :src="avatarSrc" :alt="`Foto de ${userName}`">
           </router-link>
-
           <button
             type="button"
             class="header-logout-btn"
@@ -142,103 +100,115 @@ onMounted(() => {
             aria-label="Cerrar sesión"
             @click="handleLogout"
           >
-            <v-icon icon="mdi-logout-variant" size="20" />
+            <v-icon icon="mdi-logout-variant" size="18" />
           </button>
         </div>
       </header>
 
-      <div class="content-panel pt-0">
-        <MacroSummaryCard
-          v-if="userId"
-          :client-id="userId"
-          class="mb-6"
+      <div class="client-home__body">
+        <v-progress-linear
+          v-if="loading"
+          indeterminate
+          color="primary"
+          class="mb-3"
+          height="2"
         />
 
-        <DailyHabitsChecklist />
-
-        <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-6" />
-
-        <v-alert v-else-if="loadError" type="error" variant="tonal" class="mb-6">
+        <v-alert
+          v-else-if="loadError"
+          type="error"
+          variant="tonal"
+          density="compact"
+          class="mb-3"
+        >
           {{ loadError }}
+          <template #append>
+            <v-btn variant="text" size="x-small" @click="loadToday">Reintentar</v-btn>
+          </template>
         </v-alert>
 
-        <div v-else-if="!tienePlanActivo" class="client-empty-card">
-          <v-icon icon="mdi-rocket-launch-outline" size="28" color="#8B929E" class="client-empty-icon"></v-icon>
-          <h2 class="client-empty-title">Aún no tienes rutinas asignadas</h2>
-          <p class="client-empty-desc">
-            Cuando tu entrenador te asigne un plan, lo verás aquí automáticamente.
-          </p>
-        </div>
-
-        <template v-else>
-          <v-row>
-            <v-col cols="12" md="8">
-              <div v-if="sesionHoy" class="functional-card workout-card">
-                <div class="d-flex justify-space-between align-center mb-6 flex-wrap ga-3">
-                  <div>
-                    <h3 class="card-section-title">
-                      {{ sesionHoy.dia_semana === todayLabel ? 'Entrenamiento de Hoy' : 'Próxima sesión' }}
-                    </h3>
-                    <div class="card-section-subtitle">
-                      {{ sesionHoy.dia_semana }} · {{ sesionHoy.nombre_rutina }}
-                    </div>
-                  </div>
-                  <v-btn
-                    color="primary"
-                    class="font-weight-bold client-start-btn"
-                    size="large"
-                    prepend-icon="mdi-play"
-                    :to="{ name: 'WorkoutPlayer', params: { routineId: sesionHoy.id } }"
-                  >
-                    Comenzar
-                  </v-btn>
+        <v-slide-y-transition>
+          <section
+            v-if="!loading && !loadError && heroReady"
+            class="today-hero"
+            aria-label="Entrenamiento de hoy"
+          >
+            <template v-if="todayRoutine">
+              <div
+                class="today-hero__row"
+                :class="{ 'today-hero__row--done': todayCompleted }"
+              >
+                <div class="today-hero__copy">
+                  <p class="today-hero__eyebrow">
+                    <template v-if="todayCompleted">Completado</template>
+                    <template v-else>Hoy</template>
+                  </p>
+                  <h2 class="today-hero__title">{{ todayRoutine.nombre_rutina }}</h2>
+                  <p class="today-hero__meta">
+                    <template v-if="todayCompleted">Ya entrenaste esta rutina hoy</template>
+                    <template v-else>{{ heroMeta }}</template>
+                  </p>
                 </div>
-
-                <div class="exercise-list">
-                  <div
-                    v-for="(ejercicio, i) in sesionHoy.ejercicios"
-                    :key="ejercicio.id || i"
-                    class="exercise-item"
-                  >
-                    <div class="exercise-num">{{ i + 1 }}</div>
-                    <div class="exercise-details">
-                      <div class="exercise-name">{{ ejercicio.nombre }}</div>
-                      <div class="exercise-meta">
-                        {{ ejercicio.series }} Series · {{ ejercicio.repeticiones }} Reps · {{ ejercicio.peso }} kg
-                      </div>
-                      <div v-if="ejercicio.indicaciones" class="text-caption mt-1">
-                        {{ ejercicio.indicaciones }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </v-col>
-
-            <v-col cols="12" md="4">
-              <div class="functional-card diet-card">
-                <h3 class="card-section-title mb-4">Plan semanal</h3>
                 <div
-                  v-for="entry in routinesByDay"
-                  :key="entry.day"
-                  class="macro-item mb-4"
+                  v-if="todayCompleted"
+                  class="today-hero__done-badge"
+                  aria-label="Entrenamiento completado"
                 >
-                  <div class="d-flex justify-space-between mb-1">
-                    <span class="text-caption font-weight-bold">{{ entry.day }}</span>
-                    <span class="text-cyan text-caption">{{ entry.items.length }} rutina(s)</span>
-                  </div>
-                  <div
-                    v-for="item in entry.items"
-                    :key="item.id"
-                    class="text-caption text-medium-emphasis"
-                  >
-                    {{ item.nombre_rutina }} · {{ item.ejercicios.length }} ejercicios
-                  </div>
+                  <v-icon icon="mdi-check-circle" size="20" />
+                  Completado
+                </div>
+                <v-btn
+                  v-else
+                  color="primary"
+                  class="today-hero__cta font-weight-bold"
+                  rounded="lg"
+                  elevation="6"
+                  prepend-icon="mdi-play"
+                  :to="{ name: 'WorkoutPlayer', params: { routineId: todayRoutine.id } }"
+                >
+                  Empezar
+                </v-btn>
+              </div>
+              <v-btn
+                v-if="todayCompleted"
+                variant="text"
+                color="primary"
+                size="small"
+                class="today-hero__repeat"
+                :to="{ name: 'WorkoutPlayer', params: { routineId: todayRoutine.id } }"
+              >
+                Repetir entrenamiento
+              </v-btn>
+            </template>
+
+            <template v-else>
+              <div class="today-hero__rest">
+                <v-icon icon="mdi-weather-night" size="28" color="primary" />
+                <div>
+                  <h2 class="today-hero__title today-hero__title--rest">Día de descanso</h2>
+                  <p class="today-hero__meta mb-0">Sin rutina hoy · recupera bien</p>
                 </div>
               </div>
-            </v-col>
-          </v-row>
-        </template>
+            </template>
+          </section>
+        </v-slide-y-transition>
+
+        <div class="client-home__secondary">
+          <DailyHabitsChecklist
+            v-if="!loading"
+            compact
+            :initial-habits="habits"
+            :skip-fetch="true"
+          />
+
+          <MacroSummaryCard
+            v-if="!loading && userId && macros"
+            compact
+            :client-id="userId"
+            :initial-target="macros"
+            :skip-fetch="true"
+          />
+        </div>
       </div>
     </main>
   </AppShell>

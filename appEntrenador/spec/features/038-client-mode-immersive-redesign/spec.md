@@ -1,6 +1,6 @@
 # 038 · Rediseño Inmersivo del Modo Cliente
 
-**Estado:** pendiente
+**Estado:** implementado (pendiente smoke manual móvil)
 **Depende de:** 007 (Portal cliente), 011 (Workout Player), 014 (Mobile shell), 031 (Nutrición macros), 032 (Hábitos)
 **Alimenta:** 040 (chip membresía), 041 (celebraciones en Player), 042 (anillo de racha)
 
@@ -10,14 +10,14 @@ Rediseña de forma extrema la experiencia diaria del alumno (Modo Cliente): prim
 
 ## Criterios de aceptación
 
-- [ ] **Hero del día:** En Inicio, viewport principal = rutina de hoy (o “día de descanso” / próxima rutina) + CTA primary grande “Empezar” que navega a `/client/workout/:routineId`.
-- [ ] **Capas secundarias:** Hábitos del día, macros y notificaciones quedan bajo el hero (no compiten visualmente con el CTA).
-- [ ] **Shell:** Bottom nav (Inicio · Progreso · Chat · Perfil) se mantiene; tipografía/atmósfera actualizada sin romper contraste (`on-primary`, `tf-overlay-menu`, ADR-0001).
-- [ ] **Workout Player:** Misma “piel” visual que el dashboard (fondos, tipografía, CTAs); sin regresión de flujo de series/descanso/superseries.
-- [ ] **Progreso / Perfil:** Alineados al nuevo lenguaje visual (sin rediseño de dominio).
-- [ ] **Slots futuros:** Espacio reservado en header/hero para chip de membresía (040) y anillo de racha (042) sin romper layout.
-- [ ] **Mobile-first:** Pass visual ~390px sin overflow horizontal; una composición por viewport (sin dashboard abarrotado).
-- [ ] **Sin tablas nuevas** en esta feature (salvo endpoint opcional `GET /me/today` si reduce round-trips).
+- [x] **Hero del día:** En Inicio, viewport principal = rutina de hoy (o “día de descanso” / próxima rutina) + CTA primary grande “Empezar” que navega a `/client/workout/:routineId`.
+- [x] **Capas secundarias:** Hábitos del día, macros y notificaciones quedan bajo el hero (no compiten visualmente con el CTA).
+- [x] **Shell:** Bottom nav (Inicio · Progreso · Chat · Perfil) se mantiene; tipografía/atmósfera actualizada sin romper contraste (`on-primary`, `tf-overlay-menu`, ADR-0001).
+- [x] **Workout Player:** Misma “piel” visual que el dashboard (fondos, tipografía, CTAs); sin regresión de flujo de series/descanso/superseries.
+- [x] **Progreso / Perfil:** Alineados al nuevo lenguaje visual (sin rediseño de dominio).
+- [x] **Slots futuros:** Espacio reservado en header/hero para chip de membresía (040) y anillo de racha (042) sin romper layout.
+- [x] **Mobile-first:** Pass visual ~390px sin overflow horizontal; una composición por viewport (sin dashboard abarrotado).
+- [x] **Sin tablas nuevas** en esta feature (salvo endpoint opcional `GET /me/today` si reduce round-trips).
 
 ## Fuera de alcance
 
