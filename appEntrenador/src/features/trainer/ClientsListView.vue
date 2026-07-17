@@ -17,9 +17,18 @@ const router = useRouter();
 const { smAndUp } = useDisplay();
 
 const searchQuery = shallowRef('');
+const membershipFilter = shallowRef('all');
 const loading = shallowRef(true);
 const clients = ref([]);
 const invitesDialogOpen = shallowRef(false);
+
+const MEMBERSHIP_FILTERS = [
+  { value: 'all', title: 'Todos' },
+  { value: 'active', title: 'Al día' },
+  { value: 'expiring', title: 'Por vencer (≤7 días)' },
+  { value: 'expired', title: 'Vencidos' },
+  { value: 'owing', title: 'Pendientes' },
+];
 
 const snackbar = reactive({
   show: false,
@@ -27,15 +36,38 @@ const snackbar = reactive({
   color: 'success',
 });
 
+function matchesMembershipFilter(client, filter) {
+  if (filter === 'all') return true;
+
+  const m = client?.membership;
+  if (!m) return false;
+
+  const status = String(m.status || '').toLowerCase();
+  const days = m.days_remaining == null ? null : Number(m.days_remaining);
+
+  if (filter === 'owing') return status === 'owing';
+  if (filter === 'expired') {
+    return status === 'expired' || (days != null && days < 0);
+  }
+  if (filter === 'expiring') {
+    return status === 'active' && days != null && days >= 0 && days <= 7;
+  }
+  if (filter === 'active') {
+    return status === 'active' && (days == null || days > 7);
+  }
+  return true;
+}
+
 const filteredClients = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
+  const filter = membershipFilter.value;
 
-  if (!query) return clients.value;
-
-  return clients.value.filter((client) => (
-    String(client.nombre || '').toLowerCase().includes(query)
-    || String(client.username || '').toLowerCase().includes(query)
-  ));
+  return clients.value.filter((client) => {
+    if (!matchesMembershipFilter(client, filter)) return false;
+    if (!query) return true;
+    return String(client.nombre || '').toLowerCase().includes(query)
+      || String(client.username || '').toLowerCase().includes(query);
+  });
 });
 
 const showNotification = (text, color = 'success') => {
@@ -132,6 +164,21 @@ onMounted(() => {
       </header>
 
       <div class="clients-page__body">
+        <div class="clients-page__filters">
+          <v-select
+            v-model="membershipFilter"
+            :items="MEMBERSHIP_FILTERS"
+            item-title="title"
+            item-value="value"
+            label="Filtros"
+            density="compact"
+            variant="outlined"
+            hide-details
+            :menu-props="{ contentClass: 'tf-overlay-menu' }"
+            class="clients-page__filter-select"
+          />
+        </div>
+
         <ClientsList
           v-model:search-query="searchQuery"
           variant="page"
@@ -195,6 +242,18 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   padding: 0 16px 24px;
+  gap: 0.65rem;
+}
+
+.clients-page__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.clients-page__filter-select {
+  width: 100%;
+  max-width: 280px;
 }
 
 .clients-page__invites-label {

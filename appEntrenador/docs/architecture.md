@@ -36,7 +36,8 @@ El backend monta módulos bajo `/api` desde `backend/src/server.js`.
 - `backend/src/modules/auth/`: login (emite JWT con `is_superadmin`) y registro por invitación (consume token vía `invites`).
 - `backend/src/modules/saas/`: panel dueño — `GET/PUT /api/saas/trainers...` (Feature 037).
 - `backend/src/modules/invites/`: gestión de invitaciones (Feature 023) — `POST/GET /api/invites`, `PATCH /api/invites/:id/revoke`; alias `POST /api/generate-token`. Estados: `pending` | `used` | `revoked`. `POST /invites` aplica `checkTrainerLimits`.
-- `backend/src/modules/clients/`: listado/detalle/overview 360 de clientes del trainer autenticado.
+- `backend/src/modules/clients/`: listado/detalle/overview 360 de clientes del trainer autenticado (incluye resumen de membresía en listado/overview).
+- `backend/src/modules/memberships/`: membresía / control de pago del alumno (Feature 040) — `GET/PUT /clients/:id/membership`, `GET /me/membership`; soft-lock `MEMBERSHIP_BLOCKED` en rutinas/workout del cliente.
 - `backend/src/modules/routines/`: CRUD de rutinas/ejercicios (líneas de rutina) con ownership.
 - `backend/src/modules/templates/`: CRUD de plantillas + `POST /templates/:id/assign` (deep copy a `rutinas`/`ejercicios`; Feature 018).
 - `backend/src/modules/exercises/`: catálogo `exercises` — `GET/POST /api/exercises` (trainer: globales + propios). Seed (`backend/scripts/seedExercises.js`) desde clone local de wrkout/exercises.json; `media_url` = raw GitHub. Las líneas de rutina/plantilla pueden vincularse con `exercise_id` + `nombre` denormalizado (Feature 022). Ver [`docs/database-schema.md`](database-schema.md).

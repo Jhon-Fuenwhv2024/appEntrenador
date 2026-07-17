@@ -3,6 +3,7 @@ const clientsService = require('../clients/clients.service');
 const exercisesService = require('../exercises/exercises.service');
 const habitsService = require('../habits/habits.service');
 const nutritionService = require('../nutrition/nutrition.service');
+const membershipsService = require('../memberships/memberships.service');
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 /** Sunday-first index aligned with Date#getUTCDay(). */
@@ -385,6 +386,10 @@ async function enrichRoutinesWithLastLogs(routines, clientId) {
   }));
 }
 
+/**
+ * Lista rutinas del cliente sin soft-lock de membresía.
+ * Usar desde /me/today (dashboard) o tras assert en el controller de /me/routines.
+ */
 async function listMyRoutines(clientId) {
   const routines = await fetchRoutinesWithExercises(clientId);
   const withMedia = await enrichRoutinesWithCatalogMedia(routines, clientId);
@@ -439,11 +444,23 @@ async function getTodayBundle(clientId, dateParam) {
   );
   const weekday = weekdayLabelFromLocalDate(date);
 
-  const [routines, habits, macrosRow] = await Promise.all([
+  const [routines, habits, macrosRow, membership] = await Promise.all([
     listMyRoutines(clientId),
     habitsService.listTodayForClient(clientId, date),
     nutritionService.getByClientId(clientId),
+    membershipsService.getForClient(clientId),
   ]);
+
+  let membershipBlocked = false;
+  try {
+    await membershipsService.assertClientMembershipAccess(clientId);
+  } catch (error) {
+    if (error.error === 'MEMBERSHIP_BLOCKED') {
+      membershipBlocked = true;
+    } else {
+      throw error;
+    }
+  }
 
   const todayRoutine = routines.find((r) => r.dia_semana === weekday) || null;
   const todayCompleted = todayRoutine
@@ -457,6 +474,8 @@ async function getTodayBundle(clientId, dateParam) {
     todayCompleted,
     habits,
     macros: macrosRow || null,
+    membership,
+    membershipBlocked,
   };
 }
 

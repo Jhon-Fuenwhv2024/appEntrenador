@@ -3,16 +3,17 @@ const { notificationService } = require('../notifications/notifications.service'
 const db = require('../../config/db');
 
 function sendError(res, error, context) {
-  const code = error.code || 500;
+  const httpStatus = Number(error.code) || 500;
   const message = error.message || 'Error interno del servidor.';
+  const errorKey = error.error || message;
 
   console.error(context, error);
 
-  return res.status(code).json({
+  return res.status(httpStatus).json({
     success: false,
-    error: message,
+    error: errorKey,
     message,
-    code,
+    code: error.error || httpStatus,
   });
 }
 

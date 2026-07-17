@@ -1,18 +1,24 @@
 <script setup>
 import { computed, onMounted, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getApiErrorMessage } from '../../shared/api/http.js';
+import {
+  getApiErrorMessage,
+  isMembershipBlockedError,
+} from '../../shared/api/http.js';
 import { getSessionUser } from '../../shared/auth/session.js';
 import { getMyRoutines } from './api/routinesApi.js';
 import { createMyWorkoutSession } from './api/workoutSessionsApi.js';
 import { useWorkoutSession } from './composables/useWorkoutSession.js';
 import WorkoutExerciseMedia from './components/WorkoutExerciseMedia.vue';
 
+const MEMBERSHIP_BLOCKED_MSG = 'Tu membresía venció — habla con tu entrenador.';
+
 const route = useRoute();
 const router = useRouter();
 
 const loading = shallowRef(true);
 const loadError = shallowRef('');
+const membershipBlocked = shallowRef(false);
 const saveError = shallowRef('');
 const saving = shallowRef(false);
 const saved = shallowRef(false);
@@ -97,7 +103,12 @@ async function persistSession() {
     saved.value = true;
   } catch (error) {
     console.error('Error guardando sesión de entrenamiento:', error);
-    saveError.value = getApiErrorMessage(error, 'No se pudo guardar el entrenamiento');
+    if (isMembershipBlockedError(error)) {
+      membershipBlocked.value = true;
+      saveError.value = MEMBERSHIP_BLOCKED_MSG;
+    } else {
+      saveError.value = getApiErrorMessage(error, 'No se pudo guardar el entrenamiento');
+    }
   } finally {
     saving.value = false;
   }
@@ -107,6 +118,7 @@ async function loadRoutine() {
   try {
     loading.value = true;
     loadError.value = '';
+    membershipBlocked.value = false;
     pendingRoutine.value = null;
     const routineId = Number(route.params.routineId);
     const response = await getMyRoutines();
@@ -120,7 +132,12 @@ async function loadRoutine() {
     pendingRoutine.value = routine;
   } catch (error) {
     console.error('Error cargando rutina para el player:', error);
-    loadError.value = getApiErrorMessage(error, 'No se pudo cargar la rutina');
+    if (isMembershipBlockedError(error)) {
+      membershipBlocked.value = true;
+      loadError.value = MEMBERSHIP_BLOCKED_MSG;
+    } else {
+      loadError.value = getApiErrorMessage(error, 'No se pudo cargar la rutina');
+    }
   } finally {
     loading.value = false;
   }
@@ -186,7 +203,13 @@ onMounted(() => {
 
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mx-4" />
 
-    <v-alert v-else-if="loadError" type="error" variant="tonal" class="ma-4">
+    <v-alert
+      v-else-if="loadError"
+      type="error"
+      variant="tonal"
+      class="ma-4"
+      :prepend-icon="membershipBlocked ? 'mdi-lock' : undefined"
+    >
       {{ loadError }}
       <template #append>
         <v-btn variant="text" @click="goBack">Volver</v-btn>

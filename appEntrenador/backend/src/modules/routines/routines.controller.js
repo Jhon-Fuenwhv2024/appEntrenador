@@ -1,17 +1,19 @@
 const routinesService = require('./routines.service');
+const membershipsService = require('../memberships/memberships.service');
 const { notificationService } = require('../notifications/notifications.service');
 
 function sendError(res, error, context) {
-  const code = error.code || 500;
+  const httpStatus = Number(error.code) || 500;
   const message = error.message || 'Error interno del servidor.';
+  const errorKey = error.error || message;
 
   console.error(context, error);
 
-  return res.status(code).json({
+  return res.status(httpStatus).json({
     success: false,
-    error: message,
+    error: errorKey,
     message,
-    code,
+    code: error.error || httpStatus,
   });
 }
 
@@ -34,6 +36,7 @@ async function listForClient(req, res) {
 
 async function listMine(req, res) {
   try {
+    await membershipsService.assertClientMembershipAccess(req.user.id);
     const routines = await routinesService.listMyRoutines(req.user.id);
 
     return res.json({
@@ -65,6 +68,8 @@ async function getToday(req, res) {
         macros: bundle.macros,
         date: bundle.date,
         weekday: bundle.weekday,
+        membership: bundle.membership ?? null,
+        membershipBlocked: Boolean(bundle.membershipBlocked),
       },
     });
   } catch (error) {

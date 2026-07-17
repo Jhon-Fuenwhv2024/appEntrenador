@@ -23,6 +23,8 @@ erDiagram
   usuarios ||--o{ body_composition_logs : "recorded_by"
   usuarios ||--o| nutrition_targets : "client_id"
   usuarios ||--o{ nutrition_targets : "trainer_id"
+  usuarios ||--o| client_memberships : "client_id"
+  usuarios ||--o{ client_memberships : "updated_by"
   usuarios ||--o{ weekly_checkins : "client_id"
   weekly_checkins ||--o{ progress_photos : "checkin_id"
   usuarios ||--o{ progress_photos : "client_id"
@@ -242,6 +244,12 @@ cd backend
 npm run db:create-nutrition-targets
 # o: node scripts/createNutritionTargetsTable.js
 ```
+
+### `client_memberships` (Feature 040)
+
+Membresía / control de pago 1:1 con el alumno (`UNIQUE client_id`). Campos: `status` (`active` | `owing` | `expired`), `period_start` / `period_end` (DATE), `notes` (TEXT, solo trainer), `block_on_unpaid` (BOOLEAN default false), `updated_by` → `usuarios`. `days_remaining` **no** es columna: se calcula en service con `DATEDIFF(period_end, CURDATE())`.
+
+Migración: [`backend/db/migrations/019_client_memberships.sql`](../backend/db/migrations/019_client_memberships.sql). Al arrancar, `ensureClientMembershipsTable` aplica `CREATE TABLE IF NOT EXISTS`.
 
 ### `weekly_checkins` + `progress_photos` (Feature 033)
 

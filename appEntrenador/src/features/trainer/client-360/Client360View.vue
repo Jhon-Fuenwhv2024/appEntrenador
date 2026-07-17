@@ -20,6 +20,7 @@ import { getClientWorkoutSessions } from '../api/workoutSessionsApi.js';
 import BodyCompositionPanel from '../components/BodyCompositionPanel.vue';
 import CheckinsHistoryPanel from '../components/CheckinsHistoryPanel.vue';
 import DailyHabitsPanel from '../components/DailyHabitsPanel.vue';
+import MembershipPanel from '../components/MembershipPanel.vue';
 import NutritionTargetsPanel from '../components/NutritionTargetsPanel.vue';
 import Client360Header from './Client360Header.vue';
 import Client360Overview from './Client360Overview.vue';
@@ -75,6 +76,22 @@ const showNotification = (text, color = 'success') => {
 
 const onChildNotify = ({ text, color }) => {
   showNotification(text, color || 'success');
+};
+
+const onMembershipUpdated = (data) => {
+  if (!overview.value) return;
+  overview.value = {
+    ...overview.value,
+    membership: data
+      ? {
+        status: data.status,
+        period_start: data.period_start ?? null,
+        period_end: data.period_end ?? null,
+        days_remaining: data.days_remaining ?? null,
+        block_on_unpaid: Boolean(data.block_on_unpaid),
+      }
+      : null,
+  };
 };
 
 const setTab = (tab) => {
@@ -250,13 +267,22 @@ onMounted(() => {
             </v-tabs>
           </div>
 
-          <Client360Overview
+          <div
             v-if="activeTab === 'resumen'"
-            :overview="overview"
-            :sessions="workoutSessions"
-            :client-name="client?.nombre || ''"
-            @go-tab="setTab"
-          />
+            class="c360-stack"
+          >
+            <MembershipPanel
+              :client-id="clientId"
+              @notify="onChildNotify"
+              @updated="onMembershipUpdated"
+            />
+            <Client360Overview
+              :overview="overview"
+              :sessions="workoutSessions"
+              :client-name="client?.nombre || ''"
+              @go-tab="setTab"
+            />
+          </div>
 
           <Client360Programming
             v-else-if="activeTab === 'programacion'"

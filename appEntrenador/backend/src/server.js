@@ -21,12 +21,14 @@ const habitsRoutes = require('./modules/habits/habits.routes');
 const checkinsRoutes = require('./modules/checkins/checkins.routes');
 const messagesRoutes = require('./modules/messages/messages.routes');
 const saasRoutes = require('./modules/saas/saas.routes');
+const membershipsRoutes = require('./modules/memberships/memberships.routes');
 const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
 const { ensurePhotosDir } = require('./middleware/uploadProgressPhotos');
 const { ensureNotificationsTable } = require('./db/ensureNotificationsTable');
 const { ensureHabitsTables } = require('./db/ensureHabitsTables');
 const { ensureCheckinsTables } = require('./db/ensureCheckinsTables');
 const { ensureMessagesTable } = require('./db/ensureMessagesTable');
+const { ensureClientMembershipsTable } = require('./db/ensureClientMembershipsTable');
 const { ensureSaasColumns } = require('./db/ensureSaasColumns');
 
 const app = express();
@@ -55,6 +57,7 @@ app.use('/api', habitsRoutes);
 app.use('/api', checkinsRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/saas', saasRoutes);
+app.use('/api', membershipsRoutes);
 
 async function start() {
   try {
@@ -85,6 +88,12 @@ async function start() {
     await ensureMessagesTable();
   } catch (error) {
     console.error('No se pudo asegurar la tabla messages:', error.message);
+  }
+
+  try {
+    await ensureClientMembershipsTable();
+  } catch (error) {
+    console.error('No se pudo asegurar la tabla client_memberships:', error.message);
   }
 
   app.listen(PORT, () => {

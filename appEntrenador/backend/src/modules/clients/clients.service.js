@@ -6,6 +6,11 @@ function createHttpError(message, code) {
   return error;
 }
 
+/** Lazy require — evita ciclo clients ↔ memberships (module.exports replace). */
+function getMembershipsService() {
+  return require('../memberships/memberships.service');
+}
+
 function monthKey(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -35,23 +40,55 @@ async function getClientsForTrainer(trainerId) {
        u.id,
        u.nombre,
        u.username,
-       COUNT(r.id) AS routines_count
+       COUNT(r.id) AS routines_count,
+       cm.status AS membership_status,
+       cm.period_start AS membership_period_start,
+       cm.period_end AS membership_period_end,
+       cm.block_on_unpaid AS membership_block_on_unpaid,
+       DATEDIFF(cm.period_end, CURDATE()) AS membership_days_remaining
      FROM usuarios u
      LEFT JOIN rutinas r ON r.alumno_id = u.id
+     LEFT JOIN client_memberships cm ON cm.client_id = u.id
      WHERE u.rol = 'client' AND u.trainer_id = ?
-     GROUP BY u.id, u.nombre, u.username
+     GROUP BY
+       u.id,
+       u.nombre,
+       u.username,
+       cm.status,
+       cm.period_start,
+       cm.period_end,
+       cm.block_on_unpaid
      ORDER BY u.nombre ASC`,
     [trainerId],
   );
 
+  const membershipsService = getMembershipsService();
+
   return clients.map((client) => {
     const routinesCount = Number(client.routines_count) || 0;
+    const hasMembership = client.membership_status != null;
+
+    let membership = null;
+    if (hasMembership) {
+      membership = membershipsService.mapMembershipRow({
+        client_id: client.id,
+        status: client.membership_status,
+        period_start: client.membership_period_start,
+        period_end: client.membership_period_end,
+        block_on_unpaid: client.membership_block_on_unpaid,
+        updated_by: null,
+        updated_at: null,
+        days_remaining: client.membership_days_remaining,
+      }, { includeNotes: false });
+    }
+
     return {
       id: client.id,
       nombre: client.nombre,
       username: client.username,
       routines_count: routinesCount,
       status: routinesCount > 0 ? 'Activo' : 'Sin plan',
+      membership,
     };
   });
 }
@@ -234,6 +271,10 @@ async function getClientOverview(clientId, trainerId) {
     [clientId],
   );
 
+  const membershipsService = getMembershipsService();
+  const membershipRow = await membershipsService.getByClientId(clientId);
+  const membership = membershipsService.summarizeMembership(membershipRow);
+
   const DEFAULT_AVATAR_MARKERS = new Set(['', 'default_avatar.png', 'null', 'undefined']);
   const rawFoto = profileRow?.foto_url;
   let fotoUrl = null;
@@ -272,8 +313,8 @@ async function getClientOverview(clientId, trainerId) {
     lastSession: sessionRows[0] || null,
     lastCheckin: checkinRows[0] || null,
     nutritionTargets: nutritionRows[0] || null,
-    // Feature slots (040 / 041 / 042) — null-safe until those APIs exist
-    membership: null,
+    membership,
+    // Feature slots (041 / 042) — null-safe until those APIs exist
     consistencyScore: null,
     prsThisMonth: null,
   };

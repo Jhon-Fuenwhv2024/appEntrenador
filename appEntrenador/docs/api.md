@@ -171,9 +171,9 @@ Respuesta `data`:
 
 Devuelve solo los clientes con `trainer_id = req.user.id`.
 
-Cada ítem incluye `routines_count` y `status` (`Activo` si tiene ≥1 rutina, `Sin plan` si no).
+Cada ítem incluye `routines_count`, `status` (`Activo` si tiene ≥1 rutina, `Sin plan` si no) y `membership` (Feature 040): `{ status, period_start, period_end, days_remaining, block_on_unpaid }` o `null` si no hay fila.
 
-UI trainer: lista en `/trainer/clients` (`ClientsListView`). La búsqueda por nombre/usuario es **filtro local** sobre esta respuesta (sin query param; suficiente para carteras pequeñas). Click → `/trainer/clients/:clientId`.
+UI trainer: lista en `/trainer/clients` (`ClientsListView`). La búsqueda por nombre/usuario y el filtro de membresía (Al día / Por vencer ≤7 / Vencidos / Pendientes) son **filtros locales** sobre esta respuesta. Click → `/trainer/clients/:clientId`.
 
 ### `GET /clients/:clientId`
 
@@ -181,7 +181,7 @@ Detalle de un cliente propio.
 
 ### `GET /clients/:clientId/overview` (Feature 039)
 
-Agregado 360 para la ficha del alumno (solo trainer dueño). Incluye perfil, conteos, última sesión, último check-in, targets nutricionales y slots null-safe para membresía / PRs / consistencia (040–042).
+Agregado 360 para la ficha del alumno (solo trainer dueño). Incluye perfil, conteos, última sesión, último check-in, targets nutricionales, membresía (040) y slots null-safe para PRs / consistencia (041–042).
 
 ```json
 {
@@ -215,7 +215,13 @@ Agregado 360 para la ficha del alumno (solo trainer dueño). Incluye perfil, con
       "carbs_g": 200,
       "fats_g": 70
     },
-    "membership": null,
+    "membership": {
+      "status": "active",
+      "period_start": "2026-07-01",
+      "period_end": "2026-07-31",
+      "days_remaining": 14,
+      "block_on_unpaid": false
+    },
     "consistencyScore": null,
     "prsThisMonth": null
   },
@@ -223,7 +229,58 @@ Agregado 360 para la ficha del alumno (solo trainer dueño). Incluye perfil, con
 }
 ```
 
-UI: `/trainer/clients/:clientId` (`Client360View`) con secciones vía `?tab=` (`resumen` | `programacion` | `nutricion` | `medidas` | `checkins` | `graficas` | `chat`).
+UI: `/trainer/clients/:clientId` (`Client360View`) con secciones vía `?tab=` (`resumen` | `programacion` | `nutricion` | `medidas` | `checkins` | `graficas` | `chat`). En Resumen: `MembershipPanel` + badge sticky de días restantes.
+
+## Membresía del alumno (Feature 040)
+
+Tabla `client_memberships` (1:1 con cliente). `days_remaining` se calcula en service (`DATEDIFF(period_end, CURDATE())`), no es columna.
+
+### `GET /clients/:clientId/membership` (trainer)
+
+Membresía del alumno propio (incluye `notes` internas). `null` si aún no se configuró.
+
+### `PUT /clients/:clientId/membership` (trainer)
+
+Upsert plan **mensual único** (~30 días): `status` (`active` | `owing` | `expired`), `period_start` (obligatorio), `notes`, `block_on_unpaid`. El `period_end` lo calcula el servidor como **día anterior al mismo día del mes siguiente** (ej. `2026-07-17` → `2026-08-16`); no hace falta enviarlo. Si el vencimiento calculado es &lt; hoy y status era `active`, el service fuerza `expired`.
+
+### `GET /me/membership` (client)
+
+```json
+{
+  "success": true,
+  "data": {
+    "status": "active",
+    "period_start": "2026-07-01",
+    "period_end": "2026-07-31",
+    "days_remaining": 14,
+    "block_on_unpaid": false
+  }
+}
+```
+
+Sin `notes` (privacidad).
+
+### Soft-lock `MEMBERSHIP_BLOCKED`
+
+Si `block_on_unpaid = true` y (`status ≠ active` **o** `days_remaining < 0`), entonces:
+
+- `GET /me/routines`
+- `POST /me/workout-sessions`
+
+responden **403**:
+
+```json
+{
+  "success": false,
+  "error": "MEMBERSHIP_BLOCKED",
+  "message": "Tu membresía venció — habla con tu entrenador.",
+  "code": "MEMBERSHIP_BLOCKED"
+}
+```
+
+`GET /me/today` **no** falla: incluye `membership` + `membershipBlocked` para que el dashboard muestre chip/banner y deshabilite el CTA Empezar.
+
+Distinto del paywall SaaS **402** `LIMIT_EXCEEDED` (Feature 037).
 
 ## Cuenta / Ajustes (Feature 024)
 

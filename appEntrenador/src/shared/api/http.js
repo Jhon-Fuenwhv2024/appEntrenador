@@ -71,4 +71,12 @@ export function isPaymentRequiredError(error) {
   return Number(error?.response?.status || error?.normalized?.code) === 402;
 }
 
+/** True si el alumno está soft-locked por membresía (Feature 040). */
+export function isMembershipBlockedError(error) {
+  const code = error?.response?.data?.code
+    || error?.response?.data?.error
+    || error?.normalized?.code;
+  return code === 'MEMBERSHIP_BLOCKED';
+}
+
 export default http;

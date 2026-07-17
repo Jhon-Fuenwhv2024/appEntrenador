@@ -1,12 +1,18 @@
 import { computed, ref, shallowRef } from 'vue';
-import { getApiErrorMessage } from '../../../shared/api/http.js';
+import {
+  getApiErrorMessage,
+  isMembershipBlockedError,
+} from '../../../shared/api/http.js';
 import { getSessionUser } from '../../../shared/auth/session.js';
 import { formatLocalDate, todayLocalDate } from '../../../shared/utils/localDate.js';
 import { getTodayHabits } from '../api/habitsApi.js';
+import { getMyMembership } from '../api/membershipApi.js';
 import { getClientNutrition } from '../api/nutritionApi.js';
 import { getMyRoutines } from '../api/routinesApi.js';
 import { getMyToday } from '../api/todayApi.js';
 import { getMyWorkoutSessions } from '../api/workoutSessionsApi.js';
+import { normalizeMembershipPeriod } from '../../../shared/membership/period.js';
+import { isMembershipAccessBlocked } from '../utils/membershipUi.js';
 
 const DAY_ORDER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -45,12 +51,27 @@ async function resolveCompletedToday(routineId, localDate) {
 /**
  * Fallback si GET /me/today no está disponible (backend sin reiniciar).
  */
+async function loadMembershipSafe() {
+  try {
+    const response = await getMyMembership();
+    return response.data?.data ?? null;
+  } catch (error) {
+    console.warn('No se pudo cargar membresía:', error);
+    return null;
+  }
+}
+
 async function loadTodayFallback(localDate) {
   const user = getSessionUser();
   const weekday = todayWeekdayLabel();
 
-  const [routinesRes, habitsRes, macrosResult] = await Promise.all([
-    getMyRoutines(),
+  const [routinesResult, habitsRes, macrosResult, membership] = await Promise.all([
+    getMyRoutines().catch((error) => {
+      if (isMembershipBlockedError(error)) {
+        return { data: { data: [] }, membershipBlocked: true };
+      }
+      throw error;
+    }),
     getTodayHabits(localDate).catch(() => ({ data: { data: [] } })),
     user?.id
       ? getClientNutrition(user.id).catch((error) => {
@@ -59,9 +80,12 @@ async function loadTodayFallback(localDate) {
         throw error;
       })
       : Promise.resolve({ data: { data: null } }),
+    loadMembershipSafe(),
   ]);
 
-  const routines = routinesRes.data.data ?? [];
+  const routines = routinesResult.data?.data ?? [];
+  const membershipBlocked = Boolean(routinesResult.membershipBlocked)
+    || isMembershipAccessBlocked(membership);
   const todayRoutine = routines.find((r) => r.dia_semana === weekday) || null;
   const todayCompleted = await resolveCompletedToday(todayRoutine?.id, localDate);
 
@@ -72,6 +96,8 @@ async function loadTodayFallback(localDate) {
     macros: macrosResult.data.data ?? null,
     weekday,
     date: localDate,
+    membership,
+    membershipBlocked,
   };
 }
 
@@ -85,6 +111,8 @@ export function useClientToday() {
   const todayCompleted = shallowRef(false);
   const habits = ref([]);
   const macros = shallowRef(null);
+  const membership = shallowRef(null);
+  const membershipBlocked = shallowRef(false);
   const weekday = shallowRef('');
   const date = shallowRef('');
 
@@ -110,11 +138,19 @@ export function useClientToday() {
     return parts.join(' · ');
   });
 
+  const workoutLocked = computed(() => (
+    membershipBlocked.value || isMembershipAccessBlocked(membership.value)
+  ));
+
   function applyBundle(data, localDate) {
     todayRoutine.value = data.todayRoutine ?? null;
     todayCompleted.value = Boolean(data.todayCompleted);
     habits.value = Array.isArray(data.habits) ? data.habits : [];
     macros.value = data.macros ?? null;
+    const mem = normalizeMembershipPeriod(data.membership ?? null);
+    membership.value = mem;
+    membershipBlocked.value = Boolean(data.membershipBlocked)
+      || isMembershipAccessBlocked(mem);
     weekday.value = data.weekday || '';
     date.value = data.date || localDate;
   }
@@ -129,6 +165,12 @@ export function useClientToday() {
         const response = await getMyToday(localDate);
         const data = response.data.data ?? {};
         applyBundle(data, localDate);
+
+        // Backend antiguo sin membership en /me/today → cargar aparte.
+        if (!('membership' in data)) {
+          membership.value = await loadMembershipSafe();
+          membershipBlocked.value = isMembershipAccessBlocked(membership.value);
+        }
 
         // Si el backend aún no envía todayCompleted, resolverlo con sesiones.
         if (data.todayCompleted == null && data.todayRoutine?.id) {
@@ -154,6 +196,8 @@ export function useClientToday() {
       todayCompleted.value = false;
       habits.value = [];
       macros.value = null;
+      membership.value = null;
+      membershipBlocked.value = false;
     } finally {
       loading.value = false;
     }
@@ -166,6 +210,9 @@ export function useClientToday() {
     todayCompleted,
     habits,
     macros,
+    membership,
+    membershipBlocked,
+    workoutLocked,
     weekday,
     date,
     exerciseCount,

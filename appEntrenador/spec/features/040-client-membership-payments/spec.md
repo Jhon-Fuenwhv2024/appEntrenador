@@ -1,6 +1,6 @@
 # 040 · Membresía y Control de Pago del Alumno
 
-**Estado:** pendiente
+**Estado:** implementada (BE + UI trainer + UI cliente dashboard/player)
 **Depende de:** 003 (JWT/roles), 004 (Ownership), 039 (Ficha 360 — UI panel; puede ir en paralelo con panel mínimo)
 **Supersede / evoluciona:** **036** (pagos/suscripciones manuales) — esta feature añade vigencia con **días restantes** visibles al cliente
 **Distinto de:** **037** (SaaS FREE/PRO de plataforma en `trainers_info`)

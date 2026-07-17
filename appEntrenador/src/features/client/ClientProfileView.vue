@@ -1,6 +1,6 @@
 <script setup>
 /**
- * Client "Mi Perfil" — loads/saves own alumnos_info via FormData.
+ * Client "Mi Perfil" — identidad/datos (ProfileFormCard) + membresía al final.
  */
 import { onMounted, reactive, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
@@ -11,13 +11,17 @@ import {
   updateProfile,
 } from '../../shared/api/profileApi.js';
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
+import { normalizeMembershipPeriod } from '../../shared/membership/period.js';
 import AppShell from '../../shared/layout/AppShell.vue';
 import ProfileFormCard from '../../shared/components/ProfileFormCard.vue';
+import { getMyMembership } from './api/membershipApi.js';
+import ClientProfileMembershipCard from './components/ClientProfileMembershipCard.vue';
 
 const router = useRouter();
 
 const userId = shallowRef(null);
 const profile = shallowRef(null);
+const membership = shallowRef(null);
 const loading = shallowRef(true);
 const saving = shallowRef(false);
 const loadError = shallowRef('');
@@ -34,12 +38,26 @@ function notify(text, color = 'success') {
   snackbar.color = color;
 }
 
+async function loadMembershipSafe() {
+  try {
+    const response = await getMyMembership();
+    return normalizeMembershipPeriod(response.data?.data ?? null);
+  } catch (error) {
+    console.warn('No se pudo cargar membresía en perfil:', error);
+    return null;
+  }
+}
+
 async function loadProfile() {
   try {
     loading.value = true;
     loadError.value = '';
-    const response = await getProfile(userId.value);
-    profile.value = response.data.data ?? null;
+    const [profileRes, mem] = await Promise.all([
+      getProfile(userId.value),
+      loadMembershipSafe(),
+    ]);
+    profile.value = profileRes.data.data ?? null;
+    membership.value = mem;
   } catch (error) {
     console.error('Error cargando perfil:', error);
     loadError.value = getApiErrorMessage(error, 'No se pudo cargar tu perfil');
@@ -84,7 +102,7 @@ onMounted(() => {
 
 <template>
   <AppShell role="client" active="profile">
-    <main class="main-content flex-grow-1 overflow-y-auto">
+    <main class="main-content flex-grow-1 overflow-y-auto client-profile">
       <header class="dashboard-header">
         <div class="header-left">
           <h1 class="header-title">Mi Perfil</h1>
@@ -105,21 +123,37 @@ onMounted(() => {
         </div>
       </header>
 
-      <div class="pa-4 pa-md-6" style="max-width: 560px; margin: 0 auto; width: 100%;">
-        <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
-        <v-alert v-else-if="loadError" type="error" variant="tonal" class="mb-4">
+      <div class="client-profile__body">
+        <v-progress-linear
+          v-if="loading"
+          indeterminate
+          color="primary"
+          class="mb-4"
+          height="2"
+        />
+
+        <v-alert
+          v-else-if="loadError"
+          type="error"
+          variant="tonal"
+          class="mb-4"
+        >
           {{ loadError }}
           <template #append>
             <v-btn variant="text" size="small" @click="loadProfile">Reintentar</v-btn>
           </template>
         </v-alert>
-        <ProfileFormCard
-          v-else
-          title="Mi perfil"
-          :profile="profile"
-          :saving="saving"
-          @save="onSave"
-        />
+
+        <template v-else>
+          <ProfileFormCard
+            title="Mi perfil"
+            :profile="profile"
+            :saving="saving"
+            @save="onSave"
+          />
+
+          <ClientProfileMembershipCard :membership="membership" />
+        </template>
       </div>
     </main>
 
@@ -128,3 +162,21 @@ onMounted(() => {
     </v-snackbar>
   </AppShell>
 </template>
+
+<style scoped>
+.client-profile__body {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (min-width: 960px) {
+  .client-profile__body {
+    padding: 0 1.5rem 2rem;
+  }
+}
+</style>

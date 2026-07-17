@@ -41,18 +41,27 @@
 
 ## Ficha 360 del alumno (Feature 039)
 
-1. Trainer abre `/trainer/clients/:clientId` → `Client360View` carga `GET /clients/:id/overview` (perfil + última sesión + conteos + último check-in + nutrition targets + slots 040–042).
-2. Cabecera sticky muestra avatar/objetivo/última sesión; navegación por `?tab=` (Resumen · Programación · Nutrición & Hábitos · Medidas · Check-ins · Gráficas · Chat).
-3. Resumen usa widgets de decisión + historial de sesiones (`GET /clients/:id/workout-sessions`).
+1. Trainer abre `/trainer/clients/:clientId` → `Client360View` carga `GET /clients/:id/overview` (perfil + última sesión + conteos + último check-in + nutrition targets + membresía 040 + slots 041–042).
+2. Cabecera sticky muestra avatar/objetivo/última sesión y badge de membresía (días restantes / Pendiente / Vencida); navegación por `?tab=` (Resumen · Programación · Nutrición & Hábitos · Medidas · Check-ins · Gráficas · Chat).
+3. Resumen monta `MembershipPanel` (PUT membresía) + widgets de decisión + historial de sesiones (`GET /clients/:id/workout-sessions`).
 4. Programación reutiliza CRUD de rutinas; paneles existentes (nutrición, hábitos, body-comp, check-ins, gráficas, perfil, chat) se montan por sección sin perder CRUD.
 5. Ownership: el overview y cada panel validan `trainer_id` del alumno.
+
+## Membresía y control de pago (Feature 040)
+
+1. Trainer en ficha 360 guarda estado/fechas/notas/bloqueo → `PUT /clients/:id/membership` (upsert en `client_memberships`).
+2. Lista de alumnos (`GET /clients`) trae `membership` básico; la UI filtra localmente Al día / Por vencer / Vencidos / Pendientes.
+3. Cliente consulta `GET /me/membership` → `days_remaining` calculado; sin `notes`.
+4. Si el trainer activó `block_on_unpaid` y la membresía no está al día, `GET /me/routines`, `GET /me/today` y `POST /me/workout-sessions` responden 403 `MEMBERSHIP_BLOCKED`.
 
 ## Dashboard immersivo del cliente (Feature 038)
 
 1. Cliente en Inicio (`ClientDashboardView`) llama `GET /me/today?date=YYYY-MM-DD` (fecha civil local del dispositivo).
-2. El service agrega en paralelo: rutinas del alumno → match por `dia_semana`, hábitos de `/habits/today`, y `nutrition_targets` (o `null`).
+2. El service agrega en paralelo: rutinas del alumno → match por `dia_semana`, hábitos de `/habits/today`, `nutrition_targets` (o `null`), y membresía (040).
 3. Si no hay rutina para ese weekday, `todayRoutine = null` → UI “Día de descanso”; si hay, hero + CTA **Empezar** → `/client/workout/:routineId`.
 4. Hábitos y macros se hidratan desde la misma respuesta (sin round-trips extra); el toggle de hábitos sigue siendo `POST /habits/:id/toggle`.
+5. Meta bajo el saludo (“N días restantes”); si `membershipBlocked`, hero con CTA Bloqueado (Player también responde 403 `MEMBERSHIP_BLOCKED`).
+6. Perfil cliente (`/client/profile`): `ProfileFormCard` (datos/foto) y debajo un resumen compacto de membresía (`GET /me/membership`: días, Al día/Debe, vigencia).
 
 ## Plantillas → deep copy al alumno (Feature 018)
 

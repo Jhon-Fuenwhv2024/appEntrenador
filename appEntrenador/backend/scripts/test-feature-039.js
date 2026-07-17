@@ -44,7 +44,7 @@ async function main() {
   assert('lastSession' in overview, 'lastSession key');
   assert('lastCheckin' in overview, 'lastCheckin key');
   assert('nutritionTargets' in overview, 'nutritionTargets key');
-  assert(overview.membership === null, 'membership slot debe ser null hasta 040');
+  assert('membership' in overview, 'membership key (040)');
   assert(overview.consistencyScore === null, 'consistencyScore slot debe ser null hasta 042');
   assert(overview.prsThisMonth === null, 'prsThisMonth slot debe ser null hasta 041');
 

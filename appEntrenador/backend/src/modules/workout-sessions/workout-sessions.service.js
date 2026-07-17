@@ -1,5 +1,6 @@
 const db = require('../../config/db');
 const clientsService = require('../clients/clients.service');
+const membershipsService = require('../memberships/memberships.service');
 
 function createHttpError(message, code) {
   const error = new Error(message);
@@ -62,6 +63,8 @@ async function assertRoutineBelongsToClient(routineId, clientId) {
 }
 
 async function createMySession(clientId, payload) {
+  await membershipsService.assertClientMembershipAccess(clientId);
+
   const routineId = Number(payload.routine_id);
   if (!Number.isInteger(routineId) || routineId < 1) {
     throw createHttpError('routine_id es obligatorio.', 400);

@@ -67,10 +67,31 @@ const consistencyLabel = computed(() => {
   return null;
 });
 
-const membershipLabel = computed(() => {
+const membershipBadge = computed(() => {
   const m = props.membership;
-  if (!m) return null;
-  return m.status || m.label || m.plan_name || null;
+  if (!m || !m.status) return null;
+
+  const days = m.days_remaining == null ? null : Number(m.days_remaining);
+  const status = String(m.status).toLowerCase();
+
+  if (status === 'owing') {
+    return { label: 'Pendiente', color: 'warning' };
+  }
+  if (status === 'expired' || (days != null && days < 0)) {
+    return { label: 'Vencida', color: 'error' };
+  }
+  if (status === 'active') {
+    if (days == null) {
+      return { label: 'Al día', color: 'success' };
+    }
+    const n = Math.max(0, days);
+    return {
+      label: n === 1 ? '1 día restante' : `${n} días restantes`,
+      color: 'success',
+    };
+  }
+
+  return { label: m.label || m.plan_name || status, color: 'default' };
 });
 </script>
 
@@ -110,18 +131,22 @@ const membershipLabel = computed(() => {
           <span class="c360-dot" aria-hidden="true">·</span>
           <strong>{{ sessionsCount }}</strong> sesiones
         </div>
-        <div
-          v-if="membershipLabel"
-          class="c360-chip c360-chip--slot"
+        <v-chip
+          v-if="membershipBadge"
+          size="small"
+          label
+          variant="tonal"
+          :color="membershipBadge.color"
+          class="c360-membership-chip"
           title="Membresía"
         >
           <v-icon icon="mdi-card-account-details-outline" size="14" start />
-          {{ membershipLabel }}
-        </div>
+          {{ membershipBadge.label }}
+        </v-chip>
         <div
           v-else
           class="c360-chip c360-chip--slot c360-chip--empty"
-          title="Membresía (próximamente)"
+          title="Sin membresía configurada"
         >
           <v-icon icon="mdi-card-account-details-outline" size="14" start />
           Membresía
@@ -241,6 +266,10 @@ const membershipLabel = computed(() => {
 
 .c360-chip--empty {
   opacity: 0.55;
+}
+
+.c360-membership-chip {
+  font-weight: 600;
 }
 
 .c360-dot {

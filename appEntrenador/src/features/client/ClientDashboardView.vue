@@ -8,6 +8,7 @@ import { resolveAvatarSrc } from '../../shared/utils/avatar.js';
 import NotificationBadge from '../../components/notifications/NotificationBadge.vue';
 import MacroSummaryCard from './components/MacroSummaryCard.vue';
 import DailyHabitsChecklist from './components/DailyHabitsChecklist.vue';
+import MembershipHomeCard from './components/MembershipHomeCard.vue';
 import { useClientToday } from './composables/useClientToday.js';
 
 const router = useRouter();
@@ -23,6 +24,9 @@ const {
   todayCompleted,
   habits,
   macros,
+  membership,
+  membershipBlocked,
+  workoutLocked,
   heroMeta,
   loadToday,
 } = useClientToday();
@@ -84,8 +88,12 @@ onMounted(async () => {
           <h1 class="client-home__hello">
             Hola, <span class="text-cyan">{{ firstName }}</span>
           </h1>
-          <!-- Reserva invisible para chip membresía (040) + racha (042) -->
-          <div class="client-home__future-slot" data-slot="membership-streak" />
+          <!-- Estado de plan como meta del saludo (estilo apps fitness), no junto al avatar -->
+          <MembershipHomeCard
+            v-if="!loading && membership"
+            :membership="membership"
+            :forced-blocked="membershipBlocked"
+          />
         </div>
 
         <div class="client-home__actions">
@@ -131,6 +139,7 @@ onMounted(async () => {
           <section
             v-if="!loading && !loadError && heroReady"
             class="today-hero"
+            :class="{ 'today-hero--locked': workoutLocked }"
             aria-label="Entrenamiento de hoy"
           >
             <template v-if="todayRoutine">
@@ -141,11 +150,15 @@ onMounted(async () => {
                 <div class="today-hero__copy">
                   <p class="today-hero__eyebrow">
                     <template v-if="todayCompleted">Completado</template>
+                    <template v-else-if="workoutLocked">Bloqueado</template>
                     <template v-else>Hoy</template>
                   </p>
                   <h2 class="today-hero__title">{{ todayRoutine.nombre_rutina }}</h2>
                   <p class="today-hero__meta">
                     <template v-if="todayCompleted">Ya entrenaste esta rutina hoy</template>
+                    <template v-else-if="workoutLocked">
+                      Membresía vencida — habla con tu entrenador
+                    </template>
                     <template v-else>{{ heroMeta }}</template>
                   </p>
                 </div>
@@ -157,6 +170,17 @@ onMounted(async () => {
                   <v-icon icon="mdi-check-circle" size="20" />
                   Completado
                 </div>
+                <v-btn
+                  v-else-if="workoutLocked"
+                  color="error"
+                  variant="tonal"
+                  class="today-hero__cta font-weight-bold"
+                  rounded="lg"
+                  disabled
+                  prepend-icon="mdi-lock"
+                >
+                  Bloqueado
+                </v-btn>
                 <v-btn
                   v-else
                   color="primary"
@@ -170,7 +194,7 @@ onMounted(async () => {
                 </v-btn>
               </div>
               <v-btn
-                v-if="todayCompleted"
+                v-if="todayCompleted && !workoutLocked"
                 variant="text"
                 color="primary"
                 size="small"
