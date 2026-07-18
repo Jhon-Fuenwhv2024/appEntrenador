@@ -9,6 +9,7 @@ import { getSessionUser } from '../../shared/auth/session.js';
 import { getMyRoutines } from './api/routinesApi.js';
 import { createMyWorkoutSession } from './api/workoutSessionsApi.js';
 import { useWorkoutSession } from './composables/useWorkoutSession.js';
+import PrCelebrationOverlay from './components/PrCelebrationOverlay.vue';
 import WorkoutExerciseMedia from './components/WorkoutExerciseMedia.vue';
 
 const MEMBERSHIP_BLOCKED_MSG = 'Tu membresía venció — habla con tu entrenador.';
@@ -26,6 +27,9 @@ const formError = shallowRef('');
 const sessionRoutineName = shallowRef('');
 /** Routine payload kept until the user taps "Comenzar entrenamiento" (audio unlock). */
 const pendingRoutine = shallowRef(null);
+const newPrs = shallowRef([]);
+const showPrCelebration = shallowRef(false);
+const streakMessage = shallowRef('');
 
 const {
   phase,
@@ -87,7 +91,7 @@ async function persistSession() {
   try {
     saving.value = true;
     saveError.value = '';
-    await createMyWorkoutSession({
+    const response = await createMyWorkoutSession({
       routine_id: Number(route.params.routineId),
       routine_name: sessionRoutineName.value,
       started_at: startedAt.value,
@@ -100,6 +104,16 @@ async function persistSession() {
         reps: entry.reps,
       })),
     });
+    const payload = response.data?.data ?? {};
+    const prs = Array.isArray(payload.new_prs) ? payload.new_prs : [];
+    newPrs.value = prs;
+    if (prs.length > 0) {
+      showPrCelebration.value = true;
+    }
+    const streak = Number(payload.consistency?.current_streak) || 0;
+    if (streak > 0 && prs.length === 0) {
+      streakMessage.value = `Racha: ${streak} día${streak === 1 ? '' : 's'} consecutivos`;
+    }
     saved.value = true;
   } catch (error) {
     console.error('Error guardando sesión de entrenamiento:', error);
@@ -354,11 +368,14 @@ onMounted(() => {
       </v-alert>
       <v-alert v-else-if="saved" type="success" variant="tonal" class="mb-4">
         Entrenamiento guardado.
+        <span v-if="streakMessage" class="d-block mt-1">{{ streakMessage }}</span>
       </v-alert>
       <button type="button" class="player-cta" @click="goBack">
         Volver al inicio
       </button>
     </main>
+
+    <PrCelebrationOverlay v-model="showPrCelebration" :prs="newPrs" />
   </div>
 </template>
 

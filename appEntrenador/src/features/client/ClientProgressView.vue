@@ -2,17 +2,19 @@
 /**
  * Client "Mi progreso" — KPIs + actividad visual + historial inteligente + gráficas.
  */
-import { defineAsyncComponent, onMounted, ref, shallowRef } from 'vue';
+import { computed, defineAsyncComponent, onMounted, ref, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
 import { getMyWorkoutSessions } from './api/workoutSessionsApi.js';
 import BodyCompositionReadOnly from './components/BodyCompositionReadOnly.vue';
+import PersonalRecordsSection from './components/PersonalRecordsSection.vue';
 import ProgressActivityBars from './components/ProgressActivityBars.vue';
 import ProgressKpiStrip from './components/ProgressKpiStrip.vue';
 import ProgressSmartHistory from './components/ProgressSmartHistory.vue';
 import WeeklyCheckinDialog from './components/WeeklyCheckinDialog.vue';
+import { getMyConsistency } from './api/consistencyApi.js';
 import { useProgressSessions } from './composables/useProgressSessions.js';
 
 const ProgressChartsPanel = defineAsyncComponent(() => (
@@ -30,16 +32,22 @@ const checkinDialogOpen = shallowRef(false);
 const snackbar = ref(false);
 const snackbarText = shallowRef('');
 const snackbarColor = shallowRef('success');
+const bestStreak = shallowRef(0);
+const apiCurrentStreak = shallowRef(null);
 
 const {
   totalSessions,
   completedCount,
-  currentStreak,
+  currentStreak: derivedStreak,
   sessionsLast7Days,
   weeklyActivity,
   recentSessions,
   sessionsByMonth,
 } = useProgressSessions(sessions);
+
+const currentStreak = computed(() => (
+  apiCurrentStreak.value != null ? apiCurrentStreak.value : derivedStreak.value
+));
 
 function openCheckinDialog() {
   checkinDialogOpen.value = true;
@@ -72,6 +80,18 @@ async function loadSessions() {
   }
 }
 
+async function loadConsistency() {
+  try {
+    const response = await getMyConsistency();
+    const data = response.data?.data;
+    if (!data) return;
+    apiCurrentStreak.value = Number(data.current_streak) || 0;
+    bestStreak.value = Number(data.best_streak) || 0;
+  } catch (error) {
+    console.error('Error cargando consistencia en progreso:', error);
+  }
+}
+
 function handleLogout() {
   clearSession();
   router.push('/');
@@ -85,6 +105,7 @@ onMounted(() => {
   }
   clientId.value = user.id;
   loadSessions();
+  loadConsistency();
 });
 </script>
 
@@ -163,11 +184,20 @@ onMounted(() => {
             :sessions-last7-days="sessionsLast7Days"
           />
 
+          <p
+            v-if="!loading && bestStreak > 0"
+            class="progress-best-streak mb-3"
+          >
+            Mejor racha histórica: <strong>{{ bestStreak }}</strong> días
+          </p>
+
           <ProgressActivityBars
             class="mb-3"
             :loading="loading"
             :weeks="weeklyActivity"
           />
+
+          <PersonalRecordsSection class="mb-3" />
 
           <ProgressSmartHistory
             v-if="!loading && !loadError"
@@ -204,6 +234,16 @@ onMounted(() => {
 <style src="../../assets/clientDashboard.css" scoped></style>
 
 <style scoped>
+.progress-best-streak {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #8b929e;
+}
+
+.progress-best-streak strong {
+  color: rgb(var(--v-theme-primary));
+}
+
 .progress-header .header-left {
   display: flex;
   flex-direction: column;

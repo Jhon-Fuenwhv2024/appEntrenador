@@ -122,9 +122,9 @@ const prsLabel = computed(() => {
       <div class="c360-widget c360-widget--static">
         <span class="c360-widget__label">PRs del mes</span>
         <span class="c360-widget__title">
-          {{ prsLabel || 'Próximamente' }}
+          {{ prsLabel || '0 PRs este mes' }}
         </span>
-        <span class="c360-widget__meta">Slot Feature 041</span>
+        <span class="c360-widget__meta">Récords de peso</span>
       </div>
     </div>
 

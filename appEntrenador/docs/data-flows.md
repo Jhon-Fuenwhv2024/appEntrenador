@@ -43,9 +43,10 @@
 
 1. Trainer abre `/trainer/clients/:clientId` → `Client360View` carga `GET /clients/:id/overview` (perfil + última sesión + conteos + último check-in + nutrition targets + membresía 040 + slots 041–042).
 2. Cabecera sticky muestra avatar/objetivo/última sesión y badge de membresía (días restantes / Pendiente / Vencida); navegación por `?tab=` (Resumen · Programación · Nutrición & Hábitos · Medidas · Check-ins · Gráficas · Chat).
-3. Resumen monta `MembershipPanel` (PUT membresía) + widgets de decisión + historial de sesiones (`GET /clients/:id/workout-sessions`).
-4. Programación reutiliza CRUD de rutinas; paneles existentes (nutrición, hábitos, body-comp, check-ins, gráficas, perfil, chat) se montan por sección sin perder CRUD.
-5. Ownership: el overview y cada panel validan `trainer_id` del alumno.
+3. Resumen monta `MembershipPanel` (PUT membresía) + `ConsistencyPanel` (meta semanal 042) + widgets de decisión (incl. PRs del mes 041) + historial de sesiones (`GET /clients/:id/workout-sessions`).
+4. Overview incluye `consistencyScore` y `prsThisMonth` calculados en server.
+5. Programación reutiliza CRUD de rutinas; paneles existentes (nutrición, hábitos, body-comp, check-ins, gráficas, perfil, chat) se montan por sección sin perder CRUD.
+6. Ownership: el overview y cada panel validan `trainer_id` del alumno.
 
 ## Membresía y control de pago (Feature 040)
 
@@ -80,9 +81,23 @@
 4. El descanso usa `targetEndTime` (wall clock) + `visibilitychange`: al volver del background se recalcula `targetEndTime - Date.now()`; si ya expiró, contador a 0, beep y avance de serie. No se confía en ticks que resten `1` cada segundo.
 5. El Player muestra “Último: X kg × Y” de forma informativa; **no** autocompleta los inputs con ese historial.
 6. Al terminar, `POST /me/workout-sessions` persiste peso/reps por serie.
-7. En la siguiente sesión, ese log queda disponible como `last_log` (match por `client_id` + nombre de ejercicio; los ids de línea de deep copy no afectan).
-8. Trainer consulta `GET /clients/:id/workout-sessions` y ve el historial en la ficha del alumno; `GET /clients/:id/routines` también incluye `last_log` por ejercicio.
-9. Cliente consulta `GET /me/workout-sessions` en **Mi progreso** (`/client/progress`) — Feature 021; solo lectura de sesiones propias.
+7. Tras guardar (status `completed`): detección de PRs (041) → `new_prs[]` + notificación `pr_achieved`; recalculo de racha/score (042) → `consistency` en la respuesta; Player muestra overlay si hay PRs.
+8. En la siguiente sesión, ese log queda disponible como `last_log` (match por `client_id` + nombre de ejercicio; los ids de línea de deep copy no afectan).
+9. Trainer consulta `GET /clients/:id/workout-sessions` y ve el historial en la ficha del alumno; `GET /clients/:id/routines` también incluye `last_log` por ejercicio.
+10. Cliente consulta `GET /me/workout-sessions` en **Mi progreso** (`/client/progress`) — Feature 021; sección **Mis récords** vía `GET /me/personal-records`.
+
+## PRs y celebraciones (Feature 041)
+
+1. Al cerrar sesión completed, service compara el mejor peso por ejercicio vs máximo histórico (`personal_records` + `workout_set_logs` previos).
+2. Si supera → insert en `personal_records` y se devuelve en `new_prs`.
+3. Overlay en Workout Player; listado en Progreso; chip “PRs este mes” en Ficha 360.
+
+## Rachas y score (Feature 042)
+
+1. `client_streaks` guarda `week_goal` y cachea `current_streak` / `best_streak`.
+2. Días con entreno = fechas UTC de sesiones `completed`. Score = `workouts_this_week / week_goal * 70 + min(current_streak, 10) * 3` (cap 100).
+3. Cliente: widget en Inicio (`GET /me/consistency`); mejor racha en Progreso.
+4. Trainer: chip en cabecera 360 + editor de meta en `ConsistencyPanel`.
 
 ## Memoria de progresión (Feature 019)
 

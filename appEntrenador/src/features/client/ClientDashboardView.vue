@@ -7,6 +7,7 @@ import AppShell from '../../shared/layout/AppShell.vue';
 import { resolveAvatarSrc } from '../../shared/utils/avatar.js';
 import NotificationBadge from '../../components/notifications/NotificationBadge.vue';
 import MacroSummaryCard from './components/MacroSummaryCard.vue';
+import ConsistencyRing from './components/ConsistencyRing.vue';
 import DailyHabitsChecklist from './components/DailyHabitsChecklist.vue';
 import MembershipHomeCard from './components/MembershipHomeCard.vue';
 import { useClientToday } from './composables/useClientToday.js';
@@ -218,6 +219,8 @@ onMounted(async () => {
         </v-slide-y-transition>
 
         <div class="client-home__secondary">
+          <ConsistencyRing v-if="!loading" class="mb-3" />
+
           <DailyHabitsChecklist
             v-if="!loading"
             compact

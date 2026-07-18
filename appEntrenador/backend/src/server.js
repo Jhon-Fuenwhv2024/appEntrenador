@@ -22,6 +22,8 @@ const checkinsRoutes = require('./modules/checkins/checkins.routes');
 const messagesRoutes = require('./modules/messages/messages.routes');
 const saasRoutes = require('./modules/saas/saas.routes');
 const membershipsRoutes = require('./modules/memberships/memberships.routes');
+const personalRecordsRoutes = require('./modules/personal-records/personal-records.routes');
+const consistencyRoutes = require('./modules/consistency/consistency.routes');
 const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
 const { ensurePhotosDir } = require('./middleware/uploadProgressPhotos');
 const { ensureNotificationsTable } = require('./db/ensureNotificationsTable');
@@ -29,6 +31,8 @@ const { ensureHabitsTables } = require('./db/ensureHabitsTables');
 const { ensureCheckinsTables } = require('./db/ensureCheckinsTables');
 const { ensureMessagesTable } = require('./db/ensureMessagesTable');
 const { ensureClientMembershipsTable } = require('./db/ensureClientMembershipsTable');
+const { ensurePersonalRecordsTable } = require('./db/ensurePersonalRecordsTable');
+const { ensureClientStreaksTable } = require('./db/ensureClientStreaksTable');
 const { ensureSaasColumns } = require('./db/ensureSaasColumns');
 
 const app = express();
@@ -58,6 +62,8 @@ app.use('/api', checkinsRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/saas', saasRoutes);
 app.use('/api', membershipsRoutes);
+app.use('/api', personalRecordsRoutes);
+app.use('/api', consistencyRoutes);
 
 async function start() {
   try {
@@ -94,6 +100,18 @@ async function start() {
     await ensureClientMembershipsTable();
   } catch (error) {
     console.error('No se pudo asegurar la tabla client_memberships:', error.message);
+  }
+
+  try {
+    await ensurePersonalRecordsTable();
+  } catch (error) {
+    console.error('No se pudo asegurar la tabla personal_records:', error.message);
+  }
+
+  try {
+    await ensureClientStreaksTable();
+  } catch (error) {
+    console.error('No se pudo asegurar la tabla client_streaks:', error.message);
   }
 
   app.listen(PORT, () => {

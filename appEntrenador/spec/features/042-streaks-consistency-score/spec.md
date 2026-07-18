@@ -1,6 +1,6 @@
 # 042 · Rachas Semanales y Score de Consistencia
 
-**Estado:** pendiente
+**Estado:** implementada
 **Depende de:** 012 (Sesiones), 032 (Hábitos — opcional para score), 038 (widget Inicio), 039 (header 360)
 **Relacionada:** 041 (PRs = picos; esta feature = hábito continuo)
 

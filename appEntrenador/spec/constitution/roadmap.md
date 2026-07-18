@@ -20,58 +20,66 @@
 16. **015 · Dashboard trainer con datos reales** — stats/API reales; estado Activo/Sin plan; sin dietas.
 17. **021 · Progreso / historial del cliente** — `GET /me/workout-sessions`, vista Mi progreso, historial pulido en ficha trainer.
 18. **026 · Composición corporal del cliente** — historial antropométrico (peso, % grasa, IMC…); write solo trainer; client solo lectura.
+19. **016 · IA de navegación trainer (shell)** — 4 slots; Ejercicios fuera de la barra.
+20. **017 · Alumnos como destino propio** — `/trainer/clients`; Inicio como hub.
+21. **018 · Plantillas de rutinas (Biblioteca)** — biblioteca reutilizable; asignar = copia.
+22. **019 · Memoria de progresión** — último peso/reps desde logs (012).
+23. **020 · Perfil alumno (`alumnos_info`)** — API + UI (schema ya existe).
+24. **022 · Catálogo en Biblioteca + `exercise_id`** — vínculo estable línea↔catálogo.
+25. **023 · Invitaciones: módulo + gestión** — `modules/invites`, listar/revocar.
+26. **024 · Ajustes de cuenta** — nombre + cambio de password.
+27. **025 · Notificaciones In-App** — Alerta al cliente de rutina actualizada, alerta al trainer de rutina completada.
+28. **027 · Visualización de Progreso (Gráficas)** — Gráficas de peso, IMC y evolución de ejercicios clave.
+29. **028 · Mejoras al Temporizador de Descanso** — Alerta sonora al finalizar, tiempo configurable por el entrenador.
+30. **029 · Superseries y Circuitos** — Agrupar ejercicios (1A, 1B) para ejecutarlos sin descanso.
+31. **031 · Módulo de Nutrición MVP** — Asignación de objetivos diarios de macros y calorías.
+32. **032 · Seguimiento de Hábitos Diarios** — Checklist diario opcional (agua, sueño, pasos).
+33. **033 · Fotos de Progreso y Check-in Semanal** — Subida de fotos mensuales y cuestionario de bienestar.
+34. **034 · Mensajería Interna (Chat MVP)** — Chat directo entre entrenador y alumnos.
+35. **037 · Motor SaaS B2B y Panel SuperAdmin** — Flag `is_superadmin`, planes FREE/PRO, `/backoffice`, paywall en invites (Fase 1; pagos automáticos fuera de alcance).
+36. **038 · Rediseño Inmersivo del Modo Cliente** — Hero “Hoy: rutina” + CTA Empezar; misma piel en Player/Progreso. Spec: `038-client-mode-immersive-redesign`.
+37. **039 · Ficha 360 Rediseñada del Alumno** — Expediente trainer (header sticky + secciones); `GET /clients/:id/overview`. Spec: `039-client-360-profile-redesign`.
+38. **040 · Membresía y Control de Pago del Alumno** — Periodo, estado, días restantes visibles al cliente, soft-lock. Evoluciona **036**. Distinto de SaaS plataforma **037**. Spec: `040-client-membership-payments`.
+39. **041 · Récords Personales (PRs) y Celebraciones** — Detección al cerrar sesión + overlay. Absorbe **030**. Spec: `041-personal-records-celebrations`.
+40. **042 · Rachas y Score de Consistencia** — Racha + meta semanal + score 0–100 en Inicio y Ficha 360. Spec: `042-streaks-consistency-score`.
 
-## Siguiente (016–024)
+## Siguiente
 
-Orden acordado con IA de nav trainer: **Inicio · Alumnos · Biblioteca · Ajustes**.
+1. **035 · Dashboard Analítico del Entrenador** — KPIs de negocio (ingresos estimados vía membresías 040, retención, actividad).
 
-1. **016 · IA de navegación trainer (shell)** — 4 slots; Ejercicios fuera de la barra.
-2. **017 · Alumnos como destino propio** — `/trainer/clients`; Inicio como hub.
-3. **018 · Plantillas de rutinas (Biblioteca)** — biblioteca reutilizable; asignar = copia.
-4. **019 · Memoria de progresión** — último peso/reps desde logs (012).
-5. **020 · Perfil alumno (`alumnos_info`)** — API + UI (schema ya existe).
-6. **022 · Catálogo en Biblioteca + `exercise_id`** — vínculo estable línea↔catálogo.
-7. **023 · Invitaciones: módulo + gestión** — `modules/invites`, listar/revocar.
-8. **024 · Ajustes de cuenta** — nombre + cambio de password.
+## Supersedidas (no implementar)
 
-> Nota: 016–020 figuran aún en esta lista por orden histórico del bloque; varias ya están implementadas en código/spec. **021** está en Hecho.
+- **030 · Récords Personales (PRs) y Celebraciones** — absorbida por **041**.
+- **036 · Gestión de Pagos / Control de Suscripciones** — absorbida por **040**.
 
-## Fase 1: Core de Entrenamiento (Mejoras en el gimnasio)
+## Backlog go-to-market y producto (043–052)
 
-1. **025 · Notificaciones In-App** — Alerta al cliente de rutina actualizada, alerta al trainer de rutina completada.
-2. **027 · Visualización de Progreso (Gráficas)** — Gráficas de peso, IMC y evolución de ejercicios clave.
-3. **028 · Mejoras al Temporizador de Descanso** — Alerta sonora al finalizar, tiempo configurable por el entrenador.
-4. **029 · Superseries y Circuitos** — Agrupar ejercicios (1A, 1B) para ejecutarlos sin descanso.
+Orden sugerido tras cerrar Siguiente (041 → 042 → 035):
 
-## Fase 2: Retención y Hábitos (Más allá del gimnasio)
+| ID | Feature | Por qué importa |
+|----|---------|-----------------|
+| **043** | Recuperación de contraseña + email SMTP + password en perfil cliente | Forgot-password; cliente cambia password en UI; SMTP para soporte |
+| **044** | Caducidad / envío de invitaciones por email | Operativa real del trainer (hoy: copiar link) |
+| **045** | Suite tests API/E2E críticos | Login, ownership, guardar sesión, soft-lock membresía |
+| **046** | Deploy producción (Netlify FE + API + env) | Checklist deploy; `netlify.toml` sólido |
+| **047** | Pagos SaaS automatizados (037 Fase 2) | Stripe/pasarela + portal facturación; FREE/PRO hoy es manual vía SuperAdmin |
+| **048** | PWA + notificaciones push | Retención móvil; hoy solo in-app (025) |
+| **049** | Informe semanal automático al trainer | Resumen alumnos (entrenos, rachas en riesgo, membresías por vencer) |
+| **050** | Nutrición fase 2: registro diario de comida | 031 solo asigna macros; diario/adherencia |
+| **051** | Comparador de fotos de progreso | 033 sube fotos; side-by-side / timeline visual |
+| **052** | Exportar informe PDF del alumno | Valor alto para trainers que reportan a clientes |
 
-5. **030 · Récords Personales (PRs) y Celebraciones** — *(supersedida por **041**)* Animación al levantar más peso o volumen histórico.
-6. **031 · Módulo de Nutrición MVP** — Asignación de objetivos diarios de macros y calorías.
-7. **032 · Seguimiento de Hábitos Diarios** — Checklist diario opcional (agua, sueño, pasos).
-8. **033 · Fotos de Progreso y Check-in Semanal** — Subida de fotos mensuales y cuestionario de bienestar.
+Specs SDD: `spec/features/043-…` … `052-…`.
 
-## Fase 3: Comunicación y Gestión del Negocio
+## Backlog técnico / nice-to-have (post-052)
 
-9. **034 · Mensajería Interna (Chat MVP)** — Chat directo entre entrenador y alumnos.
-10. **035 · Dashboard Analítico del Entrenador** — KPIs de negocio (ingresos, retención, actividad).
-11. **036 · Gestión de Pagos / Control de Suscripciones** — *(supersedida por **040**)* Control de morosidad y bloqueo manual de acceso a rutinas.
-12. **037 · Motor SaaS B2B y Panel SuperAdmin** — Flag `is_superadmin`, planes FREE/PRO, `/backoffice`, paywall en invites (Fase 1).
-
-## Fase 4: Experiencia, Membresía y Engagement (038–042) — Siguiente
-
-Orden de impacto: **038 → 039 → 040 → 041 → 042** (040 puede ir en paralelo a 038/039 tras el schema).
-
-1. **038 · Rediseño Inmersivo del Modo Cliente** — Hero “Hoy: rutina” + CTA Empezar; misma piel en Player/Progreso. Spec: `038-client-mode-immersive-redesign`.
-2. **039 · Ficha 360 Rediseñada del Alumno** — Expediente trainer (header sticky + secciones); `GET /clients/:id/overview`. Spec: `039-client-360-profile-redesign`.
-3. **040 · Membresía y Control de Pago del Alumno** — Periodo, estado, días restantes visibles al cliente, soft-lock. Evoluciona **036**. Distinto de SaaS plataforma **037**. Spec: `040-client-membership-payments`.
-4. **041 · Récords Personales (PRs) y Celebraciones** — Detección al cerrar sesión + overlay. Absorbe **030**. Spec: `041-personal-records-celebrations`.
-5. **042 · Rachas y Score de Consistencia** — Racha + meta semanal + score 0–100 en Inicio y Ficha 360. Spec: `042-streaks-consistency-score`.
-
-## Backlog / ideas futuras
-
-- **Caducidad de invitaciones / email SMTP**
-- **Tests E2E / API críticos** — login, ownership, guardar sesión.
 - **Pinia / TypeScript** — solo si el estado o el tamaño del equipo lo justifican.
-- **Alertas inteligentes de retención / analytics trainer / comparador de fotos / informe semanal** — candidatos post-042.
+- Calendario / agendar sesiones 1:1
+- Offline / cola de sets sin red
+- Multi-idioma
+- App nativa (explícitamente fuera de misión hoy)
+- Leaderboards entre alumnos
+- ERP / facturación fiscal completa
 
 > Cada feature nueva se crea como `features/NNN-nombre-feature/` con `spec.md`, `plan.md` y `tasks.md` antes de tocar código.
+> Fuente de verdad de avance: este archivo + `spec/features/*/tasks.md`. El doc `docs/features futuros.md` está obsoleto.

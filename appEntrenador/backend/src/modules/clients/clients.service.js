@@ -275,6 +275,30 @@ async function getClientOverview(clientId, trainerId) {
   const membershipRow = await membershipsService.getByClientId(clientId);
   const membership = membershipsService.summarizeMembership(membershipRow);
 
+  let consistencyScore = null;
+  let prsThisMonth = null;
+  try {
+    const consistencyService = require('../consistency/consistency.service');
+    const consistency = await consistencyService.buildConsistencyPayload(clientId);
+    consistencyScore = {
+      value: consistency.score,
+      current_streak: consistency.current_streak,
+      best_streak: consistency.best_streak,
+      week_goal: consistency.week_goal,
+      workouts_this_week: consistency.workouts_this_week,
+    };
+  } catch (error) {
+    console.error('Error cargando consistencia en overview 360:', error.message);
+  }
+  try {
+    const personalRecordsService = require('../personal-records/personal-records.service');
+    prsThisMonth = {
+      count: await personalRecordsService.countPrsThisMonth(clientId),
+    };
+  } catch (error) {
+    console.error('Error cargando PRs en overview 360:', error.message);
+  }
+
   const DEFAULT_AVATAR_MARKERS = new Set(['', 'default_avatar.png', 'null', 'undefined']);
   const rawFoto = profileRow?.foto_url;
   let fotoUrl = null;
@@ -314,9 +338,8 @@ async function getClientOverview(clientId, trainerId) {
     lastCheckin: checkinRows[0] || null,
     nutritionTargets: nutritionRows[0] || null,
     membership,
-    // Feature slots (041 / 042) — null-safe until those APIs exist
-    consistencyScore: null,
-    prsThisMonth: null,
+    consistencyScore,
+    prsThisMonth,
   };
 }
 

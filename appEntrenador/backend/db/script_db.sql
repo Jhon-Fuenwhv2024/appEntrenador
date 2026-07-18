@@ -224,7 +224,14 @@ CREATE TABLE notifications (
     user_id INT NOT NULL,
     title VARCHAR(100) NOT NULL,
     message TEXT NOT NULL,
-    type ENUM('routine_assigned', 'routine_completed', 'system') NOT NULL DEFAULT 'system',
+    type ENUM(
+      'routine_assigned',
+      'routine_completed',
+      'system',
+      'pr_achieved',
+      'streak_milestone',
+      'streak_at_risk'
+    ) NOT NULL DEFAULT 'system',
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_notifications_user (user_id),
@@ -352,4 +359,39 @@ CREATE TABLE client_memberships (
       FOREIGN KEY (client_id) REFERENCES usuarios(id) ON DELETE CASCADE,
     CONSTRAINT fk_client_memberships_updated_by
       FOREIGN KEY (updated_by) REFERENCES usuarios(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- 19. RÉCORDS PERSONALES / PRs (Feature 041)
+CREATE TABLE personal_records (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    client_id INT NOT NULL,
+    exercise_id INT NULL,
+    exercise_name VARCHAR(150) NOT NULL,
+    weight DECIMAL(6,2) NOT NULL,
+    reps INT NOT NULL,
+    achieved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    session_id INT NULL,
+    set_log_id INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_personal_records_client_name (client_id, exercise_name),
+    INDEX idx_personal_records_client_exercise (client_id, exercise_id),
+    INDEX idx_personal_records_achieved (client_id, achieved_at),
+    CONSTRAINT fk_personal_records_client
+      FOREIGN KEY (client_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    CONSTRAINT fk_personal_records_session
+      FOREIGN KEY (session_id) REFERENCES workout_sessions(id) ON DELETE SET NULL,
+    CONSTRAINT fk_personal_records_set_log
+      FOREIGN KEY (set_log_id) REFERENCES workout_set_logs(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- 20. RACHAS / CONSISTENCIA (Feature 042)
+CREATE TABLE client_streaks (
+    client_id INT NOT NULL,
+    current_streak INT NOT NULL DEFAULT 0,
+    best_streak INT NOT NULL DEFAULT 0,
+    week_goal INT NOT NULL DEFAULT 3,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (client_id),
+    CONSTRAINT fk_client_streaks_client
+      FOREIGN KEY (client_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

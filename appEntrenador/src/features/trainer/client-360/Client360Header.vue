@@ -62,8 +62,15 @@ const lastSessionLabel = computed(() => {
 const consistencyLabel = computed(() => {
   const score = props.consistencyScore;
   if (score == null) return null;
-  if (typeof score === 'number') return `${score}`;
-  if (typeof score === 'object' && score.value != null) return String(score.value);
+  if (typeof score === 'number') return `Score ${score}`;
+  if (typeof score === 'object') {
+    const value = score.value ?? score.score;
+    const streak = score.current_streak;
+    if (value == null && streak == null) return null;
+    if (streak != null && value != null) return `${streak}d · ${value}`;
+    if (value != null) return `Score ${value}`;
+    return `${streak}d`;
+  }
   return null;
 });
 

@@ -1,4 +1,6 @@
 const workoutSessionsService = require('./workout-sessions.service');
+const personalRecordsService = require('../personal-records/personal-records.service');
+const consistencyService = require('../consistency/consistency.service');
 const { notificationService } = require('../notifications/notifications.service');
 const db = require('../../config/db');
 
@@ -20,6 +22,31 @@ function sendError(res, error, context) {
 async function createMine(req, res) {
   try {
     const session = await workoutSessionsService.createMySession(req.user.id, req.body);
+    let newPrs = [];
+    let consistency = null;
+
+    if (session.status === 'completed') {
+      try {
+        newPrs = await personalRecordsService.detectAndSavePrsForSession(req.user.id, session);
+      } catch (prError) {
+        console.error('Error detectando PRs (create session):', prError);
+      }
+
+      try {
+        const streakResult = await consistencyService.recalculateAfterSession(req.user.id, session);
+        consistency = streakResult.consistency;
+        if (streakResult.milestone) {
+          await notificationService.createNotification(
+            req.user.id,
+            '¡Racha de fuego!',
+            `Llevas ${streakResult.milestone} días consecutivos entrenando. Sigue así.`,
+            'streak_milestone',
+          );
+        }
+      } catch (streakError) {
+        console.error('Error recalculando racha (create session):', streakError);
+      }
+    }
 
     try {
       const [rows] = await db.query(
@@ -37,6 +64,26 @@ async function createMine(req, res) {
           'routine_completed',
         );
       }
+
+      if (newPrs.length > 0) {
+        const names = newPrs.map((pr) => pr.exercise_name).slice(0, 3).join(', ');
+        const more = newPrs.length > 3 ? ` (+${newPrs.length - 3})` : '';
+        await notificationService.createNotification(
+          req.user.id,
+          '¡Nuevo récord personal!',
+          `Superaste tu máximo en: ${names}${more}.`,
+          'pr_achieved',
+        );
+        if (trainerId) {
+          const clientName = req.user.nombre || 'Tu alumno';
+          await notificationService.createNotification(
+            trainerId,
+            'PR de alumno',
+            `${clientName} logró ${newPrs.length} PR(s): ${names}${more}.`,
+            'pr_achieved',
+          );
+        }
+      }
     } catch (notifError) {
       console.error('Error enviando notificación (create session):', notifError);
     }
@@ -44,7 +91,11 @@ async function createMine(req, res) {
     return res.status(201).json({
       success: true,
       message: 'Entrenamiento guardado',
-      data: session,
+      data: {
+        ...session,
+        new_prs: newPrs,
+        consistency,
+      },
     });
   } catch (error) {
     return sendError(res, error, 'Error guardando sesión de entrenamiento:');

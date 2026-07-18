@@ -25,6 +25,10 @@ erDiagram
   usuarios ||--o{ nutrition_targets : "trainer_id"
   usuarios ||--o| client_memberships : "client_id"
   usuarios ||--o{ client_memberships : "updated_by"
+  usuarios ||--o{ personal_records : "client_id"
+  usuarios ||--o| client_streaks : "client_id"
+  workout_sessions ||--o{ personal_records : "session_id"
+  workout_set_logs ||--o{ personal_records : "set_log_id"
   usuarios ||--o{ weekly_checkins : "client_id"
   weekly_checkins ||--o{ progress_photos : "checkin_id"
   usuarios ||--o{ progress_photos : "client_id"
@@ -221,9 +225,21 @@ npm run db:create-body-composition
 # o: node scripts/createBodyCompositionTable.js
 ```
 
+### `personal_records` (Feature 041)
+
+PRs de peso del alumno. Campos: `client_id`, `exercise_id` nullable, `exercise_name`, `weight`, `reps`, `achieved_at`, `session_id`, `set_log_id`. Índices por (`client_id`, `exercise_name`) y (`client_id`, `exercise_id`). Match de ejercicio en detección: `LOWER(TRIM(exercise_name))`.
+
+Migración: [`backend/db/migrations/020_personal_records.sql`](../backend/db/migrations/020_personal_records.sql). Boot: `ensurePersonalRecordsTable`.
+
+### `client_streaks` (Feature 042)
+
+1:1 con cliente (`PRIMARY KEY client_id`): `current_streak`, `best_streak`, `week_goal` (default 3), `updated_at`. Fuente de días entrenados: `workout_sessions` con `status = completed`.
+
+Migración: [`backend/db/migrations/021_client_streaks.sql`](../backend/db/migrations/021_client_streaks.sql). Boot: `ensureClientStreaksTable`.
+
 ### `notifications` (Feature 025)
 
-Alertas in-app N:1 con el usuario (`user_id` → `usuarios`). Tipos: `routine_assigned` | `routine_completed` | `system`. `is_read` booleano.
+Alertas in-app N:1 con el usuario (`user_id` → `usuarios`). Tipos: `routine_assigned` | `routine_completed` | `system` | `pr_achieved` | `streak_milestone` | `streak_at_risk`. `is_read` booleano.
 
 Migración: [`backend/db/migrations/011_notifications.sql`](../backend/db/migrations/011_notifications.sql). Al arrancar, `ensureNotificationsTable` también aplica `CREATE TABLE IF NOT EXISTS`.
 

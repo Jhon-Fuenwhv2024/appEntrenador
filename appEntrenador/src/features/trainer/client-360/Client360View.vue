@@ -20,6 +20,7 @@ import { getClientWorkoutSessions } from '../api/workoutSessionsApi.js';
 import BodyCompositionPanel from '../components/BodyCompositionPanel.vue';
 import CheckinsHistoryPanel from '../components/CheckinsHistoryPanel.vue';
 import DailyHabitsPanel from '../components/DailyHabitsPanel.vue';
+import ConsistencyPanel from '../components/ConsistencyPanel.vue';
 import MembershipPanel from '../components/MembershipPanel.vue';
 import NutritionTargetsPanel from '../components/NutritionTargetsPanel.vue';
 import Client360Header from './Client360Header.vue';
@@ -91,6 +92,20 @@ const onMembershipUpdated = (data) => {
         block_on_unpaid: Boolean(data.block_on_unpaid),
       }
       : null,
+  };
+};
+
+const onConsistencyUpdated = (data) => {
+  if (!overview.value || !data) return;
+  overview.value = {
+    ...overview.value,
+    consistencyScore: {
+      value: data.score,
+      current_streak: data.current_streak,
+      best_streak: data.best_streak,
+      week_goal: data.week_goal,
+      workouts_this_week: data.workouts_this_week,
+    },
   };
 };
 
@@ -275,6 +290,11 @@ onMounted(() => {
               :client-id="clientId"
               @notify="onChildNotify"
               @updated="onMembershipUpdated"
+            />
+            <ConsistencyPanel
+              :client-id="clientId"
+              @notify="onChildNotify"
+              @updated="onConsistencyUpdated"
             />
             <Client360Overview
               :overview="overview"

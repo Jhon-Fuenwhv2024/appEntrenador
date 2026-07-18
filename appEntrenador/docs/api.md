@@ -181,7 +181,7 @@ Detalle de un cliente propio.
 
 ### `GET /clients/:clientId/overview` (Feature 039)
 
-Agregado 360 para la ficha del alumno (solo trainer dueño). Incluye perfil, conteos, última sesión, último check-in, targets nutricionales, membresía (040) y slots null-safe para PRs / consistencia (041–042).
+Agregado 360 para la ficha del alumno (solo trainer dueño). Incluye perfil, conteos, última sesión, último check-in, targets nutricionales, membresía (040), `consistencyScore` (042) y `prsThisMonth` (041).
 
 ```json
 {
@@ -222,14 +222,20 @@ Agregado 360 para la ficha del alumno (solo trainer dueño). Incluye perfil, con
       "days_remaining": 14,
       "block_on_unpaid": false
     },
-    "consistencyScore": null,
-    "prsThisMonth": null
+    "consistencyScore": {
+      "value": 59,
+      "current_streak": 4,
+      "best_streak": 12,
+      "week_goal": 3,
+      "workouts_this_week": 2
+    },
+    "prsThisMonth": { "count": 2 }
   },
   "message": "Overview del alumno"
 }
 ```
 
-UI: `/trainer/clients/:clientId` (`Client360View`) con secciones vía `?tab=` (`resumen` | `programacion` | `nutricion` | `medidas` | `checkins` | `graficas` | `chat`). En Resumen: `MembershipPanel` + badge sticky de días restantes.
+UI: `/trainer/clients/:clientId` (`Client360View`) con secciones vía `?tab=` (`resumen` | `programacion` | `nutricion` | `medidas` | `checkins` | `graficas` | `chat`). En Resumen: `MembershipPanel` + `ConsistencyPanel` + badge sticky de días restantes / score.
 
 ## Membresía del alumno (Feature 040)
 
@@ -650,6 +656,59 @@ Body:
 ```
 
 `client_id` siempre es `req.user.id`. `routine_id` debe pertenecer al cliente.
+
+Respuesta `201` (Feature 041 / 042): además de la sesión y `sets[]`, incluye:
+
+- `new_prs[]` — PRs de peso detectados en esa sesión (`exercise_name`, `weight`, `reps`, `previous_max`, …). Vacío si no hay récords.
+- `consistency` — payload de racha/score tras recalcular (o `null` si status ≠ `completed`).
+
+## Récords personales / PRs (Feature 041)
+
+Tabla `personal_records`. Detección automática al cerrar sesión (`status = completed`): peso estrictamente mayor al máximo histórico del mismo ejercicio (match por `LOWER(TRIM(exercise_name))`).
+
+### `GET /me/personal-records` (client)
+
+Lista hasta 100 PRs propios (más recientes primero).
+
+### `GET /clients/:clientId/personal-records` (trainer)
+
+Misma lista para alumno propio (ownership).
+
+Notificación in-app `pr_achieved` al cliente (y al trainer) cuando hay al menos un PR nuevo.
+
+## Consistencia / rachas (Feature 042)
+
+Tabla `client_streaks` (`current_streak`, `best_streak`, `week_goal` default 3).
+
+**Score (0–100):** `min(100, round(workouts_this_week / week_goal * 70 + min(current_streak, 10) * 3))`.
+
+Días de racha: calendario UTC con ≥1 sesión `completed` por día; ancla en hoy o ayer.
+
+### `GET /me/consistency` (client)
+
+```json
+{
+  "success": true,
+  "data": {
+    "current_streak": 4,
+    "best_streak": 12,
+    "week_goal": 3,
+    "workouts_this_week": 2,
+    "score": 59,
+    "days_remaining_in_week": 3
+  }
+}
+```
+
+### `GET /clients/:clientId/consistency` (trainer)
+
+Mismo payload para alumno propio.
+
+### `PUT /clients/:clientId/consistency` (trainer) — alias `PUT .../week-goal`
+
+Body: `{ "week_goal": 4 }` (entero 1–14). Devuelve el payload de consistencia actualizado.
+
+`GET /clients/:id/overview` incluye `consistencyScore` y `prsThisMonth.count`.
 
 ### `GET /me/workout-sessions` (client) — Feature 021
 

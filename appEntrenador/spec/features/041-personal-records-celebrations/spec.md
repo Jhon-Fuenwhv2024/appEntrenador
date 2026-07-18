@@ -1,6 +1,6 @@
 # 041 · Récords Personales (PRs) y Celebraciones
 
-**Estado:** pendiente
+**Estado:** implementada
 **Depende de:** 012 (Persistencia sesión), 011 (Workout Player), 021 (Progreso)
 **Supersede / absorbe:** **030** (PRs y celebraciones — spec antigua sin implementación)
 **Consume en UI:** 038 (Player), 039 (chip en Ficha 360)
