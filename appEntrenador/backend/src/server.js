@@ -36,14 +36,20 @@ const { ensurePersonalRecordsTable } = require('./db/ensurePersonalRecordsTable'
 const { ensureClientStreaksTable } = require('./db/ensureClientStreaksTable');
 const { ensureDietPlansTables } = require('./db/ensureDietPlansTables');
 const { ensureSaasColumns } = require('./db/ensureSaasColumns');
+const {
+  ensureExercisesI18nColumns,
+  ensureExercisesMediaDir,
+} = require('./db/ensureExercisesI18nColumns');
 
 const app = express();
 
 ensureAvatarsDir();
 ensurePhotosDir();
+ensureExercisesMediaDir();
 
 app.use(cors());
 app.use(express.json());
+// Media local de ejercicios (y otros uploads): /uploads/... → backend/public/uploads
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 app.use('/api', authRoutes);
@@ -121,6 +127,12 @@ async function start() {
     await ensureDietPlansTables();
   } catch (error) {
     console.error('No se pudo asegurar las tablas de planes de dieta:', error.message);
+  }
+
+  try {
+    await ensureExercisesI18nColumns();
+  } catch (error) {
+    console.error('No se pudieron asegurar columnas i18n de exercises:', error.message);
   }
 
   app.listen(PORT, () => {

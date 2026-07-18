@@ -587,9 +587,10 @@ Cada ítem de `ejercicios[]` incluye (además de la prescripción):
 
 `last_log` es `null` si el cliente no tiene series previas en `workout_set_logs` para ese nombre exacto. El match **no** usa `ejercicios.id` (los ids cambian al reasignar plantillas). Ownership: solo logs con `workout_sessions.client_id` = el dueño de la rutina.
 
-## Catálogo de ejercicios (Features 008–009)
+## Catálogo de ejercicios (Features 008–009 + 044)
 
-Tabla MySQL `exercises` (diccionario híbrido). Seed desde clone wrkout: `npm run seed:exercises` en `backend/` (ver [`database-schema.md`](database-schema.md)).
+Tabla MySQL `exercises` (diccionario híbrido). Seed desde clone wrkout: `npm run seed:exercises` en `backend/` (ver [`database-schema.md`](database-schema.md)).  
+i18n ES + media local: [`exercises-i18n-scraping.md`](exercises-i18n-scraping.md).
 
 ### `GET /exercises` (trainer)
 
@@ -597,9 +598,12 @@ Lista ejercicios globales (`created_by_trainer_id IS NULL`) y los del trainer au
 
 Query:
 
-- `?q=press` — filtro por nombre (LIKE)
+- `?q=press` — filtro por `name` / `name_es` / músculo (LIKE)
 - `?limit=6` — tamaño de página (default **6**, máximo **100**)
 - `?page=1` — página actual (1-based)
+- `?enriched=1` — solo ejercicios con `name_es` o `local_media_path` (Feature 044)
+
+**Nota FE:** el catálogo paginado del trainer usa `limit=6`. Los autocompletes de programación/plantillas usan `getAllExercises()` (páginas de 100) para cargar el diccionario completo.
 
 Respuesta:
 
@@ -609,11 +613,15 @@ Respuesta:
   "data": [
     {
       "id": 1,
-      "name": "Press banca",
+      "name": "Bench Press",
+      "name_es": "Press de banca",
       "description": "...",
-      "target_muscle": "Pecho",
-      "media_type": "none",
-      "media_url": null,
+      "description_es": "...",
+      "target_muscle": "Chest",
+      "target_muscle_es": "Pecho",
+      "media_type": "gif",
+      "media_url": "https://raw.githubusercontent.com/...",
+      "local_media_path": "/uploads/exercises/exercise_1.gif",
       "created_by_trainer_id": null,
       "is_global": true
     }
@@ -627,6 +635,8 @@ Respuesta:
   }
 }
 ```
+
+Media estática: `GET {API_ORIGIN}/uploads/exercises/...` (fuera de `/api`).
 
 ### `POST /exercises` (trainer)
 

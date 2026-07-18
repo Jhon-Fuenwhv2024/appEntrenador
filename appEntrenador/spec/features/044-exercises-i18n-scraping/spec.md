@@ -1,6 +1,6 @@
 # 044 · Catálogo de Ejercicios i18n (ES) + Scraping
 
-**Estado:** pendiente (SDD listo — Epic Fitness Fase 3)
+**Estado:** implementado (MVP — Epic Fitness Fase 3)
 **Depende de:** 008 / 009 (catálogo `exercises`), 022 (`exercise_id` en líneas)
 **Relacionada:** nice-to-have multi-idioma global (vue-i18n) — fuera de esta feature
 
@@ -44,5 +44,5 @@ Enriquece el catálogo de ejercicios (hoy en inglés, seed wrkout) con **nombres
 
 - Traducir toda la UI de la app (multi-idioma producto)
 - Scraping continuo en producción / cron sin revisión humana
-- Sustituir media/GIF del seed wrkout por assets de fitcron (solo texto/metadatos ES salvo decisión explícita)
+- ~~Sustituir media/GIF del seed wrkout~~ — **decisión explícita:** descargar y hostear media Fitcron en `local_media_path` (mantener `media_url` como fallback)
 - Reclamar propiedad del contenido de terceros; uso conforme a términos del sitio fuente

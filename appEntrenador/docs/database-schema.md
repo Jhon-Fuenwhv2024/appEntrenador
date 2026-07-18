@@ -168,17 +168,24 @@ Detalle de una rutina concreta: nombre (denormalizado), series, repeticiones, pe
 
 ### `exercises` (catálogo / diccionario)
 
-Diccionario híbrido de ejercicios (Feature 008):
+Diccionario híbrido de ejercicios (Feature 008 + **044**):
 
 | Columna | Descripción |
 |---------|-------------|
 | `id` | PK |
-| `name` | Nombre del ejercicio |
-| `description` | Descripción opcional |
+| `name` | Nombre del ejercicio (EN / canónico seed) |
+| `name_es` | Nombre en español (nullable; scraping Fitcron) |
+| `description` | Descripción opcional (EN) |
+| `description_es` | Descripción en español (nullable) |
 | `target_muscle` | Grupo muscular objetivo |
+| `target_muscle_es` | Grupo muscular en español (nullable) |
 | `media_type` | `image` \| `gif` \| `youtube` \| `video` \| `none` |
-| `media_url` | URL de media (GitHub, YouTube, hosting del trainer) |
+| `media_url` | URL de media externa (fallback; seed wrkout / YouTube) |
+| `local_media_path` | Ruta relativa hosteada, ej. `/uploads/exercises/exercise_12.gif` |
 | `created_by_trainer_id` | `NULL` = global del sistema; con ID = privado del trainer (`usuarios.id`) |
+
+Migración: [`backend/db/migrations/024_exercises_i18n_local_media.sql`](../backend/db/migrations/024_exercises_i18n_local_media.sql).  
+Scraping + descarga: [`docs/exercises-i18n-scraping.md`](exercises-i18n-scraping.md).
 
 **Importante:** `exercises` ≠ `ejercicios`. Las líneas de rutina/plantilla pueden vincularse con `exercise_id` (estable) y siguen guardando `nombre` para display e historial (Feature 022). La UI del trainer elige del catálogo vía `GET/POST /api/exercises`.
 

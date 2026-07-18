@@ -21,6 +21,7 @@ async function list(req, res) {
       req.query.q,
       req.query.limit,
       req.query.page,
+      req.query.enriched,
     );
 
     return res.json({

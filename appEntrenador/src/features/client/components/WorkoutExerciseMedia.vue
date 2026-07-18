@@ -1,5 +1,9 @@
 <script setup>
 import { computed } from 'vue';
+import {
+  getExerciseMediaKind,
+  resolveExerciseMediaSrc,
+} from '../../../shared/utils/exerciseDisplay.js';
 
 const props = defineProps({
   mediaType: {
@@ -7,6 +11,10 @@ const props = defineProps({
     default: 'none',
   },
   mediaUrl: {
+    type: String,
+    default: null,
+  },
+  localMediaPath: {
     type: String,
     default: null,
   },
@@ -39,18 +47,15 @@ function youtubeEmbedUrl(url) {
   return null;
 }
 
-const kind = computed(() => {
-  const type = (props.mediaType || 'none').toLowerCase();
-  const url = props.mediaUrl?.trim();
-  if (!url || type === 'none') return 'none';
-  if (type === 'youtube') return 'youtube';
-  if (type === 'video') return 'video';
-  if (type === 'gif' || type === 'image') return 'image';
-  return 'image';
-});
+const resolvedSrc = computed(() => resolveExerciseMediaSrc({
+  local_media_path: props.localMediaPath,
+  media_url: props.mediaUrl,
+}));
+
+const kind = computed(() => getExerciseMediaKind(resolvedSrc.value, props.mediaType));
 
 const embedSrc = computed(() => (
-  kind.value === 'youtube' ? youtubeEmbedUrl(props.mediaUrl) : null
+  kind.value === 'youtube' ? youtubeEmbedUrl(resolvedSrc.value) : null
 ));
 </script>
 
@@ -67,17 +72,17 @@ const embedSrc = computed(() => (
     <video
       v-else-if="kind === 'video'"
       class="workout-media__frame"
-      :src="mediaUrl"
-      controls
-      playsinline
-      muted
-      loop
+      :src="resolvedSrc"
       autoplay
+      loop
+      muted
+      playsinline
+      controls
     />
     <img
-      v-else-if="kind === 'image'"
+      v-else-if="kind === 'gif' || kind === 'image'"
       class="workout-media__frame"
-      :src="mediaUrl"
+      :src="resolvedSrc"
       :alt="exerciseName || 'Ejercicio'"
     />
     <div v-else class="workout-media__fallback">

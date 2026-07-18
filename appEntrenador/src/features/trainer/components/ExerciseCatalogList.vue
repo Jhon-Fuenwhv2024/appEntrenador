@@ -1,8 +1,17 @@
 <script setup>
+import {
+  displayExerciseDescription,
+  displayExerciseMuscle,
+  displayExerciseName,
+  getExerciseMediaKind,
+  resolveExerciseMediaSrc,
+} from '../../../shared/utils/exerciseDisplay.js';
+
 defineProps({
   exercises: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   searchQuery: { type: String, default: '' },
+  onlyEnriched: { type: Boolean, default: false },
   totalCount: { type: Number, default: 0 },
   pageSize: { type: Number, default: 6 },
   currentPage: { type: Number, default: 1 },
@@ -14,25 +23,42 @@ defineProps({
   editingId: { type: Number, default: null },
 });
 
-defineEmits(['update:searchQuery', 'edit', 'delete', 'prevPage', 'nextPage']);
+defineEmits([
+  'update:searchQuery',
+  'update:onlyEnriched',
+  'edit',
+  'delete',
+  'prevPage',
+  'nextPage',
+]);
 
-function isVisualMedia(item) {
-  const type = (item?.media_type || '').toLowerCase();
-  return type === 'image' || type === 'gif';
+function mediaSrc(item) {
+  return resolveExerciseMediaSrc(item);
+}
+
+function mediaKind(item) {
+  return getExerciseMediaKind(mediaSrc(item), item?.media_type);
 }
 
 function hasMedia(item) {
-  const type = (item?.media_type || 'none').toLowerCase();
-  return type !== 'none' && Boolean(item?.media_url);
+  const kind = mediaKind(item);
+  return kind === 'video' || kind === 'gif' || kind === 'image' || kind === 'youtube';
 }
 
 function mediaLabel(item) {
-  const type = (item?.media_type || '').toLowerCase();
-  if (type === 'youtube') return 'Ver video';
-  if (type === 'video') return 'Ver video';
-  if (type === 'gif') return 'Ver GIF';
-  if (type === 'image') return 'Ver imagen';
+  const kind = mediaKind(item);
+  if (kind === 'youtube' || kind === 'video') return 'Ver video';
+  if (kind === 'gif') return 'Ver GIF';
+  if (kind === 'image') return 'Ver imagen';
   return 'Ver media';
+}
+
+function hasSpanish(item) {
+  return Boolean(item?.name_es?.trim());
+}
+
+function hasLocalMedia(item) {
+  return Boolean(item?.local_media_path?.trim());
 }
 </script>
 
@@ -49,24 +75,42 @@ function mediaLabel(item) {
         </p>
         <p class="text-caption text-medium-emphasis mb-0 mt-1">
           Página {{ currentPage }} de {{ totalPages }}
+          <span v-if="onlyEnriched"> · filtro ES / media local</span>
         </p>
       </div>
-      <v-text-field
-        :model-value="searchQuery"
-        label="Buscar"
-        density="compact"
-        hide-details
-        clearable
-        prepend-inner-icon="mdi-magnify"
-        class="search-field"
-        @update:model-value="$emit('update:searchQuery', $event ?? '')"
-      />
+      <div class="catalog-toolbar">
+        <v-switch
+          :model-value="onlyEnriched"
+          color="primary"
+          density="compact"
+          hide-details
+          inset
+          label="Solo ES / media local"
+          class="enriched-switch"
+          @update:model-value="$emit('update:onlyEnriched', Boolean($event))"
+        />
+        <v-text-field
+          :model-value="searchQuery"
+          label="Buscar"
+          density="compact"
+          hide-details
+          clearable
+          prepend-inner-icon="mdi-magnify"
+          class="search-field"
+          @update:model-value="$emit('update:searchQuery', $event ?? '')"
+        />
+      </div>
     </div>
 
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
 
     <p v-else-if="exercises.length === 0" class="text-medium-emphasis mb-0">
-      No hay ejercicios que coincidan. Crea uno a la izquierda o ajusta la búsqueda.
+      <template v-if="onlyEnriched">
+        No hay ejercicios enriquecidos (name_es / media local). ¿Reiniciaste el backend tras el scrape?
+      </template>
+      <template v-else>
+        No hay ejercicios que coincidan. Crea uno a la izquierda o ajusta la búsqueda.
+      </template>
     </p>
 
     <template v-else>
@@ -78,36 +122,72 @@ function mediaLabel(item) {
           :class="{ 'exercise-card--editing': editingId === item.id }"
         >
           <div class="d-flex justify-space-between align-start ga-2 mb-2">
-            <h4 class="exercise-card-title">{{ item.name }}</h4>
-            <v-chip
-              size="x-small"
-              :color="item.is_global ? 'cyan' : 'orange'"
-              variant="tonal"
-            >
-              {{ item.is_global ? 'Global' : 'Mío' }}
-            </v-chip>
+            <h4 class="exercise-card-title">{{ displayExerciseName(item) }}</h4>
+            <div class="d-flex flex-wrap justify-end ga-1">
+              <v-chip
+                v-if="hasSpanish(item)"
+                size="x-small"
+                color="success"
+                variant="tonal"
+              >
+                ES
+              </v-chip>
+              <v-chip
+                v-if="hasLocalMedia(item)"
+                size="x-small"
+                color="primary"
+                variant="tonal"
+              >
+                Local
+              </v-chip>
+              <v-chip
+                size="x-small"
+                :color="item.is_global ? 'cyan' : 'orange'"
+                variant="tonal"
+              >
+                {{ item.is_global ? 'Global' : 'Mío' }}
+              </v-chip>
+            </div>
           </div>
-          <div class="text-caption text-cyan mb-2">{{ item.target_muscle }}</div>
-          <p v-if="item.description" class="exercise-card-desc">
-            {{ item.description }}
+          <div class="text-caption text-cyan mb-2">{{ displayExerciseMuscle(item) }}</div>
+          <p
+            v-if="displayExerciseDescription(item)"
+            class="exercise-card-desc"
+          >
+            {{ displayExerciseDescription(item) }}
+          </p>
+          <p
+            v-if="item.name_es && item.name && item.name_es !== item.name"
+            class="text-caption text-medium-emphasis mt-1 mb-0"
+          >
+            EN: {{ item.name }}
           </p>
 
           <div v-if="hasMedia(item)" class="exercise-media">
+            <video
+              v-if="mediaKind(item) === 'video'"
+              class="exercise-media-thumb w-100"
+              :src="mediaSrc(item)"
+              autoplay
+              loop
+              muted
+              playsinline
+            />
             <img
-              v-if="isVisualMedia(item)"
-              class="exercise-media-thumb"
-              :src="item.media_url"
-              :alt="item.name"
+              v-else-if="mediaKind(item) === 'gif' || mediaKind(item) === 'image'"
+              class="exercise-media-thumb w-100"
+              :src="mediaSrc(item)"
+              :alt="displayExerciseName(item)"
               loading="lazy"
             />
             <a
               class="exercise-media-btn"
-              :href="item.media_url"
+              :href="mediaSrc(item)"
               target="_blank"
               rel="noopener noreferrer"
             >
               <v-icon
-                :icon="item.media_type === 'youtube' || item.media_type === 'video'
+                :icon="mediaKind(item) === 'youtube' || mediaKind(item) === 'video'
                   ? 'mdi-play-circle-outline'
                   : 'mdi-image-outline'"
                 size="18"
@@ -171,6 +251,19 @@ function mediaLabel(item) {
 .card-section-title {
   font-size: 1.1rem;
   font-weight: 700;
+}
+
+.catalog-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  min-width: min(100%, 320px);
+}
+
+.enriched-switch {
+  flex: 0 0 auto;
 }
 
 .search-field {

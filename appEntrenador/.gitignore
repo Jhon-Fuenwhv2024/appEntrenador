@@ -20,6 +20,10 @@ backend/.env
 backend/public/uploads/avatars/*
 !backend/public/uploads/avatars/.gitkeep
 
+# Downloaded exercise media (Feature 044; keep folder via .gitkeep)
+backend/public/uploads/exercises/*
+!backend/public/uploads/exercises/.gitkeep
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

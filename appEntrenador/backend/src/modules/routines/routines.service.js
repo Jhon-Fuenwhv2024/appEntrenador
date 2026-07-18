@@ -235,7 +235,31 @@ async function enrichRoutinesWithCatalogMedia(routines, clientId) {
     }
   }
 
-  const emptyMedia = { media_type: 'none', media_url: null };
+  const emptyMedia = {
+    media_type: 'none',
+    media_url: null,
+    local_media_path: null,
+    name_es: null,
+    description_es: null,
+  };
+
+  function mapCatalogMedia(row) {
+    const localPath = row.local_media_path || null;
+    let mediaType = row.media_type || 'none';
+    if (localPath) {
+      const lower = localPath.toLowerCase();
+      if (lower.endsWith('.mp4') || lower.endsWith('.webm')) mediaType = 'video';
+      else if (lower.endsWith('.gif')) mediaType = 'gif';
+      else if (/\.(jpe?g|png|webp)$/.test(lower)) mediaType = 'image';
+    }
+    return {
+      media_type: mediaType,
+      media_url: row.media_url || null,
+      local_media_path: localPath,
+      name_es: row.name_es ?? null,
+      description_es: row.description_es ?? null,
+    };
+  }
 
   if (catalogIds.size === 0 && names.size === 0) {
     return routines.map((routine) => ({
@@ -260,16 +284,13 @@ async function enrichRoutinesWithCatalogMedia(routines, clientId) {
     const idList = [...catalogIds];
     const idPlaceholders = idList.map(() => '?').join(',');
     const [byIdRows] = await db.query(
-      `SELECT id, media_type, media_url
+      `SELECT id, name_es, description_es, media_type, media_url, local_media_path
        FROM exercises
        WHERE id IN (${idPlaceholders})`,
       idList,
     );
     for (const row of byIdRows) {
-      mediaById.set(row.id, {
-        media_type: row.media_type || 'none',
-        media_url: row.media_url || null,
-      });
+      mediaById.set(row.id, mapCatalogMedia(row));
     }
   }
 
@@ -285,7 +306,8 @@ async function enrichRoutinesWithCatalogMedia(routines, clientId) {
       : '(created_by_trainer_id IS NULL OR created_by_trainer_id = ?)';
 
     const [catalogRows] = await db.query(
-      `SELECT name, media_type, media_url, created_by_trainer_id
+      `SELECT name, name_es, description_es, media_type, media_url, local_media_path,
+              created_by_trainer_id
        FROM exercises
        WHERE LOWER(TRIM(name)) IN (${placeholders})
          AND ${trainerClause}`,
@@ -299,10 +321,7 @@ async function enrichRoutinesWithCatalogMedia(routines, clientId) {
         && row.created_by_trainer_id === trainerId;
 
       if (!existing || isTrainerOwned) {
-        mediaByName.set(key, {
-          media_type: row.media_type || 'none',
-          media_url: row.media_url || null,
-        });
+        mediaByName.set(key, mapCatalogMedia(row));
       }
     }
   }
@@ -320,6 +339,9 @@ async function enrichRoutinesWithCatalogMedia(routines, clientId) {
         ...ex,
         media_type: media?.media_type || 'none',
         media_url: media?.media_url || null,
+        local_media_path: media?.local_media_path || null,
+        name_es: media?.name_es || null,
+        description_es: media?.description_es || null,
       };
     }),
   }));

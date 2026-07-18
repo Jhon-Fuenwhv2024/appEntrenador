@@ -2,16 +2,16 @@
 
 ## Enfoque
 
-1. DDL: añadir `name_es`, `description_es` (+ opcional `target_muscle_es`) a `exercises`.
-2. Pedir permiso para dependencias npm (`axios`, `cheerio`) si no están en `backend/package.json`.
-3. Script `backend/scripts/scrapeFitcronExercises.js`:
-   - Fetch listado / páginas de detalle con delay configurable.
-   - Parse HTML con cheerio.
-   - Normalizar nombres EN/ES para fuzzy/exact match contra filas `exercises.name`.
-   - Escribir CSV/JSON intermedio + upsert SQL parametrizado.
-4. Extender service/API de exercises para devolver campos ES.
-5. FE: helper `displayExerciseName(ex)` → `ex.name_es || ex.name` en catálogo y selects.
-6. Documentar en `docs/` origen de datos, limitaciones legales/éticas y cómo re-ejecutar el script.
+1. DDL: añadir `name_es`, `description_es`, `target_muscle_es`, `local_media_path` a `exercises`.
+2. Dependencias npm: `axios`, `cheerio`.
+3. Script `backend/scripts/scrapeAndDownloadExercises.js`:
+   - Fetch listado / páginas de detalle con delay 3–5 s + User-Agent.
+   - Parse HTML con cheerio; match EN vía filename del GIF vs `exercises.name`.
+   - Descargar GIF/MP4 a `public/uploads/exercises/exercise_{id}.{ext}` (skip si existe).
+   - Modo `--dry-run` + upsert SQL parametrizado con `local_media_path`.
+4. Extender service/API de exercises para devolver campos ES + path local.
+5. FE: `displayExerciseName` + `resolveExerciseMediaSrc` (`API_ORIGIN + local_media_path`).
+6. Documentar en `docs/exercises-i18n-scraping.md`.
 
 ## Decisiones
 

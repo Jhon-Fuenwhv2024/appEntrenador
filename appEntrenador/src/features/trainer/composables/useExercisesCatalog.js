@@ -23,6 +23,8 @@ export function useExercisesCatalog() {
   const loading = shallowRef(false);
   const saving = shallowRef(false);
   const searchQuery = shallowRef('');
+  /** Feature 044: solo ejercicios con name_es o media local. */
+  const onlyEnriched = shallowRef(false);
   const errorMessage = shallowRef('');
   /** Full list used only when the API does not paginate. */
   const clientCache = ref(null);
@@ -68,6 +70,7 @@ export function useExercisesCatalog() {
   const loadExercises = async ({
     q = searchQuery.value,
     page = currentPage.value,
+    enriched = onlyEnriched.value,
   } = {}) => {
     const seq = ++loadSeq;
     try {
@@ -77,6 +80,7 @@ export function useExercisesCatalog() {
         q: typeof q === 'string' ? q : '',
         limit: CATALOG_PAGE_SIZE,
         page,
+        enriched: Boolean(enriched),
       });
       if (seq !== loadSeq) return;
 
@@ -93,13 +97,21 @@ export function useExercisesCatalog() {
 
       // API returned everything (or no meta): paginate on the client.
       let list = raw;
+      if (enriched) {
+        list = list.filter((item) => (
+          Boolean(item.name_es?.trim()) || Boolean(item.local_media_path?.trim())
+        ));
+      }
       const qTrim = typeof q === 'string' ? q.trim().toLowerCase() : '';
       if (qTrim) {
         list = list.filter((item) => {
           const haystack = [
             item.name,
+            item.name_es || '',
             item.target_muscle,
+            item.target_muscle_es || '',
             item.description || '',
+            item.description_es || '',
           ].join(' ').toLowerCase();
           return haystack.includes(qTrim);
         });
@@ -125,6 +137,12 @@ export function useExercisesCatalog() {
       clientCache.value = null;
       loadExercises({ q, page: 1 }).catch(() => {});
     }, SEARCH_DEBOUNCE_MS);
+  });
+
+  watch(onlyEnriched, () => {
+    currentPage.value = 1;
+    clientCache.value = null;
+    loadExercises({ page: 1 }).catch(() => {});
   });
 
   const goToPage = async (page) => {
@@ -213,6 +231,7 @@ export function useExercisesCatalog() {
     loading,
     saving,
     searchQuery,
+    onlyEnriched,
     errorMessage,
     globalCount,
     privateCount,

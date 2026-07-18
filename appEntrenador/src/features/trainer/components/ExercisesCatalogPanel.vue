@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, reactive, ref, shallowRef } from 'vue';
+import { displayExerciseName } from '../../../shared/utils/exerciseDisplay.js';
 import ExerciseCatalogForm from './ExerciseCatalogForm.vue';
 import ExerciseCatalogList from './ExerciseCatalogList.vue';
 import { useExercisesCatalog } from '../composables/useExercisesCatalog.js';
@@ -19,6 +20,7 @@ const {
   loading,
   saving,
   searchQuery,
+  onlyEnriched,
   errorMessage,
   globalCount,
   privateCount,
@@ -66,7 +68,8 @@ const handleSubmit = async (payload) => {
 
 const handleDelete = async (exercise) => {
   const label = exercise.is_global ? 'global' : 'tuyo';
-  if (!window.confirm(`¿Eliminar "${exercise.name}" (${label}) del catálogo?`)) {
+  const title = displayExerciseName(exercise);
+  if (!window.confirm(`¿Eliminar "${title}" (${label}) del catálogo?`)) {
     return;
   }
 
@@ -76,7 +79,7 @@ const handleDelete = async (exercise) => {
       editingExercise.value = null;
       formRef.value?.resetForm();
     }
-    notify(`"${exercise.name}" eliminado`);
+    notify(`"${title}" eliminado`);
   } catch {
     notify(errorMessage.value || 'No se pudo eliminar el ejercicio', 'error');
   }
@@ -110,6 +113,7 @@ onMounted(async () => {
         <div class="catalog-panel__card">
           <ExerciseCatalogList
             v-model:search-query="searchQuery"
+            v-model:only-enriched="onlyEnriched"
             :exercises="exercises"
             :loading="loading"
             :total-count="totalCount"

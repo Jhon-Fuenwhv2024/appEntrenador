@@ -8,14 +8,24 @@ function createHttpError(message, code) {
   return error;
 }
 
+const EXERCISE_SELECT_COLS = `
+  id, name, name_es, description, description_es,
+  target_muscle, target_muscle_es, media_type, media_url, local_media_path,
+  created_by_trainer_id
+`;
+
 function mapExerciseRow(row) {
   return {
     id: row.id,
     name: row.name,
+    name_es: row.name_es ?? null,
     description: row.description,
+    description_es: row.description_es ?? null,
     target_muscle: row.target_muscle,
+    target_muscle_es: row.target_muscle_es ?? null,
     media_type: row.media_type,
     media_url: row.media_url,
+    local_media_path: row.local_media_path ?? null,
     created_by_trainer_id: row.created_by_trainer_id,
     is_global: row.created_by_trainer_id == null,
   };
@@ -71,7 +81,7 @@ function normalizeExercisePayload(payload) {
 
 async function getExerciseVisibleToTrainer(exerciseId, trainerId) {
   const [rows] = await db.query(
-    `SELECT id, name, description, target_muscle, media_type, media_url, created_by_trainer_id
+    `SELECT ${EXERCISE_SELECT_COLS}
      FROM exercises
      WHERE id = ?
        AND (created_by_trainer_id IS NULL OR created_by_trainer_id = ?)
@@ -162,22 +172,38 @@ function parseListPage(raw) {
   return Math.floor(n);
 }
 
+function parseTruthyQueryFlag(raw) {
+  if (raw == null || raw === '') return false;
+  const v = String(raw).trim().toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes' || v === 'on';
+}
+
 /**
  * Lists global exercises + those owned by the trainer.
  * Optional `q` filters by name (LIKE). Paginated with page + limit (default 10, max 100).
+ * Optional `enriched=1` → solo filas con name_es o local_media_path (Feature 044).
  * @returns {{ items: object[], total: number, limit: number, page: number, totalPages: number }}
  */
-async function listExercisesForTrainer(trainerId, q, limitRaw, pageRaw) {
+async function listExercisesForTrainer(trainerId, q, limitRaw, pageRaw, enrichedRaw) {
   const limit = parseListLimit(limitRaw);
   const pageRequested = parseListPage(pageRaw);
+  const onlyEnriched = parseTruthyQueryFlag(enrichedRaw);
   const params = [trainerId];
   let whereSql = `
     WHERE (created_by_trainer_id IS NULL OR created_by_trainer_id = ?)
   `;
 
+  if (onlyEnriched) {
+    whereSql += ` AND (
+      (name_es IS NOT NULL AND TRIM(name_es) <> '')
+      OR (local_media_path IS NOT NULL AND TRIM(local_media_path) <> '')
+    )`;
+  }
+
   if (q && String(q).trim()) {
-    whereSql += ' AND name LIKE ?';
-    params.push(`%${String(q).trim()}%`);
+    const like = `%${String(q).trim()}%`;
+    whereSql += ' AND (name LIKE ? OR name_es LIKE ? OR target_muscle LIKE ? OR target_muscle_es LIKE ?)';
+    params.push(like, like, like, like);
   }
 
   const [countRows] = await db.query(
@@ -191,10 +217,10 @@ async function listExercisesForTrainer(trainerId, q, limitRaw, pageRaw) {
 
   // limit/offset are sanitized integers (not user strings) — safe to embed.
   const [rows] = await db.query(
-    `SELECT id, name, description, target_muscle, media_type, media_url, created_by_trainer_id
+    `SELECT ${EXERCISE_SELECT_COLS}
      FROM exercises
      ${whereSql}
-     ORDER BY name ASC
+     ORDER BY COALESCE(name_es, name) ASC
      LIMIT ${limit} OFFSET ${offset}`,
     params,
   );
@@ -230,7 +256,7 @@ async function createExerciseForTrainer(trainerId, payload) {
   );
 
   const [rows] = await db.query(
-    `SELECT id, name, description, target_muscle, media_type, media_url, created_by_trainer_id
+    `SELECT ${EXERCISE_SELECT_COLS}
      FROM exercises WHERE id = ?`,
     [result.insertId],
   );
@@ -268,7 +294,7 @@ async function updateExerciseForTrainer(trainerId, exerciseId, payload) {
   );
 
   const [rows] = await db.query(
-    `SELECT id, name, description, target_muscle, media_type, media_url, created_by_trainer_id
+    `SELECT ${EXERCISE_SELECT_COLS}
      FROM exercises WHERE id = ?`,
     [id],
   );

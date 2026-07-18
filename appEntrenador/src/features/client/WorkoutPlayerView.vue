@@ -284,7 +284,8 @@ onMounted(() => {
           class="player-media"
           :media-type="currentExercise.media_type"
           :media-url="currentExercise.media_url"
-          :exercise-name="currentExercise.nombre"
+          :local-media-path="currentExercise.local_media_path"
+          :exercise-name="currentExercise.name_es || currentExercise.nombre"
         />
 
         <p v-if="exerciseHint" class="player-hint">{{ exerciseHint }}</p>

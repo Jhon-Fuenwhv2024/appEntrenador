@@ -2,7 +2,12 @@
 import { computed, reactive, ref, shallowRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../../shared/api/http.js';
-import { createExercise, getExercises } from '../api/exercisesApi.js';
+import {
+  displayExerciseDescription,
+  displayExerciseMuscle,
+  displayExerciseName,
+} from '../../../shared/utils/exerciseDisplay.js';
+import { createExercise, getAllExercises } from '../api/exercisesApi.js';
 
 const DEFAULT_REST_SECONDS = 90;
 const DEFAULT_TARGET_MUSCLE = 'General';
@@ -80,7 +85,10 @@ const setRestSeconds = (index, value) => {
 const catalogByName = computed(() => {
   const map = new Map();
   for (const item of catalogExercises.value) {
-    map.set(String(item.name).toLowerCase(), item);
+    const en = String(item.name || '').trim().toLowerCase();
+    const es = String(item.name_es || '').trim().toLowerCase();
+    if (en) map.set(en, item);
+    if (es) map.set(es, item);
   }
   return map;
 });
@@ -110,13 +118,13 @@ const onExerciseNameUpdate = (index, value) => {
   if (!ex) return;
 
   const name = resolveExerciseName(value);
-  ex.nombre = name;
-
   const match = catalogByName.value.get(name.trim().toLowerCase());
   ex.exercise_id = match?.id ?? null;
+  ex.nombre = match ? displayExerciseName(match) : name;
 
-  if (match && !ex.indicaciones?.trim() && match.description) {
-    ex.indicaciones = match.description;
+  const hint = match ? displayExerciseDescription(match) : '';
+  if (match && !ex.indicaciones?.trim() && hint) {
+    ex.indicaciones = hint;
   }
 };
 
@@ -161,8 +169,11 @@ const fillFromTemplate = (template) => {
 const loadCatalog = async () => {
   try {
     catalogLoading.value = true;
-    const res = await getExercises({ limit: 100 });
-    catalogExercises.value = res.data.data ?? [];
+    const items = await getAllExercises();
+    catalogExercises.value = items.map((item) => ({
+      ...item,
+      display_name: displayExerciseName(item),
+    }));
   } catch (error) {
     console.error('Error cargando catálogo:', error);
     catalogExercises.value = [];
@@ -319,7 +330,7 @@ const handleSubmit = () => {
           <v-autocomplete
             :model-value="ex.nombre"
             :items="catalogExercises"
-            item-title="name"
+            item-title="display_name"
             item-value="name"
             label="Nombre (catálogo o texto libre)"
             density="compact"
@@ -335,7 +346,7 @@ const handleSubmit = () => {
             <template #item="{ props: itemProps, item }">
               <v-list-item
                 v-bind="itemProps"
-                :subtitle="item.raw?.target_muscle"
+                :subtitle="displayExerciseMuscle(item.raw || {})"
               />
             </template>
           </v-autocomplete>
