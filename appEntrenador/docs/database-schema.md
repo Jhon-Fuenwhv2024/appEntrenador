@@ -23,6 +23,10 @@ erDiagram
   usuarios ||--o{ body_composition_logs : "recorded_by"
   usuarios ||--o| nutrition_targets : "client_id"
   usuarios ||--o{ nutrition_targets : "trainer_id"
+  usuarios ||--o{ diet_plans : "trainer_id"
+  usuarios ||--o{ diet_plans : "client_id"
+  diet_plans ||--o{ diet_meals : "contiene"
+  diet_meals ||--o{ diet_items : "contiene"
   usuarios ||--o| client_memberships : "client_id"
   usuarios ||--o{ client_memberships : "updated_by"
   usuarios ||--o{ personal_records : "client_id"
@@ -260,6 +264,12 @@ cd backend
 npm run db:create-nutrition-targets
 # o: node scripts/createNutritionTargetsTable.js
 ```
+
+### `diet_plans` / `diet_meals` / `diet_items` (Feature 043)
+
+Plan de dieta asignable a un cliente (`client_id` nullable para plantillas futuras). Jerarquía: plan → comidas → alimentos con macros por ítem. Los totales del plan (`calories`, `protein_g`, `carbs_g`, `fats_g`) se **recalculan en el service** desde `diet_items` (no se confía en el payload del cliente). Como máximo un `is_active = 1` por `client_id` (enforce en activate/create/update).
+
+Migración: [`backend/db/migrations/023_diet_plans.sql`](../backend/db/migrations/023_diet_plans.sql). Al arrancar, `ensureDietPlansTables` aplica `CREATE TABLE IF NOT EXISTS`.
 
 ### `client_memberships` (Feature 040)
 

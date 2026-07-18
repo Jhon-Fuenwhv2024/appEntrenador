@@ -63,6 +63,16 @@
 4. Hábitos y macros se hidratan desde la misma respuesta (sin round-trips extra); el toggle de hábitos sigue siendo `POST /habits/:id/toggle`.
 5. Meta bajo el saludo (“N días restantes”); si `membershipBlocked`, hero con CTA Bloqueado (Player también responde 403 `MEMBERSHIP_BLOCKED`).
 6. Perfil cliente (`/client/profile`): `ProfileFormCard` (datos/foto) y debajo un resumen compacto de membresía (`GET /me/membership`: días, Al día/Debe, vigencia).
+7. Plan de dieta activo (043): `ClientDietView` llama `GET /me/diet-plan` (solo lectura; comidas + items + macros).
+
+## Planes de dieta (Feature 043)
+
+1. Trainer en ficha 360 (pestaña Nutrición) abre `DietPlanPanel` → crea/edita con `DietPlanForm` (árbol Plan → Meals → Items).
+2. La UI calcula totales por comida y del plan con `computed` (capa FE, en vivo).
+3. Al guardar: `POST/PUT /trainer/diets` → service valida ownership, **ignora macros del plan**, suma items, escribe en transacción (nested replace en update).
+4. Activar (o guardar con `is_active`): desactiva otros planes del mismo cliente y **sincroniza totales → `nutrition_targets`** (031).
+5. Objetivos diarios (031) siguen siendo independientes: se pueden asignar/editar sin crear un plan de comidas.
+6. Cliente ve el plan activo en el dashboard vía `GET /me/diet-plan` (`req.user.id`); los macros del home siguen viniendo de `nutrition_targets` / `/me/today`.
 
 ## Plantillas → deep copy al alumno (Feature 018)
 

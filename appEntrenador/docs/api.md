@@ -195,7 +195,7 @@ Respuesta `data`:
 - `growthPercent`: variación MoM de alumnos nuevos (`created_at`).
 - `monthlyActivity`: últimos 6 meses; `clients` = acumulado; `sessions` = del mes.
 - `retention`: activos (≥1 sesión `completed` en `windowDays`) vs inactivos; ver [ADR-0003](decisions/ADR-0003-trainer-dashboard-metrics.md).
-- `pendingTasks`: check-ins con `reviewed_at IS NULL` + alumnos sin `nutrition_targets` (proxy dietas hasta 043).
+- `pendingTasks`: check-ins con `reviewed_at IS NULL` + alumnos sin `diet_plans` activo (Feature 043).
 - `weekProgress`: semana lun–dom local; serie `byDay` (7 días, ceros incluidos) y comparación vs semana anterior.
 - `payments`: conteos de `client_memberships` del trainer (`active` / `owing` / `expired` / sin fila + `expiringSoon` ≤7 días).
 
@@ -916,6 +916,70 @@ UPSERT del objetivo. Solo el trainer dueño. Body obligatorio (enteros positivos
   "fats_g": 70
 }
 ```
+
+## Planes de dieta (Feature 043)
+
+Tablas `diet_plans` → `diet_meals` → `diet_items`. **Capa dual de macros:** el frontend muestra totales en vivo; el backend **ignora** totales enviados a nivel plan/comida y recalcula desde `diet_items` dentro de una transacción.
+
+### `GET /trainer/diets` (trainer)
+
+Lista planes del entrenador. Query opcional: `?clientId=` (valida ownership).
+
+### `POST /trainer/diets` (trainer)
+
+Crea plan + meals + items en transacción. Body:
+
+```json
+{
+  "client_id": 12,
+  "title": "Déficit 2200",
+  "notes": "Priorizar proteína",
+  "is_active": true,
+  "meals": [
+    {
+      "name": "Desayuno",
+      "sort_order": 0,
+      "time_hint": "08:00",
+      "items": [
+        {
+          "food_name": "Avena",
+          "quantity": 60,
+          "unit": "g",
+          "calories": 220,
+          "protein_g": 8,
+          "carbs_g": 38,
+          "fats_g": 4,
+          "sort_order": 0
+        }
+      ]
+    }
+  ]
+}
+```
+
+Respuesta `201` con el plan completo anidado. Los macros del plan son la suma de items.
+
+### `GET /trainer/diets/:id` (trainer)
+
+Detalle con meals e items. Solo planes del trainer autenticado.
+
+### `PUT /trainer/diets/:id` (trainer)
+
+Reemplazo nested (UPDATE plan + DELETE meals CASCADE + re-insert). Recalcula macros desde items.
+
+### `DELETE /trainer/diets/:id` (trainer)
+
+Elimina el plan (CASCADE a meals/items).
+
+### `POST /trainer/diets/:id/activate` (trainer)
+
+Marca el plan como activo y desactiva otros planes activos del mismo `client_id`. Requiere `client_id` asignado. Tras activar (también al crear/editar con `is_active: true`), sincroniza los totales del plan a `nutrition_targets` del alumno. Los objetivos diarios siguen editables por `PUT /nutrition/:clientId` sin necesidad de un plan de comidas.
+
+### `GET /me/diet-plan` (client)
+
+Plan activo del alumno autenticado (`client_id = req.user.id` y `is_active = 1`), con meals e items. Si no hay plan: `"data": null`.
+
+UI trainer: ficha 360 → pestaña Nutrición (`DietPlanPanel`). UI cliente: dashboard (`ClientDietView`).
 
 ## Hábitos diarios (Feature 032)
 

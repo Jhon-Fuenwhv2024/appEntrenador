@@ -121,8 +121,34 @@ async function upsertForTrainer(trainerId, clientId, payload) {
   return getByClientId(clientId);
 }
 
+/**
+ * Feature 043: al activar un plan de dieta, refleja sus totales en objetivos diarios.
+ * No requiere plan de comidas para usar upsertForTrainer a mano (031 sigue independiente).
+ */
+function roundMacroToPositiveInt(value, fieldLabel) {
+  const num = Math.round(Number(value));
+  if (!Number.isFinite(num) || num < 1) {
+    throw createHttpError(
+      `No se pueden sincronizar objetivos: ${fieldLabel} del plan debe ser ≥ 1.`,
+      400,
+    );
+  }
+  return num;
+}
+
+async function syncFromDietPlanTotals(trainerId, clientId, totals = {}) {
+  const payload = {
+    calories: roundMacroToPositiveInt(totals.calories, 'calories'),
+    protein_g: roundMacroToPositiveInt(totals.protein_g, 'protein_g'),
+    carbs_g: roundMacroToPositiveInt(totals.carbs_g, 'carbs_g'),
+    fats_g: roundMacroToPositiveInt(totals.fats_g, 'fats_g'),
+  };
+  return upsertForTrainer(trainerId, clientId, payload);
+}
+
 module.exports = {
   getByClientId,
   getForRequester,
   upsertForTrainer,
+  syncFromDietPlanTotals,
 };

@@ -203,10 +203,11 @@ async function getDashboardStats(trainerId) {
           AND wc.reviewed_at IS NULL) AS unreviewed_checkins,
        (SELECT COUNT(*)
         FROM usuarios u
-        LEFT JOIN nutrition_targets nt ON nt.client_id = u.id
+        LEFT JOIN diet_plans dp
+          ON dp.client_id = u.id AND dp.is_active = 1
         WHERE u.rol = 'client'
           AND u.trainer_id = ?
-          AND nt.client_id IS NULL) AS diets_unassigned,
+          AND dp.id IS NULL) AS diets_unassigned,
        (SELECT COUNT(*)
         FROM workout_sessions ws
         INNER JOIN usuarios u ON u.id = ws.client_id

@@ -24,6 +24,7 @@ const saasRoutes = require('./modules/saas/saas.routes');
 const membershipsRoutes = require('./modules/memberships/memberships.routes');
 const personalRecordsRoutes = require('./modules/personal-records/personal-records.routes');
 const consistencyRoutes = require('./modules/consistency/consistency.routes');
+const dietPlansRoutes = require('./modules/diet-plans/diet-plans.routes');
 const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
 const { ensurePhotosDir } = require('./middleware/uploadProgressPhotos');
 const { ensureNotificationsTable } = require('./db/ensureNotificationsTable');
@@ -33,6 +34,7 @@ const { ensureMessagesTable } = require('./db/ensureMessagesTable');
 const { ensureClientMembershipsTable } = require('./db/ensureClientMembershipsTable');
 const { ensurePersonalRecordsTable } = require('./db/ensurePersonalRecordsTable');
 const { ensureClientStreaksTable } = require('./db/ensureClientStreaksTable');
+const { ensureDietPlansTables } = require('./db/ensureDietPlansTables');
 const { ensureSaasColumns } = require('./db/ensureSaasColumns');
 
 const app = express();
@@ -64,6 +66,7 @@ app.use('/api/saas', saasRoutes);
 app.use('/api', membershipsRoutes);
 app.use('/api', personalRecordsRoutes);
 app.use('/api', consistencyRoutes);
+app.use('/api', dietPlansRoutes);
 
 async function start() {
   try {
@@ -112,6 +115,12 @@ async function start() {
     await ensureClientStreaksTable();
   } catch (error) {
     console.error('No se pudo asegurar la tabla client_streaks:', error.message);
+  }
+
+  try {
+    await ensureDietPlansTables();
+  } catch (error) {
+    console.error('No se pudo asegurar las tablas de planes de dieta:', error.message);
   }
 
   app.listen(PORT, () => {

@@ -26,8 +26,8 @@ El Inicio del entrenador necesita KPIs gerenciales (retención, cola de tareas, 
 
 ### Dieta por asignar
 
-- Mientras no exista Feature 043 (`diet_plans`): cliente del trainer **sin** fila en `nutrition_targets`.
-- Cuando 043 exponga planes activos: evolucionar a “sin plan de dieta vigente” y documentar el cambio.
+- Feature 043: alumno del trainer **sin** fila en `diet_plans` con `is_active = 1`.
+- (`nutrition_targets` sigue siendo el objetivo diario de macros 031; no sustituye el plan de comidas.)
 
 ### Progreso de la semana
 

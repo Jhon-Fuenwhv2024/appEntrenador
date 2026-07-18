@@ -1,6 +1,6 @@
 # 043 · Módulo de Planes de Dieta
 
-**Estado:** pendiente (SDD listo — Epic Fitness Fase 2)
+**Estado:** implementado (capa dual macros FE + BE)
 **Depende de:** 031 (macros MVP / `nutrition_targets`), 020 / 039 (ficha alumno)
 **Relacionada:** 035 (métrica “dietas por asignar”), backlog registro diario de comida (046+)
 

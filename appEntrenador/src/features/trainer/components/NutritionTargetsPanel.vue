@@ -156,7 +156,11 @@ onMounted(() => {
       <div class="min-w-0">
         <h3 class="ntp__title">Objetivos Nutricionales</h3>
         <p class="ntp__hint">
-          {{ hasTarget ? 'Meta diaria asignada' : 'Sin meta aún — completa y guarda' }}
+          {{
+            hasTarget
+              ? 'Meta diaria asignada (editable sin plan de comidas)'
+              : 'Sin meta aún — puedes guardar objetivos sin crear un plan de comidas'
+          }}
         </p>
       </div>
     </div>

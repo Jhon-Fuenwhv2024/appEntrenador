@@ -7,6 +7,7 @@ import AppShell from '../../shared/layout/AppShell.vue';
 import { resolveAvatarSrc } from '../../shared/utils/avatar.js';
 import NotificationBadge from '../../components/notifications/NotificationBadge.vue';
 import MacroSummaryCard from './components/MacroSummaryCard.vue';
+import ClientDietView from './components/ClientDietView.vue';
 import ConsistencyRing from './components/ConsistencyRing.vue';
 import DailyHabitsChecklist from './components/DailyHabitsChecklist.vue';
 import MembershipHomeCard from './components/MembershipHomeCard.vue';
@@ -234,6 +235,11 @@ onMounted(async () => {
             :client-id="userId"
             :initial-target="macros"
             :skip-fetch="true"
+          />
+
+          <ClientDietView
+            v-if="!loading"
+            compact
           />
         </div>
       </div>

@@ -87,18 +87,22 @@ defineEmits(['generateInvite', 'copyInvite', 'goToClients']);
       <v-icon icon="mdi-chevron-right" size="20" color="#6B7280"></v-icon>
     </button>
 
-    <div class="action-link-card action-link-card--muted" aria-disabled="true">
+    <button
+      type="button"
+      class="action-link-card action-link-card--btn"
+      @click="$emit('goToClients')"
+    >
       <div class="action-link-content">
         <div class="invite-icon invite-icon-orange">
           <v-icon icon="mdi-food-apple" size="20" color="#FF9800"></v-icon>
         </div>
         <div>
           <div class="invite-title">Planes de Dieta</div>
-          <div class="invite-desc">Próximamente</div>
+          <div class="invite-desc">Ficha alumno · pestaña Nutrición</div>
         </div>
       </div>
-      <span class="soon-pill">Soon</span>
-    </div>
+      <v-icon icon="mdi-chevron-right" size="20" color="#6B7280"></v-icon>
+    </button>
   </aside>
 </template>
 

@@ -22,6 +22,7 @@ import CheckinsHistoryPanel from '../components/CheckinsHistoryPanel.vue';
 import DailyHabitsPanel from '../components/DailyHabitsPanel.vue';
 import ConsistencyPanel from '../components/ConsistencyPanel.vue';
 import MembershipPanel from '../components/MembershipPanel.vue';
+import DietPlanPanel from '../components/DietPlanPanel.vue';
 import NutritionTargetsPanel from '../components/NutritionTargetsPanel.vue';
 import Client360Header from './Client360Header.vue';
 import Client360Overview from './Client360Overview.vue';
@@ -42,6 +43,8 @@ const clientProfile = shallowRef(null);
 const workoutSessions = shallowRef([]);
 const loading = shallowRef(true);
 const savingProfile = shallowRef(false);
+/** Remonta el panel 031 cuando un plan activo sincroniza macros. */
+const nutritionPanelKey = shallowRef(0);
 
 const snackbar = reactive({
   show: false,
@@ -77,6 +80,10 @@ const showNotification = (text, color = 'success') => {
 
 const onChildNotify = ({ text, color }) => {
   showNotification(text, color || 'success');
+};
+
+const onDietTargetsSynced = () => {
+  nutritionPanelKey.value += 1;
 };
 
 const onMembershipUpdated = (data) => {
@@ -315,8 +322,14 @@ onMounted(() => {
             class="c360-stack"
           >
             <NutritionTargetsPanel
+              :key="nutritionPanelKey"
               :client-id="clientId"
               @notify="onChildNotify"
+            />
+            <DietPlanPanel
+              :client-id="clientId"
+              @notify="onChildNotify"
+              @targets-synced="onDietTargetsSynced"
             />
             <DailyHabitsPanel
               :client-id="clientId"
