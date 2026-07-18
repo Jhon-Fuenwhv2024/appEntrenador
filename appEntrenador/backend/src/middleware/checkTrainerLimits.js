@@ -17,16 +17,24 @@ async function checkTrainerLimits(req, res, next) {
     }
 
     const [planRows] = await db.query(
-      `SELECT saas_plan
+      `SELECT
+         saas_plan,
+         (
+           saas_plan = 'PRO'
+           AND (
+             saas_expiration_date IS NULL
+             OR saas_expiration_date >= CURDATE()
+           )
+         ) AS has_active_pro_plan
        FROM trainers_info
        WHERE user_id = ?
        LIMIT 1`,
       [trainerId],
     );
 
-    const plan = planRows[0]?.saas_plan || 'FREE';
+    const hasActiveProPlan = Number(planRows[0]?.has_active_pro_plan) === 1;
 
-    if (plan === 'PRO') {
+    if (hasActiveProPlan) {
       return next();
     }
 
