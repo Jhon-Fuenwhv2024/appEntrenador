@@ -267,11 +267,13 @@ Membresía / control de pago 1:1 con el alumno (`UNIQUE client_id`). Campos: `st
 
 Migración: [`backend/db/migrations/019_client_memberships.sql`](../backend/db/migrations/019_client_memberships.sql). Al arrancar, `ensureClientMembershipsTable` aplica `CREATE TABLE IF NOT EXISTS`.
 
-### `weekly_checkins` + `progress_photos` (Feature 033)
+### `weekly_checkins` + `progress_photos` (Feature 033 / 035)
 
 Check-in semanal de biofeedback (sueño / estrés / dieta, escala 1–5) y fotos opcionales (`pose_type`: `front` | `side` | `back`). `checkin_id` en fotos es nullable (`ON DELETE SET NULL`). Fechas `created_at` / `taken_at` como `DATE` civil.
 
-Migración: [`backend/db/migrations/016_weekly_checkins_progress_photos.sql`](../backend/db/migrations/016_weekly_checkins_progress_photos.sql). Al arrancar, `ensureCheckinsTables` aplica `CREATE TABLE IF NOT EXISTS`. Archivos en `backend/public/uploads/photos`.
+Feature 035 añade `reviewed_at` (DATETIME nullable): `NULL` = check-in sin revisar por el trainer (KPI de cola en dashboard).
+
+Migraciones: [`016_weekly_checkins_progress_photos.sql`](../backend/db/migrations/016_weekly_checkins_progress_photos.sql), [`022_weekly_checkins_reviewed_at.sql`](../backend/db/migrations/022_weekly_checkins_reviewed_at.sql). Al arrancar, `ensureCheckinsTables` aplica `CREATE TABLE IF NOT EXISTS` + `ALTER` idempotente de `reviewed_at`. Archivos en `backend/public/uploads/photos`.
 
 ```bash
 cd backend

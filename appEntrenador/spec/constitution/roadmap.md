@@ -27,7 +27,7 @@
 23. **020 · Perfil alumno (`alumnos_info`)** — API + UI (schema ya existe).
 24. **022 · Catálogo en Biblioteca + `exercise_id`** — vínculo estable línea↔catálogo.
 25. **023 · Invitaciones: módulo + gestión** — `modules/invites`, listar/revocar.
-26. **024 · Ajustes de cuenta** — nombre + cambio de password.
+26. **024 · Ajustes de cuenta** — nombre + cambio de password (UI trainer; UI cliente → **045**).
 27. **025 · Notificaciones In-App** — Alerta al cliente de rutina actualizada, alerta al trainer de rutina completada.
 28. **027 · Visualización de Progreso (Gráficas)** — Gráficas de peso, IMC y evolución de ejercicios clave.
 29. **028 · Mejoras al Temporizador de Descanso** — Alerta sonora al finalizar, tiempo configurable por el entrenador.
@@ -43,40 +43,45 @@
 39. **041 · Récords Personales (PRs) y Celebraciones** — Detección al cerrar sesión + overlay. Absorbe **030**. Spec: `041-personal-records-celebrations`.
 40. **042 · Rachas y Score de Consistencia** — Racha + meta semanal + score 0–100 en Inicio y Ficha 360. Spec: `042-streaks-consistency-score`.
 
-## Siguiente
+## Siguiente (Epic Fitness)
 
-1. **035 · Dashboard Analítico del Entrenador** — KPIs de negocio (ingresos estimados vía membresías 040, retención, actividad).
+Orden de implementación (programar fase a fase):
+
+1. **035 · Dashboard Analítico del Entrenador** — Retención activos/inactivos, tareas pendientes (check-ins, dietas), progreso semanal. Spec: `035-trainer-analytics-dashboard`.
+2. **043 · Módulo de Planes de Dieta** — Tablas `diet_plans` / `diet_meals` / `diet_items`, CRUD trainer, vista cliente. Spec: `043-diet-plans-module`.
+3. **044 · Catálogo de Ejercicios i18n (ES) + Scraping** — Columnas ES + script Fitcron ético. Spec: `044-exercises-i18n-scraping`.
+4. **045 · Cambio de Contraseña (Modo Cliente)** — UI perfil cliente reutilizando API `/me/password`. Spec: `045-client-change-password`.
 
 ## Supersedidas (no implementar)
 
 - **030 · Récords Personales (PRs) y Celebraciones** — absorbida por **041**.
 - **036 · Gestión de Pagos / Control de Suscripciones** — absorbida por **040**.
 
-## Backlog go-to-market y producto (043–052)
+## Backlog go-to-market y producto (046–055)
 
-Orden sugerido tras cerrar Siguiente (041 → 042 → 035):
+Orden sugerido tras cerrar el Epic Fitness (035 → 043 → 044 → 045):
 
 | ID | Feature | Por qué importa |
 |----|---------|-----------------|
-| **043** | Recuperación de contraseña + email SMTP + password en perfil cliente | Forgot-password; cliente cambia password en UI; SMTP para soporte |
-| **044** | Caducidad / envío de invitaciones por email | Operativa real del trainer (hoy: copiar link) |
-| **045** | Suite tests API/E2E críticos | Login, ownership, guardar sesión, soft-lock membresía |
-| **046** | Deploy producción (Netlify FE + API + env) | Checklist deploy; `netlify.toml` sólido |
-| **047** | Pagos SaaS automatizados (037 Fase 2) | Stripe/pasarela + portal facturación; FREE/PRO hoy es manual vía SuperAdmin |
-| **048** | PWA + notificaciones push | Retención móvil; hoy solo in-app (025) |
-| **049** | Informe semanal automático al trainer | Resumen alumnos (entrenos, rachas en riesgo, membresías por vencer) |
-| **050** | Nutrición fase 2: registro diario de comida | 031 solo asigna macros; diario/adherencia |
-| **051** | Comparador de fotos de progreso | 033 sube fotos; side-by-side / timeline visual |
-| **052** | Exportar informe PDF del alumno | Valor alto para trainers que reportan a clientes |
+| **046** | Recuperación de contraseña + email SMTP | Forgot-password; SMTP para soporte (UI cambio password cliente = **045**) |
+| **047** | Caducidad / envío de invitaciones por email | Operativa real del trainer (hoy: copiar link) |
+| **048** | Suite tests API/E2E críticos | Login, ownership, guardar sesión, soft-lock membresía |
+| **049** | Deploy producción (Netlify FE + API + env) | Checklist deploy; `netlify.toml` sólido |
+| **050** | Pagos SaaS automatizados (037 Fase 2) | Stripe/pasarela + portal facturación; FREE/PRO hoy es manual vía SuperAdmin |
+| **051** | PWA + notificaciones push | Retención móvil; hoy solo in-app (025) |
+| **052** | Informe semanal automático al trainer | Resumen alumnos (entrenos, rachas en riesgo, membresías por vencer) |
+| **053** | Nutrición fase 2: registro diario de comida | 031 macros + **043** planes; diario/adherencia |
+| **054** | Comparador de fotos de progreso | 033 sube fotos; side-by-side / timeline visual |
+| **055** | Exportar informe PDF del alumno | Valor alto para trainers que reportan a clientes |
 
-Specs SDD: `spec/features/043-…` … `052-…`.
+Specs SDD: `spec/features/043-…` … `045-…` (Epic) y `046-…` … `055-…` (backlog; carpetas al iniciar cada una).
 
-## Backlog técnico / nice-to-have (post-052)
+## Backlog técnico / nice-to-have (post-055)
 
 - **Pinia / TypeScript** — solo si el estado o el tamaño del equipo lo justifican.
 - Calendario / agendar sesiones 1:1
 - Offline / cola de sets sin red
-- Multi-idioma
+- Multi-idioma UI completa (catálogo ES = **044**)
 - App nativa (explícitamente fuera de misión hoy)
 - Leaderboards entre alumnos
 - ERP / facturación fiscal completa

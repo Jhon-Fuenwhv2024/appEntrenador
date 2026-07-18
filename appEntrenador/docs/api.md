@@ -143,7 +143,7 @@ UI: `/backoffice` (solo si `is_superadmin` en sesión).
 
 ### `GET /trainer/dashboard`
 
-Métricas del portal trainer (solo alumnos propios).
+Métricas del portal trainer (solo alumnos propios). Feature 015 + KPIs analíticos Feature 035.
 
 Respuesta `data`:
 
@@ -158,7 +158,35 @@ Respuesta `data`:
   "monthlyActivity": [
     { "month": "2026-02", "label": "feb", "clients": 1, "sessions": 0 },
     { "month": "2026-07", "label": "jul", "clients": 2, "sessions": 3 }
-  ]
+  ],
+  "retention": {
+    "active": 9,
+    "inactive": 3,
+    "ratePercent": 75,
+    "windowDays": 14
+  },
+  "pendingTasks": {
+    "unreviewedCheckins": 4,
+    "dietsUnassigned": 2,
+    "total": 6
+  },
+  "weekProgress": {
+    "sessionsCompleted": 18,
+    "previousWeekSessions": 12,
+    "vsPreviousPercent": 50,
+    "weekStart": "2026-07-13",
+    "byDay": [
+      { "date": "2026-07-13", "count": 3 },
+      { "date": "2026-07-14", "count": 2 }
+    ]
+  },
+  "payments": {
+    "active": 2,
+    "owing": 1,
+    "expired": 0,
+    "none": 0,
+    "expiringSoon": 1
+  }
 }
 ```
 
@@ -166,6 +194,10 @@ Respuesta `data`:
 - `sessionsThisMonth`: sesiones `completed` del mes actual.
 - `growthPercent`: variación MoM de alumnos nuevos (`created_at`).
 - `monthlyActivity`: últimos 6 meses; `clients` = acumulado; `sessions` = del mes.
+- `retention`: activos (≥1 sesión `completed` en `windowDays`) vs inactivos; ver [ADR-0003](decisions/ADR-0003-trainer-dashboard-metrics.md).
+- `pendingTasks`: check-ins con `reviewed_at IS NULL` + alumnos sin `nutrition_targets` (proxy dietas hasta 043).
+- `weekProgress`: semana lun–dom local; serie `byDay` (7 días, ceros incluidos) y comparación vs semana anterior.
+- `payments`: conteos de `client_memberships` del trainer (`active` / `owing` / `expired` / sin fila + `expiringSoon` ≤7 días).
 
 ### `GET /clients`
 
@@ -303,12 +335,13 @@ Devuelve datos de cuenta:
   "nombre": "Juan Coach",
   "rol": "trainer",
   "telefono": "3001112233",
-  "foto_url": "/uploads/avatars/user_1.jpg"
+  "foto_url": "/uploads/avatars/user_1.jpg",
+  "saas_plan": "FREE"
 }
 ```
 
-- Trainer: `telefono` / `foto_url` desde `trainers_info` (o `null`).
-- Client: mismos campos desde `alumnos_info` si existen.
+- Trainer: `telefono` / `foto_url` / `saas_plan` (`FREE` | `PRO`) desde `trainers_info` (plan default `FREE`).
+- Client: `telefono` / `foto_url` desde `alumnos_info` si existen (sin `saas_plan`).
 
 ### `PUT /me/account`
 

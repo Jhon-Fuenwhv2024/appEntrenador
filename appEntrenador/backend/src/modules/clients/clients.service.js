@@ -34,6 +34,41 @@ function buildLastMonths(count) {
   return months;
 }
 
+/** Feature 035 — activo = ≥1 sesión completed en esta ventana (días). */
+const RETENTION_WINDOW_DAYS = 14;
+
+function toLocalDateString(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/** Lunes de la semana local (WEEKDAY MySQL: 0 = lunes). */
+function startOfLocalWeek(date = new Date()) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = d.getDay(); // 0=dom … 6=sáb
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + mondayOffset);
+  return d;
+}
+
+function buildWeekDayKeys(weekStart) {
+  const keys = [];
+  for (let i = 0; i < 7; i += 1) {
+    const day = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i);
+    keys.push(toLocalDateString(day));
+  }
+  return keys;
+}
+
+function formatDayField(value) {
+  if (value == null) return null;
+  if (value instanceof Date) return toLocalDateString(value);
+  const raw = String(value);
+  return raw.slice(0, 10);
+}
+
 async function getClientsForTrainer(trainerId) {
   const [clients] = await db.query(
     `SELECT
@@ -109,6 +144,21 @@ async function getClientOwnedByTrainer(clientId, trainerId) {
 }
 
 async function getDashboardStats(trainerId) {
+  const weekStart = startOfLocalWeek();
+  const weekStartStr = toLocalDateString(weekStart);
+  const nextWeekStart = new Date(
+    weekStart.getFullYear(),
+    weekStart.getMonth(),
+    weekStart.getDate() + 7,
+  );
+  const nextWeekStartStr = toLocalDateString(nextWeekStart);
+  const prevWeekStart = new Date(
+    weekStart.getFullYear(),
+    weekStart.getMonth(),
+    weekStart.getDate() - 7,
+  );
+  const prevWeekStartStr = toLocalDateString(prevWeekStart);
+
   const [[totals]] = await db.query(
     `SELECT
        (SELECT COUNT(*)
@@ -137,8 +187,59 @@ async function getDashboardStats(trainerId) {
         WHERE rol = 'client'
           AND trainer_id = ?
           AND YEAR(created_at) = YEAR(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH))
-          AND MONTH(created_at) = MONTH(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH))) AS clients_last_month`,
-    [trainerId, trainerId, trainerId, trainerId, trainerId],
+          AND MONTH(created_at) = MONTH(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH))) AS clients_last_month,
+       (SELECT COUNT(DISTINCT u.id)
+        FROM usuarios u
+        INNER JOIN workout_sessions ws ON ws.client_id = u.id
+        WHERE u.rol = 'client'
+          AND u.trainer_id = ?
+          AND ws.status = 'completed'
+          AND ws.finished_at >= DATE_SUB(NOW(), INTERVAL ? DAY)) AS active_clients,
+       (SELECT COUNT(*)
+        FROM weekly_checkins wc
+        INNER JOIN usuarios u ON u.id = wc.client_id
+        WHERE u.rol = 'client'
+          AND u.trainer_id = ?
+          AND wc.reviewed_at IS NULL) AS unreviewed_checkins,
+       (SELECT COUNT(*)
+        FROM usuarios u
+        LEFT JOIN nutrition_targets nt ON nt.client_id = u.id
+        WHERE u.rol = 'client'
+          AND u.trainer_id = ?
+          AND nt.client_id IS NULL) AS diets_unassigned,
+       (SELECT COUNT(*)
+        FROM workout_sessions ws
+        INNER JOIN usuarios u ON u.id = ws.client_id
+        WHERE u.rol = 'client'
+          AND u.trainer_id = ?
+          AND ws.status = 'completed'
+          AND ws.finished_at >= ?
+          AND ws.finished_at < ?) AS sessions_this_week,
+       (SELECT COUNT(*)
+        FROM workout_sessions ws
+        INNER JOIN usuarios u ON u.id = ws.client_id
+        WHERE u.rol = 'client'
+          AND u.trainer_id = ?
+          AND ws.status = 'completed'
+          AND ws.finished_at >= ?
+          AND ws.finished_at < ?) AS sessions_prev_week`,
+    [
+      trainerId,
+      trainerId,
+      trainerId,
+      trainerId,
+      trainerId,
+      trainerId,
+      RETENTION_WINDOW_DAYS,
+      trainerId,
+      trainerId,
+      trainerId,
+      weekStartStr,
+      nextWeekStartStr,
+      trainerId,
+      prevWeekStartStr,
+      weekStartStr,
+    ],
   );
 
   const clientsCount = Number(totals.clients_count) || 0;
@@ -146,12 +247,31 @@ async function getDashboardStats(trainerId) {
   const sessionsThisMonth = Number(totals.sessions_this_month) || 0;
   const clientsThisMonth = Number(totals.clients_this_month) || 0;
   const clientsLastMonth = Number(totals.clients_last_month) || 0;
+  const activeClients = Number(totals.active_clients) || 0;
+  const inactiveClients = Math.max(0, clientsCount - activeClients);
+  const unreviewedCheckins = Number(totals.unreviewed_checkins) || 0;
+  const dietsUnassigned = Number(totals.diets_unassigned) || 0;
+  const sessionsThisWeek = Number(totals.sessions_this_week) || 0;
+  const sessionsPrevWeek = Number(totals.sessions_prev_week) || 0;
 
   let growthPercent = 0;
   if (clientsLastMonth === 0) {
     growthPercent = clientsThisMonth > 0 ? 100 : 0;
   } else {
     growthPercent = Math.round(((clientsThisMonth - clientsLastMonth) / clientsLastMonth) * 100);
+  }
+
+  const ratePercent = clientsCount > 0
+    ? Math.round((activeClients / clientsCount) * 100)
+    : 0;
+
+  let vsPreviousPercent = 0;
+  if (sessionsPrevWeek === 0) {
+    vsPreviousPercent = sessionsThisWeek > 0 ? 100 : 0;
+  } else {
+    vsPreviousPercent = Math.round(
+      ((sessionsThisWeek - sessionsPrevWeek) / sessionsPrevWeek) * 100,
+    );
   }
 
   const months = buildLastMonths(6);
@@ -179,11 +299,27 @@ async function getDashboardStats(trainerId) {
     [trainerId, rangeStart],
   );
 
+  const [weekDayRows] = await db.query(
+    `SELECT DATE(ws.finished_at) AS day_key, COUNT(*) AS total
+     FROM workout_sessions ws
+     INNER JOIN usuarios u ON u.id = ws.client_id
+     WHERE u.rol = 'client'
+       AND u.trainer_id = ?
+       AND ws.status = 'completed'
+       AND ws.finished_at >= ?
+       AND ws.finished_at < ?
+     GROUP BY DATE(ws.finished_at)`,
+    [trainerId, weekStartStr, nextWeekStartStr],
+  );
+
   const clientsByMonth = Object.fromEntries(
     clientRows.map((row) => [row.month_key, Number(row.total) || 0]),
   );
   const sessionsByMonth = Object.fromEntries(
     sessionRows.map((row) => [row.month_key, Number(row.total) || 0]),
+  );
+  const sessionsByDay = Object.fromEntries(
+    weekDayRows.map((row) => [formatDayField(row.day_key), Number(row.total) || 0]),
   );
 
   // Clients created before the window → baseline for cumulative series
@@ -207,6 +343,37 @@ async function getDashboardStats(trainerId) {
     };
   });
 
+  const byDay = buildWeekDayKeys(weekStart).map((date) => ({
+    date,
+    count: sessionsByDay[date] || 0,
+  }));
+
+  // Pagos / membresías de alumnos (Feature 040) — conteos set-based
+  const [[paymentsRow]] = await db.query(
+    `SELECT
+       SUM(CASE WHEN cm.status = 'active' THEN 1 ELSE 0 END) AS active_count,
+       SUM(CASE WHEN cm.status = 'owing' THEN 1 ELSE 0 END) AS owing_count,
+       SUM(CASE WHEN cm.status = 'expired' THEN 1 ELSE 0 END) AS expired_count,
+       SUM(CASE WHEN cm.client_id IS NULL THEN 1 ELSE 0 END) AS none_count,
+       SUM(CASE
+         WHEN cm.status = 'active'
+           AND cm.period_end IS NOT NULL
+           AND DATEDIFF(cm.period_end, CURDATE()) BETWEEN 0 AND 7
+         THEN 1 ELSE 0 END) AS expiring_soon
+     FROM usuarios u
+     LEFT JOIN client_memberships cm ON cm.client_id = u.id
+     WHERE u.rol = 'client' AND u.trainer_id = ?`,
+    [trainerId],
+  );
+
+  const payments = {
+    active: Number(paymentsRow?.active_count) || 0,
+    owing: Number(paymentsRow?.owing_count) || 0,
+    expired: Number(paymentsRow?.expired_count) || 0,
+    none: Number(paymentsRow?.none_count) || 0,
+    expiringSoon: Number(paymentsRow?.expiring_soon) || 0,
+  };
+
   return {
     clientsCount,
     routinesCount,
@@ -215,6 +382,25 @@ async function getDashboardStats(trainerId) {
     clientsThisMonth,
     clientsLastMonth,
     monthlyActivity,
+    retention: {
+      active: activeClients,
+      inactive: inactiveClients,
+      ratePercent,
+      windowDays: RETENTION_WINDOW_DAYS,
+    },
+    pendingTasks: {
+      unreviewedCheckins,
+      dietsUnassigned,
+      total: unreviewedCheckins + dietsUnassigned,
+    },
+    weekProgress: {
+      sessionsCompleted: sessionsThisWeek,
+      previousWeekSessions: sessionsPrevWeek,
+      vsPreviousPercent,
+      weekStart: weekStartStr,
+      byDay,
+    },
+    payments,
   };
 }
 

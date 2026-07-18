@@ -295,8 +295,10 @@ CREATE TABLE weekly_checkins (
     stress_level TINYINT NOT NULL,
     diet_adherence TINYINT NOT NULL,
     notes TEXT NULL,
+    reviewed_at DATETIME NULL DEFAULT NULL,
     INDEX idx_weekly_checkins_client (client_id),
     INDEX idx_weekly_checkins_created (created_at),
+    INDEX idx_weekly_checkins_reviewed (reviewed_at),
     CONSTRAINT fk_weekly_checkins_client
       FOREIGN KEY (client_id) REFERENCES usuarios(id) ON DELETE CASCADE,
     CONSTRAINT chk_weekly_checkins_sleep

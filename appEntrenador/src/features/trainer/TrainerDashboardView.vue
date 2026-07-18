@@ -10,6 +10,7 @@ import { getTrainerDashboard } from './api/clientsApi.js';
 import { generateInvitationLink } from './api/invitationsApi.js';
 import InviteClientAction from './components/InviteClientAction.vue';
 import TrainerMonthlyActivityChart from './components/TrainerMonthlyActivityChart.vue';
+import TrainerPaymentsChart from './components/TrainerPaymentsChart.vue';
 import TrainerStatsSummary from './components/TrainerStatsSummary.vue';
 import NotificationBadge from '../../components/notifications/NotificationBadge.vue';
 
@@ -22,6 +23,7 @@ const router = useRouter();
 const route = useRoute();
 
 const userName = shallowRef('');
+const saasPlan = shallowRef('FREE');
 const fotoUrl = shallowRef(null);
 const invitationLink = shallowRef('');
 const isGeneratingInvitation = shallowRef(false);
@@ -32,6 +34,31 @@ const dashboardStats = reactive({
   sessionsThisMonth: 0,
   growthPercent: 0,
   monthlyActivity: [],
+  retention: {
+    active: 0,
+    inactive: 0,
+    ratePercent: 0,
+    windowDays: 14,
+  },
+  pendingTasks: {
+    unreviewedCheckins: 0,
+    dietsUnassigned: 0,
+    total: 0,
+  },
+  weekProgress: {
+    sessionsCompleted: 0,
+    previousWeekSessions: 0,
+    vsPreviousPercent: 0,
+    weekStart: '',
+    byDay: [],
+  },
+  payments: {
+    active: 0,
+    owing: 0,
+    expired: 0,
+    none: 0,
+    expiringSoon: 0,
+  },
 });
 let inviteLinkHideTimer = null;
 
@@ -42,6 +69,8 @@ const snackbar = reactive({
 });
 
 const avatarSrc = computed(() => resolveAvatarSrc(fotoUrl.value));
+
+const planLabel = computed(() => (saasPlan.value === 'PRO' ? 'PRO' : 'FREE'));
 
 const currentDateLabel = computed(() => {
   const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -68,9 +97,11 @@ const loadAvatar = async () => {
     const data = response.data?.data;
     if (data?.nombre) userName.value = data.nombre;
     fotoUrl.value = data?.foto_url ?? null;
+    saasPlan.value = data?.saas_plan === 'PRO' ? 'PRO' : 'FREE';
   } catch (error) {
     console.error('Error cargando foto de perfil del trainer:', error);
     fotoUrl.value = null;
+    saasPlan.value = 'FREE';
   }
 };
 
@@ -86,6 +117,41 @@ const loadDashboard = async () => {
     dashboardStats.monthlyActivity = Array.isArray(data.monthlyActivity)
       ? data.monthlyActivity
       : [];
+
+    const retention = data.retention || {};
+    dashboardStats.retention = {
+      active: Number(retention.active) || 0,
+      inactive: Number(retention.inactive) || 0,
+      ratePercent: Number(retention.ratePercent) || 0,
+      windowDays: Number(retention.windowDays) || 14,
+    };
+
+    const pending = data.pendingTasks || {};
+    const unreviewed = Number(pending.unreviewedCheckins) || 0;
+    const diets = Number(pending.dietsUnassigned) || 0;
+    dashboardStats.pendingTasks = {
+      unreviewedCheckins: unreviewed,
+      dietsUnassigned: diets,
+      total: Number(pending.total) || unreviewed + diets,
+    };
+
+    const week = data.weekProgress || {};
+    dashboardStats.weekProgress = {
+      sessionsCompleted: Number(week.sessionsCompleted) || 0,
+      previousWeekSessions: Number(week.previousWeekSessions) || 0,
+      vsPreviousPercent: Number(week.vsPreviousPercent) || 0,
+      weekStart: week.weekStart || '',
+      byDay: Array.isArray(week.byDay) ? week.byDay : [],
+    };
+
+    const pay = data.payments || {};
+    dashboardStats.payments = {
+      active: Number(pay.active) || 0,
+      owing: Number(pay.owing) || 0,
+      expired: Number(pay.expired) || 0,
+      none: Number(pay.none) || 0,
+      expiringSoon: Number(pay.expiringSoon) || 0,
+    };
   } catch (error) {
     console.error('Error al cargar dashboard:', error);
     showNotification(getApiErrorMessage(error, 'Error al cargar métricas'), 'error');
@@ -217,7 +283,12 @@ onUnmounted(() => {
             </div>
             <div class="profile-info">
               <div class="profile-name">{{ userName }}</div>
-              <div class="profile-role">Entrenador</div>
+              <div
+                class="profile-role"
+                :class="saasPlan === 'PRO' ? 'profile-role--pro' : 'profile-role--free'"
+              >
+                {{ planLabel }}
+              </div>
             </div>
           </router-link>
 
@@ -236,14 +307,18 @@ onUnmounted(() => {
       <div class="trainer-dash-body">
         <TrainerStatsSummary
           :clients-count="dashboardStats.clientsCount"
-          :routines-count="dashboardStats.routinesCount"
           :sessions-this-month="dashboardStats.sessionsThisMonth"
-          :growth-percent="dashboardStats.growthPercent"
+          :retention="dashboardStats.retention"
+          :pending-tasks="dashboardStats.pendingTasks"
+          :week-progress="dashboardStats.weekProgress"
           @open-clients="goToClients"
         />
 
         <div class="hub-grid">
-          <TrainerMonthlyActivityChart :months="dashboardStats.monthlyActivity" />
+          <div class="charts-duo">
+            <TrainerMonthlyActivityChart :months="dashboardStats.monthlyActivity" />
+            <TrainerPaymentsChart :payments="dashboardStats.payments" />
+          </div>
 
           <InviteClientAction
             :loading="isGeneratingInvitation"
@@ -292,44 +367,87 @@ onUnmounted(() => {
   flex-direction: column;
 }
 
+.trainer-dash-main :deep(.dashboard-header) {
+  margin-bottom: 14px;
+}
+
+.trainer-dash-main :deep(.header-title) {
+  font-size: 24px;
+  margin-bottom: 2px;
+}
+
+.trainer-dash-main :deep(.header-greeting) {
+  font-size: 13px;
+}
+
+.trainer-dash-main :deep(.quick-actions) {
+  padding: 14px;
+}
+
+.trainer-dash-main :deep(.quick-actions-header) {
+  margin-bottom: 12px;
+}
+
 .trainer-dash-body {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
   flex: 1;
   min-height: 0;
-  padding-bottom: 20px;
+  padding-bottom: 12px;
 }
 
 .hub-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
+  gap: 12px;
   align-items: start;
-  flex: 1;
-  min-height: 0;
+  min-width: 0;
+}
+
+.hub-grid > * {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.charts-duo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.charts-duo > * {
+  min-width: 0;
+  height: 100%;
+}
+
+.profile-role--pro {
+  color: #00e5ff;
+  font-weight: 600;
+}
+
+.profile-role--free {
+  color: #8b929e;
+}
+
+@media (min-width: 700px) {
+  .charts-duo {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
 }
 
 @media (min-width: 961px) {
   .hub-grid {
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: 20px;
-  }
-
-  .hub-grid :deep(.chart-card) {
-    min-height: 380px;
-    height: 100%;
-  }
-
-  .hub-grid :deep(.quick-actions) {
-    position: sticky;
-    top: 0;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 12px;
   }
 }
 
 @media (max-width: 960px) {
   .trainer-dash-body {
-    gap: 14px;
+    gap: 10px;
   }
 }
 </style>

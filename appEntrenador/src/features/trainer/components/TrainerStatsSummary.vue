@@ -1,150 +1,243 @@
 <script setup>
+/**
+ * KPIs compactos del Inicio trainer — densidad alta, una sola fila.
+ */
 import { computed } from 'vue';
 
 const props = defineProps({
-  clientsCount: {
-    type: Number,
-    default: 0,
+  clientsCount: { type: Number, default: 0 },
+  sessionsThisMonth: { type: Number, default: 0 },
+  retention: {
+    type: Object,
+    default: () => ({ active: 0, inactive: 0, ratePercent: 0, windowDays: 14 }),
   },
-  routinesCount: {
-    type: Number,
-    default: 0,
+  pendingTasks: {
+    type: Object,
+    default: () => ({ unreviewedCheckins: 0, dietsUnassigned: 0, total: 0 }),
   },
-  sessionsThisMonth: {
-    type: Number,
-    default: 0,
-  },
-  growthPercent: {
-    type: Number,
-    default: 0,
+  weekProgress: {
+    type: Object,
+    default: () => ({ sessionsCompleted: 0, vsPreviousPercent: 0 }),
   },
 });
 
 const emit = defineEmits(['openClients']);
 
-const growthLabel = computed(() => {
-  const value = Number(props.growthPercent) || 0;
-  if (value > 0) return `+${value}%`;
-  if (value < 0) return `${value}%`;
-  return '0%';
+const activeCount = computed(() => Number(props.retention?.active) || 0);
+const inactiveCount = computed(() => Number(props.retention?.inactive) || 0);
+const ratePercent = computed(() => Number(props.retention?.ratePercent) || 0);
+
+const pendingTotal = computed(() => Number(props.pendingTasks?.total) || 0);
+const pendingDetail = computed(() => {
+  const c = Number(props.pendingTasks?.unreviewedCheckins) || 0;
+  const d = Number(props.pendingTasks?.dietsUnassigned) || 0;
+  return `${c} check-ins · ${d} nutrición`;
 });
 
-const growthPositive = computed(() => (Number(props.growthPercent) || 0) >= 0);
+const weekSessions = computed(() => Number(props.weekProgress?.sessionsCompleted) || 0);
+const weekDelta = computed(() => {
+  const value = Number(props.weekProgress?.vsPreviousPercent) || 0;
+  if (value > 0) return { label: `+${value}%`, up: true };
+  if (value < 0) return { label: `${value}%`, up: false };
+  return { label: null, up: null };
+});
 </script>
 
 <template>
-  <div class="stats-grid">
+  <div class="kpi-row" role="list">
     <button
       type="button"
-      class="stat-card stat-card--action"
+      class="kpi"
+      role="listitem"
       title="Ver lista de alumnos"
       @click="emit('openClients')"
     >
-      <div class="stat-icon stat-icon-cyan">
-        <v-icon icon="mdi-account-group-outline" size="18" color="primary"></v-icon>
+      <div class="kpi__icon kpi__icon--cyan">
+        <v-icon icon="mdi-account-group-outline" size="16" color="primary" />
       </div>
-      <div class="stat-value">{{ clientsCount }}</div>
-      <div class="stat-label">Total Alumnos</div>
-      <span class="stat-card__hint">Ver lista</span>
+      <div class="kpi__body">
+        <div class="kpi__value">{{ clientsCount }}</div>
+        <div class="kpi__label">Alumnos</div>
+      </div>
     </button>
 
-    <div class="stat-card">
-      <div class="stat-icon stat-icon-green">
-        <v-icon icon="mdi-clipboard-text-outline" size="18" color="#4CAF50"></v-icon>
+    <div class="kpi" role="listitem">
+      <div class="kpi__icon kpi__icon--green">
+        <v-icon icon="mdi-account-heart-outline" size="16" color="#4CAF50" />
       </div>
-      <div class="stat-value">{{ routinesCount }}</div>
-      <div class="stat-label">Rutinas Activas</div>
+      <div class="kpi__body">
+        <div class="kpi__value">{{ activeCount }}</div>
+        <div class="kpi__label">Activos</div>
+        <div class="kpi__meta">{{ ratePercent }}% · {{ inactiveCount }} inact.</div>
+      </div>
     </div>
 
-    <div class="stat-card">
-      <div class="stat-icon stat-icon-orange">
-        <v-icon icon="mdi-dumbbell" size="18" color="#FF9800"></v-icon>
+    <button
+      type="button"
+      class="kpi"
+      role="listitem"
+      title="Revisar pendientes"
+      @click="emit('openClients')"
+    >
+      <div class="kpi__icon kpi__icon--orange">
+        <v-icon icon="mdi-clipboard-alert-outline" size="16" color="#FF9800" />
       </div>
-      <div class="stat-value">{{ sessionsThisMonth }}</div>
-      <div class="stat-label">Sesiones (mes)</div>
-    </div>
+      <div class="kpi__body">
+        <div class="kpi__value">{{ pendingTotal }}</div>
+        <div class="kpi__label">Pendientes</div>
+        <div class="kpi__meta">{{ pendingDetail }}</div>
+      </div>
+    </button>
 
-    <div class="stat-card">
-      <div class="stat-card-top">
-        <div class="stat-icon stat-icon-purple">
-          <v-icon icon="mdi-trending-up" size="18" color="#A855F7"></v-icon>
+    <div class="kpi" role="listitem">
+      <div class="kpi__icon kpi__icon--cyan">
+        <v-icon icon="mdi-calendar-check-outline" size="16" color="primary" />
+      </div>
+      <div class="kpi__body">
+        <div class="kpi__value-row">
+          <span class="kpi__value">{{ weekSessions }}</span>
+          <span
+            v-if="weekDelta.label"
+            class="kpi__badge"
+            :class="weekDelta.up ? 'kpi__badge--up' : 'kpi__badge--down'"
+          >{{ weekDelta.label }}</span>
         </div>
-        <span class="growth-badge" :class="{ 'growth-badge--down': !growthPositive }">
-          {{ growthLabel }}
-        </span>
+        <div class="kpi__label">Esta semana</div>
       </div>
-      <div class="stat-value">{{ growthLabel }}</div>
-      <div class="stat-label">Crecimiento alumnos</div>
+    </div>
+
+    <div class="kpi" role="listitem">
+      <div class="kpi__icon kpi__icon--purple">
+        <v-icon icon="mdi-dumbbell" size="16" color="#A855F7" />
+      </div>
+      <div class="kpi__body">
+        <div class="kpi__value">{{ sessionsThisMonth }}</div>
+        <div class="kpi__label">Este mes</div>
+      </div>
     </div>
   </div>
 </template>
 
-<style src="../../../assets/trainerDashboard.css" scoped></style>
-
 <style scoped>
-.stat-card--action {
-  cursor: pointer;
-  font: inherit;
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.kpi {
+  background: #13161d;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 10px 12px;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
   text-align: left;
+  color: inherit;
+  font: inherit;
   width: 100%;
-  position: relative;
+  min-width: 0;
+}
+
+button.kpi {
+  cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease;
 }
 
-.stat-card--action:hover {
+button.kpi:hover {
   border-color: rgba(0, 229, 255, 0.35);
   background: rgba(0, 229, 255, 0.04);
 }
 
-.stat-card__hint {
-  display: block;
-  margin-top: 6px;
-  font-size: 11px;
+.kpi__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.kpi__icon--cyan { background: rgba(0, 229, 255, 0.1); }
+.kpi__icon--green { background: rgba(76, 175, 80, 0.12); }
+.kpi__icon--orange { background: rgba(255, 152, 0, 0.12); }
+.kpi__icon--purple { background: rgba(168, 85, 247, 0.12); }
+
+.kpi__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.kpi__value-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kpi__value {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #fff;
+}
+
+.kpi__label {
+  font-size: 12px;
   font-weight: 600;
-  color: #00E5FF;
-  letter-spacing: 0.01em;
+  color: #c8cdd6;
 }
 
-.growth-badge--down {
+.kpi__meta {
+  font-size: 10px;
+  color: #8b929e;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi__badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.kpi__badge--up {
+  background: rgba(76, 175, 80, 0.15);
+  color: #81c784;
+}
+
+.kpi__badge--down {
   background: rgba(239, 68, 68, 0.15);
-  color: #F87171;
+  color: #f87171;
 }
 
-@media (max-width: 960px) {
-  .stats-grid {
+@media (max-width: 1100px) {
+  .kpi-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .kpi-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    margin-bottom: 4px;
+    gap: 8px;
   }
 
-  .stat-card {
-    min-height: 0;
-    padding: 12px;
-    border-radius: 14px;
+  .kpi {
+    padding: 8px 10px;
   }
 
-  .stat-icon {
-    width: 32px;
-    height: 32px;
-    margin-bottom: 8px;
-  }
-
-  .stat-value {
-    font-size: 22px;
-    margin-bottom: 4px;
-  }
-
-  .stat-label {
-    font-size: 11px;
-  }
-
-  .stat-card-top {
-    margin-bottom: 8px;
-  }
-
-  .stat-card__hint {
-    margin-top: 4px;
-    font-size: 10px;
+  .kpi__value {
+    font-size: 18px;
   }
 }
 </style>

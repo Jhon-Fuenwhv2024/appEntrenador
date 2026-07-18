@@ -127,6 +127,18 @@
 2. Envía `POST /checkins` como `multipart/form-data` (ratings 1–5 + notas; fotos `front`/`side`/`back` opcionales, ≤5 MB).
 3. Backend (transacción): inserta `weekly_checkins` y, si hay archivos, filas en `progress_photos` con `image_url` bajo `/uploads/photos/…`.
 4. Trainer en la ficha del alumno (pestaña **Check-ins**) carga `GET /checkins/client/:clientId` y ve timeline + miniaturas ampliables.
+5. `reviewed_at` queda `NULL` al crear (cola “sin revisar” del dashboard 035).
+
+## Dashboard analítico del trainer (Feature 035)
+
+1. Trainer abre Inicio (`TrainerDashboardView`) → `GET /trainer/dashboard` (JWT + rol trainer).
+2. Service agrega en queries set-based (filtradas por `req.user.id`):
+   - stats 015 (conteos + serie mensual);
+   - `retention` (activos 14d / inactivos / %);
+   - `pendingTasks` (check-ins `reviewed_at IS NULL` + alumnos sin `nutrition_targets`);
+   - `weekProgress` (sesiones lun–dom + `byDay` + vs semana anterior).
+3. UI: fila compacta de 5 KPIs + hub (actividad mensual pequeña + acciones). El pill de perfil muestra `saas_plan` (FREE/PRO), no el rol.
+4. Definiciones de negocio: [ADR-0003](decisions/ADR-0003-trainer-dashboard-metrics.md).
 
 ## Visualización de progreso / gráficas (Feature 027)
 

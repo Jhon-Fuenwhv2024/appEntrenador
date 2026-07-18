@@ -69,7 +69,7 @@ async function getMyAccount(userId) {
 
   if (user.rol === 'trainer') {
     const [info] = await db.query(
-      `SELECT telefono, foto_url
+      `SELECT telefono, foto_url, saas_plan
        FROM trainers_info
        WHERE user_id = ?
        LIMIT 1`,
@@ -79,6 +79,8 @@ async function getMyAccount(userId) {
       base.telefono = info[0].telefono || null;
       base.foto_url = normalizeFotoUrl(info[0].foto_url);
     }
+    // Plan SaaS del trainer (FREE/PRO); default FREE si no hay fila
+    base.saas_plan = info[0]?.saas_plan === 'PRO' ? 'PRO' : 'FREE';
   } else if (user.rol === 'client') {
     const [info] = await db.query(
       `SELECT telefono, foto_url

@@ -2,7 +2,7 @@ const db = require('../config/db');
 
 /**
  * Asegura tablas weekly_checkins / progress_photos en DBs ya existentes.
- * Feature 033.
+ * Feature 033 + columna reviewed_at (Feature 035).
  */
 async function ensureCheckinsTables() {
   await db.query(`
@@ -14,8 +14,10 @@ async function ensureCheckinsTables() {
       stress_level TINYINT NOT NULL,
       diet_adherence TINYINT NOT NULL,
       notes TEXT NULL,
+      reviewed_at DATETIME NULL DEFAULT NULL,
       INDEX idx_weekly_checkins_client (client_id),
       INDEX idx_weekly_checkins_created (created_at),
+      INDEX idx_weekly_checkins_reviewed (reviewed_at),
       CONSTRAINT fk_weekly_checkins_client
         FOREIGN KEY (client_id) REFERENCES usuarios(id) ON DELETE CASCADE,
       CONSTRAINT chk_weekly_checkins_sleep
@@ -26,6 +28,29 @@ async function ensureCheckinsTables() {
         CHECK (diet_adherence BETWEEN 1 AND 5)
     ) ENGINE=InnoDB
   `);
+
+  try {
+    await db.query(`
+      ALTER TABLE weekly_checkins
+        ADD COLUMN reviewed_at DATETIME NULL DEFAULT NULL AFTER notes
+    `);
+  } catch (error) {
+    if (error.code !== 'ER_DUP_FIELDNAME') {
+      console.warn('ensureCheckinsTables: no se pudo añadir reviewed_at:', error.message);
+    }
+  }
+
+  try {
+    await db.query(`
+      ALTER TABLE weekly_checkins
+        ADD INDEX idx_weekly_checkins_reviewed (reviewed_at)
+    `);
+  } catch (error) {
+    // Índice ya existe o columna aún no disponible
+    if (error.code !== 'ER_DUP_KEYNAME' && error.code !== 'ER_BAD_FIELD_ERROR') {
+      console.warn('ensureCheckinsTables: no se pudo crear idx reviewed:', error.message);
+    }
+  }
 
   await db.query(`
     CREATE TABLE IF NOT EXISTS progress_photos (
