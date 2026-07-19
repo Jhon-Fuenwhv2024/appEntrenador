@@ -25,6 +25,7 @@ const membershipsRoutes = require('./modules/memberships/memberships.routes');
 const personalRecordsRoutes = require('./modules/personal-records/personal-records.routes');
 const consistencyRoutes = require('./modules/consistency/consistency.routes');
 const dietPlansRoutes = require('./modules/diet-plans/diet-plans.routes');
+const adminExercisesRoutes = require('./modules/admin-exercises/admin-exercises.routes');
 const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
 const { ensurePhotosDir } = require('./middleware/uploadProgressPhotos');
 const { ensureNotificationsTable } = require('./db/ensureNotificationsTable');
@@ -40,6 +41,7 @@ const {
   ensureExercisesI18nColumns,
   ensureExercisesMediaDir,
 } = require('./db/ensureExercisesI18nColumns');
+const { ensureExercisesMuscleTags } = require('./db/ensureExercisesMuscleTags');
 
 const app = express();
 
@@ -73,6 +75,7 @@ app.use('/api', membershipsRoutes);
 app.use('/api', personalRecordsRoutes);
 app.use('/api', consistencyRoutes);
 app.use('/api', dietPlansRoutes);
+app.use('/api/admin', adminExercisesRoutes);
 
 async function start() {
   try {
@@ -133,6 +136,12 @@ async function start() {
     await ensureExercisesI18nColumns();
   } catch (error) {
     console.error('No se pudieron asegurar columnas i18n de exercises:', error.message);
+  }
+
+  try {
+    await ensureExercisesMuscleTags();
+  } catch (error) {
+    console.error('No se pudieron asegurar columnas muscle tags de exercises:', error.message);
   }
 
   app.listen(PORT, () => {

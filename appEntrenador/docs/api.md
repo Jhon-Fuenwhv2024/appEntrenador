@@ -666,6 +666,60 @@ Las líneas de rutina/plantilla envían `nombre` + `exercise_id` opcional (Featu
 
 UI trainer: ruta `/trainer/exercises` (listar / buscar / crear / editar / borrar) y combobox en `/trainer/clients/:clientId`.
 
+### Admin HITL — etiquetado muscular (superadmin)
+
+Herramienta interna temporal. UI: `/admin/exercises/tagger` (`requiresSuperAdmin`).  
+Columnas: `primary_muscle` (VARCHAR), `secondary_muscles` (JSON array).  
+Migración: [`backend/db/migrations/025_exercises_muscle_tags.sql`](../backend/db/migrations/025_exercises_muscle_tags.sql).
+
+#### `GET /admin/exercises/untagged` (superadmin)
+
+Devuelve **un** ejercicio con `primary_muscle` NULL o vacío (`LIMIT 1`), ordenado por `id`.
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 12,
+    "name": "Bench Press",
+    "name_es": "Press de banca",
+    "media_type": "gif",
+    "media_url": null,
+    "local_media_path": "/uploads/exercises/exercise_12.gif"
+  },
+  "message": "Ejercicio pendiente de etiquetar"
+}
+```
+
+Si no hay pendientes: `"data": null` y mensaje de catálogo completado.
+
+`meta` (progreso del catálogo):
+
+```json
+{
+  "total": 900,
+  "tagged": 120,
+  "remaining": 780,
+  "percent": 13
+}
+```
+
+#### `PATCH /admin/exercises/:id/tag` (superadmin)
+
+Body:
+
+```json
+{
+  "primary_muscle": "Pecho",
+  "secondary_muscles": ["Tríceps", "Hombros"],
+  "is_warmup": false
+}
+```
+
+Valores permitidos: Pecho, Espalda, Dorsal, Trapecio, Hombros, Bíceps, Braquial, Tríceps, Antebrazo, Core/Abdomen, Oblicuos, Cuádriceps, Femoral, Glúteo, Aductores, Abductores, Gemelos, Pierna, Cardio, Full Body.  
+`primary_muscle` y `is_warmup` obligatorios; `secondary_muscles` opcional (no puede incluir el principal).  
+`is_warmup: true` = usable como calentamiento para la musculatura etiquetada. Respuesta HTTP **200**.
+
 ### `GET /me/routines` — media enriquecida (cliente)
 
 Además de la prescripción, cada ejercicio incluye `media_type` y `media_url` resueltos por coincidencia de nombre contra el catálogo `exercises` (prioridad: privado del trainer del cliente, luego global). Ver también `last_log` en la sección de rutinas (Feature 019).

@@ -179,13 +179,18 @@ Diccionario híbrido de ejercicios (Feature 008 + **044**):
 | `description_es` | Descripción en español (nullable) |
 | `target_muscle` | Grupo muscular objetivo |
 | `target_muscle_es` | Grupo muscular en español (nullable) |
+| `primary_muscle` | Músculo principal taxonomía HITL (nullable) |
+| `secondary_muscles` | JSON array de músculos secundarios (nullable) |
+| `is_warmup` | `TINYINT(1)` — 1 = usable como calentamiento para esa musculatura |
 | `media_type` | `image` \| `gif` \| `youtube` \| `video` \| `none` |
 | `media_url` | URL de media externa (fallback; seed wrkout / YouTube) |
 | `local_media_path` | Ruta relativa hosteada, ej. `/uploads/exercises/exercise_12.gif` |
 | `created_by_trainer_id` | `NULL` = global del sistema; con ID = privado del trainer (`usuarios.id`) |
 
-Migración: [`backend/db/migrations/024_exercises_i18n_local_media.sql`](../backend/db/migrations/024_exercises_i18n_local_media.sql).  
-Scraping + descarga: [`docs/exercises-i18n-scraping.md`](exercises-i18n-scraping.md).
+Migración i18n: [`backend/db/migrations/024_exercises_i18n_local_media.sql`](../backend/db/migrations/024_exercises_i18n_local_media.sql).  
+Migración HITL tags: [`backend/db/migrations/025_exercises_muscle_tags.sql`](../backend/db/migrations/025_exercises_muscle_tags.sql) (`npm run db:add-exercises-muscle-tags`).  
+Scraping + descarga: [`docs/exercises-i18n-scraping.md`](exercises-i18n-scraping.md).  
+UI etiquetado: `/admin/exercises/tagger` (superadmin).
 
 **Importante:** `exercises` ≠ `ejercicios`. Las líneas de rutina/plantilla pueden vincularse con `exercise_id` (estable) y siguen guardando `nombre` para display e historial (Feature 022). La UI del trainer elige del catálogo vía `GET/POST /api/exercises`.
 

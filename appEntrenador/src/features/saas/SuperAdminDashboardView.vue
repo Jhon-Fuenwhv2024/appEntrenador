@@ -4,10 +4,13 @@
  * Lista trainers y permite actualizar plan FREE/PRO + fecha de vencimiento.
  */
 import { computed, onMounted, reactive, shallowRef } from 'vue';
+import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
 import { listTrainers, updateTrainerPlan } from './api/saasApi.js';
+
+const router = useRouter();
 
 const loading = shallowRef(true);
 const saving = shallowRef(false);
@@ -112,13 +115,23 @@ onMounted(() => {
 <template>
   <AppShell :role="shellRole" active="saas">
     <main class="saas-panel pa-4 pa-md-6">
-      <header class="mb-6">
-        <h1 class="text-h5 font-weight-bold mb-1">
-          Panel SaaS
-        </h1>
-        <p class="text-medium-emphasis mb-0">
-          Gestión manual de planes de entrenadores (Modo Dios).
-        </p>
+      <header class="mb-6 d-flex flex-wrap align-center justify-space-between ga-3">
+        <div>
+          <h1 class="text-h5 font-weight-bold mb-1">
+            Panel SaaS
+          </h1>
+          <p class="text-medium-emphasis mb-0">
+            Gestión manual de planes de entrenadores (Modo Dios).
+          </p>
+        </div>
+        <v-btn
+          color="primary"
+          variant="tonal"
+          prepend-icon="mdi-tag-multiple-outline"
+          @click="router.push('/admin/exercises/tagger')"
+        >
+          Etiquetar ejercicios
+        </v-btn>
       </header>
 
       <v-alert

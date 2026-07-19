@@ -17,6 +17,7 @@
     "db:add-superset-letter": "node scripts/addSupersetLetter.js",
     "db:add-saas-plans": "node scripts/addSaasSuperadminAndPlans.js",
     "db:add-exercises-i18n": "node scripts/addExercisesI18n.js",
+    "db:add-exercises-muscle-tags": "node scripts/addExercisesMuscleTags.js",
     "scrape:exercises": "node scripts/scrapeAndDownloadExercises.js",
     "scrape:exercises:dry": "node scripts/scrapeAndDownloadExercises.js --dry-run --skip-detail --limit=10",
     "scrape:exercises:import": "node scripts/scrapeAndDownloadExercises.js --import-missing --skip-enriched --skip-detail",

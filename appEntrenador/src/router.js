@@ -13,6 +13,7 @@ import ClientProgressView from './features/client/ClientProgressView.vue';
 import TrainerInboxView from './features/messaging/TrainerInboxView.vue';
 import ClientChatView from './features/messaging/ClientChatView.vue';
 import SuperAdminDashboardView from './features/saas/SuperAdminDashboardView.vue';
+import ExerciseTaggerView from './features/admin/ExerciseTaggerView.vue';
 import { getSessionUser, isAuthenticated } from './shared/auth/session.js';
 
 const routes = [
@@ -103,6 +104,12 @@ const routes = [
     path: '/backoffice',
     name: 'SuperAdminBackoffice',
     component: SuperAdminDashboardView,
+    meta: { requiresAuth: true, requiresSuperAdmin: true },
+  },
+  {
+    path: '/admin/exercises/tagger',
+    name: 'ExerciseTagger',
+    component: ExerciseTaggerView,
     meta: { requiresAuth: true, requiresSuperAdmin: true },
   },
 ];

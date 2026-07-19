@@ -104,6 +104,16 @@ const go = (path) => {
         >
           <v-icon icon="mdi-shield-crown" size="24" />
         </button>
+        <button
+          v-if="isSuperAdmin"
+          type="button"
+          class="nav-item"
+          :class="{ active: active === 'tagger' }"
+          title="Etiquetar ejercicios"
+          @click="go('/admin/exercises/tagger')"
+        >
+          <v-icon icon="mdi-tag-multiple-outline" size="24" />
+        </button>
       </template>
 
       <template v-else>
