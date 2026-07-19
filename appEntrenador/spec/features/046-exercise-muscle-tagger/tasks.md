@@ -9,6 +9,7 @@
 - [x] `PATCH /api/admin/exercises/:id/tag` (JSON secondary, 200)
 - [x] Columna `is_warmup` + UI Sí/No (según musculatura elegida)
 - [x] Barra de progreso (% / etiquetados / faltantes) vía `meta` del GET untagged
+- [x] Catálogo + rutinas/plantillas: mostrar `primary_muscle` y filtrar por chips (Hevy-style)
 
 ## Frontend
 

@@ -24,10 +24,19 @@ export function displayExerciseDescription(exercise) {
 }
 
 /**
- * @param {{ target_muscle?: string, target_muscle_es?: string|null }} exercise
+ * Prefer HITL primary_muscle (etiqueta real) → target_muscle_es → target_muscle.
+ * @param {{
+ *   primary_muscle?: string|null,
+ *   target_muscle?: string,
+ *   target_muscle_es?: string|null
+ * }} exercise
  * @returns {string}
  */
 export function displayExerciseMuscle(exercise) {
+  const primary = typeof exercise?.primary_muscle === 'string'
+    ? exercise.primary_muscle.trim()
+    : '';
+  if (primary) return primary;
   const es = typeof exercise?.target_muscle_es === 'string'
     ? exercise.target_muscle_es.trim()
     : '';

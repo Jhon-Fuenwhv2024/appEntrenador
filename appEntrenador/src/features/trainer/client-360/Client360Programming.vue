@@ -6,6 +6,8 @@
 import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../../shared/api/http.js';
+import ExerciseMuscleFilter from '../../../shared/components/ExerciseMuscleFilter.vue';
+import { exerciseMatchesMuscleFilter } from '../../../shared/constants/muscles.js';
 import {
   displayExerciseDescription,
   displayExerciseMuscle,
@@ -21,7 +23,7 @@ import {
 import { createTemplate } from '../api/templatesApi.js';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-const DEFAULT_TARGET_MUSCLE = 'General';
+const DEFAULT_TARGET_MUSCLE = 'Full Body';
 const DEFAULT_REST_SECONDS = 90;
 const SUPERSET_LETTER_OPTIONS = ['A', 'B', 'C', 'D', 'E'];
 
@@ -38,6 +40,8 @@ const router = useRouter();
 
 const routines = ref([]);
 const catalogExercises = ref([]);
+const muscleFilter = shallowRef(null);
+const onlyWarmup = shallowRef(false);
 const loading = shallowRef(true);
 const saving = shallowRef(false);
 const savingCatalogIndex = shallowRef(null);
@@ -84,9 +88,21 @@ const catalogByName = computed(() => {
   return map;
 });
 
+/** Autocomplete filtrado por músculo / calentamiento (estilo Hevy). */
+const filteredCatalogExercises = computed(() => (
+  catalogExercises.value.filter((item) => (
+    exerciseMatchesMuscleFilter(item, muscleFilter.value, onlyWarmup.value)
+  ))
+));
+
 const showNotification = (text, color = 'success') => {
   emit('notify', { text, color });
 };
+
+function catalogItemSubtitle(item) {
+  const muscle = displayExerciseMuscle(item) || 'Sin etiquetar';
+  return item?.is_warmup ? `${muscle} · Calentamiento` : muscle;
+}
 
 const toRestSeconds = (value) => {
   const n = Math.round(Number(value));
@@ -196,6 +212,7 @@ const saveExerciseToCatalog = async (index) => {
     const res = await createExercise({
       name,
       target_muscle: DEFAULT_TARGET_MUSCLE,
+      primary_muscle: DEFAULT_TARGET_MUSCLE,
       description: ex.indicaciones?.trim() || null,
       media_type: 'none',
     });
@@ -337,13 +354,10 @@ onMounted(() => {
     />
 
     <section class="ficha-panel routine-editor">
-      <div class="ficha-panel__head">
-        <div>
-          <h2 class="ficha-panel__title">
-            {{ editingId ? 'Editar rutina' : 'Nueva rutina' }}
-          </h2>
-          <p class="ficha-panel__hint">Asigna día, nombre y la carga de cada ejercicio</p>
-        </div>
+      <div class="ficha-panel__head routine-editor__head">
+        <h2 class="ficha-panel__title">
+          {{ editingId ? 'Editar rutina' : 'Nueva rutina' }}
+        </h2>
         <v-btn
           variant="text"
           color="primary"
@@ -371,7 +385,7 @@ onMounted(() => {
           />
         </label>
         <label class="field-block field-block--name">
-          <span class="field-cap">Nombre de la rutina</span>
+          <span class="field-cap">Nombre</span>
           <v-text-field
             v-model="form.nombre_rutina"
             placeholder="Ej. Empuje, Piernas…"
@@ -381,6 +395,16 @@ onMounted(() => {
             color="primary"
           />
         </label>
+      </div>
+
+      <div class="routine-filter-row">
+        <span class="field-cap">Filtrar ejercicios</span>
+        <ExerciseMuscleFilter
+          v-model="muscleFilter"
+          v-model:only-warmup="onlyWarmup"
+          show-warmup
+          label="Grupo muscular"
+        />
       </div>
 
       <div
@@ -405,7 +429,7 @@ onMounted(() => {
           <span class="field-cap">Ejercicio</span>
           <v-autocomplete
             :model-value="ex.nombre"
-            :items="catalogExercises"
+            :items="filteredCatalogExercises"
             item-title="display_name"
             item-value="name"
             placeholder="Catálogo o texto libre"
@@ -424,7 +448,7 @@ onMounted(() => {
             <template #item="{ props: itemProps, item }">
               <v-list-item
                 v-bind="itemProps"
-                :subtitle="displayExerciseMuscle(item.raw || {})"
+                :subtitle="catalogItemSubtitle(item.raw || {})"
               />
             </template>
           </v-autocomplete>
@@ -660,6 +684,18 @@ onMounted(() => {
   justify-content: space-between;
   gap: 0.35rem;
   margin-bottom: 0.6rem;
+}
+
+.routine-editor__head {
+  margin-bottom: 0.4rem;
+}
+
+.routine-filter-row {
+  margin: 0.15rem 0 0.45rem;
+}
+
+.routine-filter-row > .field-cap {
+  margin-bottom: 0.25rem;
 }
 
 .ficha-panel__title {

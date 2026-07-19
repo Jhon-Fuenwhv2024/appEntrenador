@@ -1,5 +1,13 @@
 # AGENTS.md — Trainfit
 
+## Modelo de IA obligatorio
+
+- **Modelo único del proyecto:** Cursor **Grok 4.5 High Fast** (`cursor-grok-4.5-high-fast`).
+- En este repo el agente **siempre** debe operar con ese modelo (chat principal y subagentes).
+- Al lanzar subagentes (`Task`), usar `model: "cursor-grok-4.5-high-fast"` (o `inherit` si el padre ya es ese modelo).
+- No cambiar a otro modelo salvo orden explícita del usuario en ese momento.
+- Nota: la selección del modelo en la UI de Cursor la confirma el usuario; esta regla fija la preferencia del proyecto para el agente.
+
 ## Qué es este proyecto
 
 Trainfit: plataforma web responsive para entrenadores personales

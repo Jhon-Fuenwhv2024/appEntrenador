@@ -1,5 +1,6 @@
 import { computed, ref, shallowRef, watch } from 'vue';
 import { getApiErrorMessage } from '../../../shared/api/http.js';
+import { exerciseMatchesMuscleFilter } from '../../../shared/constants/muscles.js';
 import {
   createExercise,
   deleteExercise,
@@ -25,6 +26,10 @@ export function useExercisesCatalog() {
   const searchQuery = shallowRef('');
   /** Feature 044: solo ejercicios con name_es o media local. */
   const onlyEnriched = shallowRef(false);
+  /** Filtro HITL por músculo (estilo Hevy). */
+  const muscleFilter = shallowRef(null);
+  /** Solo ejercicios marcados como calentamiento. */
+  const onlyWarmup = shallowRef(false);
   const errorMessage = shallowRef('');
   /** Full list used only when the API does not paginate. */
   const clientCache = ref(null);
@@ -71,6 +76,8 @@ export function useExercisesCatalog() {
     q = searchQuery.value,
     page = currentPage.value,
     enriched = onlyEnriched.value,
+    muscle = muscleFilter.value,
+    warmup = onlyWarmup.value,
   } = {}) => {
     const seq = ++loadSeq;
     try {
@@ -81,6 +88,8 @@ export function useExercisesCatalog() {
         limit: CATALOG_PAGE_SIZE,
         page,
         enriched: Boolean(enriched),
+        muscle: muscle || null,
+        warmup: Boolean(warmup),
       });
       if (seq !== loadSeq) return;
 
@@ -102,12 +111,16 @@ export function useExercisesCatalog() {
           Boolean(item.name_es?.trim()) || Boolean(item.local_media_path?.trim())
         ));
       }
+      list = list.filter((item) => (
+        exerciseMatchesMuscleFilter(item, muscle, Boolean(warmup))
+      ));
       const qTrim = typeof q === 'string' ? q.trim().toLowerCase() : '';
       if (qTrim) {
         list = list.filter((item) => {
           const haystack = [
             item.name,
             item.name_es || '',
+            item.primary_muscle || '',
             item.target_muscle,
             item.target_muscle_es || '',
             item.description || '',
@@ -140,6 +153,18 @@ export function useExercisesCatalog() {
   });
 
   watch(onlyEnriched, () => {
+    currentPage.value = 1;
+    clientCache.value = null;
+    loadExercises({ page: 1 }).catch(() => {});
+  });
+
+  watch(muscleFilter, () => {
+    currentPage.value = 1;
+    clientCache.value = null;
+    loadExercises({ page: 1 }).catch(() => {});
+  });
+
+  watch(onlyWarmup, () => {
     currentPage.value = 1;
     clientCache.value = null;
     loadExercises({ page: 1 }).catch(() => {});
@@ -232,6 +257,8 @@ export function useExercisesCatalog() {
     saving,
     searchQuery,
     onlyEnriched,
+    muscleFilter,
+    onlyWarmup,
     errorMessage,
     globalCount,
     privateCount,

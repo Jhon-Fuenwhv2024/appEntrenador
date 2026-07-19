@@ -1,6 +1,8 @@
 const db = require('../../config/db');
+const { ALLOWED_MUSCLES } = require('../admin-exercises/muscleTaxonomy');
 
 const ALLOWED_MEDIA_TYPES = new Set(['image', 'gif', 'youtube', 'video', 'none']);
+const ALLOWED_MUSCLE_SET = new Set(ALLOWED_MUSCLES);
 
 function createHttpError(message, code) {
   const error = new Error(message);
@@ -10,9 +12,25 @@ function createHttpError(message, code) {
 
 const EXERCISE_SELECT_COLS = `
   id, name, name_es, description, description_es,
-  target_muscle, target_muscle_es, media_type, media_url, local_media_path,
+  target_muscle, target_muscle_es, primary_muscle, secondary_muscles, is_warmup,
+  media_type, media_url, local_media_path,
   created_by_trainer_id
 `;
+
+function parseSecondaryMuscles(raw) {
+  if (Array.isArray(raw)) {
+    return raw.filter((m) => typeof m === 'string' && m.trim()).map((m) => m.trim());
+  }
+  if (typeof raw !== 'string' || !raw.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((m) => typeof m === 'string' && m.trim()).map((m) => m.trim())
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 function mapExerciseRow(row) {
   return {
@@ -23,6 +41,9 @@ function mapExerciseRow(row) {
     description_es: row.description_es ?? null,
     target_muscle: row.target_muscle,
     target_muscle_es: row.target_muscle_es ?? null,
+    primary_muscle: row.primary_muscle ?? null,
+    secondary_muscles: parseSecondaryMuscles(row.secondary_muscles),
+    is_warmup: row.is_warmup === true || row.is_warmup === 1 || row.is_warmup === '1',
     media_type: row.media_type,
     media_url: row.media_url,
     local_media_path: row.local_media_path ?? null,
@@ -35,6 +56,8 @@ function normalizeExercisePayload(payload) {
   const name = typeof payload.name === 'string' ? payload.name.trim() : '';
   const targetMuscle =
     typeof payload.target_muscle === 'string' ? payload.target_muscle.trim() : '';
+  const primaryFromPayload =
+    typeof payload.primary_muscle === 'string' ? payload.primary_muscle.trim() : '';
   const description =
     typeof payload.description === 'string' && payload.description.trim()
       ? payload.description.trim()
@@ -43,9 +66,12 @@ function normalizeExercisePayload(payload) {
   if (!name) {
     throw createHttpError('El nombre del ejercicio es obligatorio.', 400);
   }
-  if (!targetMuscle) {
-    throw createHttpError('El grupo muscular (target_muscle) es obligatorio.', 400);
+  if (!targetMuscle && !primaryFromPayload) {
+    throw createHttpError('El grupo muscular es obligatorio.', 400);
   }
+
+  const primaryMuscle = primaryFromPayload || targetMuscle;
+  const resolvedTarget = targetMuscle || primaryMuscle;
 
   const mediaTypeRaw =
     typeof payload.media_type === 'string' && payload.media_type.trim()
@@ -73,7 +99,8 @@ function normalizeExercisePayload(payload) {
   return {
     name,
     description,
-    target_muscle: targetMuscle,
+    target_muscle: resolvedTarget,
+    primary_muscle: ALLOWED_MUSCLE_SET.has(primaryMuscle) ? primaryMuscle : null,
     media_type: mediaTypeRaw,
     media_url: mediaUrl,
   };
@@ -180,14 +207,23 @@ function parseTruthyQueryFlag(raw) {
 
 /**
  * Lists global exercises + those owned by the trainer.
- * Optional `q` filters by name (LIKE). Paginated with page + limit (default 10, max 100).
- * Optional `enriched=1` → solo filas con name_es o local_media_path (Feature 044).
+ * Optional `q`, `muscle` (primary/secondary HITL), `warmup=1`, `enriched=1`.
  * @returns {{ items: object[], total: number, limit: number, page: number, totalPages: number }}
  */
-async function listExercisesForTrainer(trainerId, q, limitRaw, pageRaw, enrichedRaw) {
+async function listExercisesForTrainer(
+  trainerId,
+  q,
+  limitRaw,
+  pageRaw,
+  enrichedRaw,
+  muscleRaw,
+  warmupRaw,
+) {
   const limit = parseListLimit(limitRaw);
   const pageRequested = parseListPage(pageRaw);
   const onlyEnriched = parseTruthyQueryFlag(enrichedRaw);
+  const onlyWarmup = parseTruthyQueryFlag(warmupRaw);
+  const muscle = typeof muscleRaw === 'string' ? muscleRaw.trim() : '';
   const params = [trainerId];
   let whereSql = `
     WHERE (created_by_trainer_id IS NULL OR created_by_trainer_id = ?)
@@ -200,10 +236,33 @@ async function listExercisesForTrainer(trainerId, q, limitRaw, pageRaw, enriched
     )`;
   }
 
+  if (onlyWarmup) {
+    whereSql += ' AND is_warmup = 1';
+  }
+
+  if (muscle) {
+    if (!ALLOWED_MUSCLE_SET.has(muscle)) {
+      throw createHttpError(
+        `muscle inválido. Permitidos: ${ALLOWED_MUSCLES.join(', ')}`,
+        400,
+      );
+    }
+    // Principal exacto o secundario en JSON/LONGTEXT (MariaDB-safe).
+    whereSql += ` AND (
+      primary_muscle = ?
+      OR secondary_muscles LIKE ?
+    )`;
+    params.push(muscle, `%"${muscle}"%`);
+  }
+
   if (q && String(q).trim()) {
     const like = `%${String(q).trim()}%`;
-    whereSql += ' AND (name LIKE ? OR name_es LIKE ? OR target_muscle LIKE ? OR target_muscle_es LIKE ?)';
-    params.push(like, like, like, like);
+    whereSql += ` AND (
+      name LIKE ? OR name_es LIKE ?
+      OR target_muscle LIKE ? OR target_muscle_es LIKE ?
+      OR primary_muscle LIKE ?
+    )`;
+    params.push(like, like, like, like, like);
   }
 
   const [countRows] = await db.query(
@@ -243,12 +302,13 @@ async function createExerciseForTrainer(trainerId, payload) {
 
   const [result] = await db.query(
     `INSERT INTO exercises
-      (name, description, target_muscle, media_type, media_url, created_by_trainer_id)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+      (name, description, target_muscle, primary_muscle, media_type, media_url, created_by_trainer_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       data.name,
       data.description,
       data.target_muscle,
+      data.primary_muscle,
       data.media_type,
       data.media_url,
       trainerId,
@@ -279,13 +339,15 @@ async function updateExerciseForTrainer(trainerId, exerciseId, payload) {
 
   await db.query(
     `UPDATE exercises
-     SET name = ?, description = ?, target_muscle = ?, media_type = ?, media_url = ?
+     SET name = ?, description = ?, target_muscle = ?, primary_muscle = ?,
+         media_type = ?, media_url = ?
      WHERE id = ?
        AND (created_by_trainer_id IS NULL OR created_by_trainer_id = ?)`,
     [
       data.name,
       data.description,
       data.target_muscle,
+      data.primary_muscle,
       data.media_type,
       data.media_url,
       id,

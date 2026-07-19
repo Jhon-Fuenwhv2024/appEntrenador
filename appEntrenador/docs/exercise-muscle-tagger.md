@@ -43,3 +43,11 @@ Detalle de contratos: [`docs/api.md`](api.md) (sección Admin HITL).
 Tras guardar, limpia selección y pide el siguiente untagged. Si no hay más, muestra «¡Catálogo completado al 100%!».
 
 La UI muestra barra de progreso (`meta` del GET untagged): % completado, etiquetados y faltantes.
+
+## Uso en catálogo / rutinas (estilo Hevy)
+
+Las etiquetas HITL alimentan el catálogo trainer y los pickers de rutina/plantilla:
+
+- Display: `primary_muscle` tiene prioridad sobre `target_muscle*`.
+- Chips horizontales “Todos / Pecho / … / Calentamiento” para filtrar rápido.
+- API: `GET /exercises?muscle=Pecho&warmup=1`.

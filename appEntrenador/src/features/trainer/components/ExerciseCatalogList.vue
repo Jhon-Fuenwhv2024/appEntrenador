@@ -1,4 +1,6 @@
 <script setup>
+import ExerciseMuscleFilter from '../../../shared/components/ExerciseMuscleFilter.vue';
+import { parseSecondaryMuscles } from '../../../shared/constants/muscles.js';
 import {
   displayExerciseDescription,
   displayExerciseMuscle,
@@ -12,6 +14,8 @@ defineProps({
   loading: { type: Boolean, default: false },
   searchQuery: { type: String, default: '' },
   onlyEnriched: { type: Boolean, default: false },
+  muscleFilter: { type: String, default: null },
+  onlyWarmup: { type: Boolean, default: false },
   totalCount: { type: Number, default: 0 },
   pageSize: { type: Number, default: 6 },
   currentPage: { type: Number, default: 1 },
@@ -26,11 +30,18 @@ defineProps({
 defineEmits([
   'update:searchQuery',
   'update:onlyEnriched',
+  'update:muscleFilter',
+  'update:onlyWarmup',
   'edit',
   'delete',
   'prevPage',
   'nextPage',
 ]);
+
+function secondaryLabel(item) {
+  const list = parseSecondaryMuscles(item?.secondary_muscles);
+  return list.length ? list.join(', ') : '';
+}
 
 function mediaSrc(item) {
   return resolveExerciseMediaSrc(item);
@@ -76,6 +87,8 @@ function hasLocalMedia(item) {
         <p class="text-caption text-medium-emphasis mb-0 mt-1">
           Página {{ currentPage }} de {{ totalPages }}
           <span v-if="onlyEnriched"> · filtro ES / media local</span>
+          <span v-if="muscleFilter"> · {{ muscleFilter }}</span>
+          <span v-if="onlyWarmup"> · calentamiento</span>
         </p>
       </div>
       <div class="catalog-toolbar">
@@ -101,6 +114,16 @@ function hasLocalMedia(item) {
         />
       </div>
     </div>
+
+    <ExerciseMuscleFilter
+      class="mb-4"
+      :model-value="muscleFilter"
+      :only-warmup="onlyWarmup"
+      show-warmup
+      label="Músculo"
+      @update:model-value="$emit('update:muscleFilter', $event)"
+      @update:only-warmup="$emit('update:onlyWarmup', $event)"
+    />
 
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
 
@@ -141,6 +164,14 @@ function hasLocalMedia(item) {
                 Local
               </v-chip>
               <v-chip
+                v-if="item.is_warmup"
+                size="x-small"
+                color="warning"
+                variant="tonal"
+              >
+                Calent.
+              </v-chip>
+              <v-chip
                 size="x-small"
                 :color="item.is_global ? 'cyan' : 'orange'"
                 variant="tonal"
@@ -149,7 +180,15 @@ function hasLocalMedia(item) {
               </v-chip>
             </div>
           </div>
-          <div class="text-caption text-cyan mb-2">{{ displayExerciseMuscle(item) }}</div>
+          <div class="text-caption text-cyan mb-1">
+            {{ displayExerciseMuscle(item) || 'Sin etiquetar' }}
+          </div>
+          <div
+            v-if="secondaryLabel(item)"
+            class="text-caption text-medium-emphasis mb-2"
+          >
+            + {{ secondaryLabel(item) }}
+          </div>
           <p
             v-if="displayExerciseDescription(item)"
             class="exercise-card-desc"

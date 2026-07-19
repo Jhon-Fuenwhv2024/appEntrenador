@@ -21,6 +21,8 @@ const {
   saving,
   searchQuery,
   onlyEnriched,
+  muscleFilter,
+  onlyWarmup,
   errorMessage,
   globalCount,
   privateCount,
@@ -114,6 +116,8 @@ onMounted(async () => {
           <ExerciseCatalogList
             v-model:search-query="searchQuery"
             v-model:only-enriched="onlyEnriched"
+            v-model:muscle-filter="muscleFilter"
+            v-model:only-warmup="onlyWarmup"
             :exercises="exercises"
             :loading="loading"
             :total-count="totalCount"

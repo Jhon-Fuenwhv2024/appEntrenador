@@ -2,6 +2,8 @@
 import { computed, reactive, ref, shallowRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../../shared/api/http.js';
+import ExerciseMuscleFilter from '../../../shared/components/ExerciseMuscleFilter.vue';
+import { exerciseMatchesMuscleFilter } from '../../../shared/constants/muscles.js';
 import {
   displayExerciseDescription,
   displayExerciseMuscle,
@@ -10,7 +12,7 @@ import {
 import { createExercise, getAllExercises } from '../api/exercisesApi.js';
 
 const DEFAULT_REST_SECONDS = 90;
-const DEFAULT_TARGET_MUSCLE = 'General';
+const DEFAULT_TARGET_MUSCLE = 'Full Body';
 /** Plain strings — avoid object items with null (Vuetify select often fails to bind). */
 const SUPERSET_LETTER_OPTIONS = ['A', 'B', 'C', 'D', 'E'];
 
@@ -55,6 +57,8 @@ const emit = defineEmits(['update:modelValue', 'submit']);
 const router = useRouter();
 
 const catalogExercises = ref([]);
+const muscleFilter = shallowRef(null);
+const onlyWarmup = shallowRef(false);
 const catalogLoading = shallowRef(false);
 const savingCatalogIndex = shallowRef(null);
 const localSnack = reactive({
@@ -92,6 +96,17 @@ const catalogByName = computed(() => {
   }
   return map;
 });
+
+const filteredCatalogExercises = computed(() => (
+  catalogExercises.value.filter((item) => (
+    exerciseMatchesMuscleFilter(item, muscleFilter.value, onlyWarmup.value)
+  ))
+));
+
+function catalogItemSubtitle(item) {
+  const muscle = displayExerciseMuscle(item) || 'Sin etiquetar';
+  return item?.is_warmup ? `${muscle} · Calentamiento` : muscle;
+}
 
 const notify = (text, color = 'success') => {
   localSnack.show = true;
@@ -218,6 +233,7 @@ const saveExerciseToCatalog = async (index) => {
     const res = await createExercise({
       name,
       target_muscle: DEFAULT_TARGET_MUSCLE,
+      primary_muscle: DEFAULT_TARGET_MUSCLE,
       description: ex.indicaciones?.trim() || null,
       media_type: 'none',
     });
@@ -307,8 +323,20 @@ const handleSubmit = () => {
           density="compact"
           rows="2"
           auto-grow
-          class="mb-4"
+          class="mb-3"
         />
+
+        <div class="mb-3">
+          <p class="text-caption text-medium-emphasis mb-1">
+            Filtrar ejercicios
+          </p>
+          <ExerciseMuscleFilter
+            v-model="muscleFilter"
+            v-model:only-warmup="onlyWarmup"
+            show-warmup
+            label="Grupo muscular"
+          />
+        </div>
 
         <div
           v-for="(ex, index) in form.exercises"
@@ -329,7 +357,7 @@ const handleSubmit = () => {
 
           <v-autocomplete
             :model-value="ex.nombre"
-            :items="catalogExercises"
+            :items="filteredCatalogExercises"
             item-title="display_name"
             item-value="name"
             label="Nombre (catálogo o texto libre)"
@@ -346,7 +374,7 @@ const handleSubmit = () => {
             <template #item="{ props: itemProps, item }">
               <v-list-item
                 v-bind="itemProps"
-                :subtitle="displayExerciseMuscle(item.raw || {})"
+                :subtitle="catalogItemSubtitle(item.raw || {})"
               />
             </template>
           </v-autocomplete>

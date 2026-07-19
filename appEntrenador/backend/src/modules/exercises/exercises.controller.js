@@ -22,6 +22,8 @@ async function list(req, res) {
       req.query.limit,
       req.query.page,
       req.query.enriched,
+      req.query.muscle,
+      req.query.warmup,
     );
 
     return res.json({
@@ -33,6 +35,8 @@ async function list(req, res) {
         page: result.page,
         totalPages: result.totalPages,
         returned: result.items.length,
+        muscle: typeof req.query.muscle === 'string' ? req.query.muscle.trim() || null : null,
+        warmup: req.query.warmup === '1' || req.query.warmup === 'true',
       },
     });
   } catch (error) {

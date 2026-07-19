@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, watch } from 'vue';
+import { MUSCLE_OPTIONS } from '../../../shared/constants/muscles.js';
 
 const MEDIA_TYPES = [
   { title: 'Sin media', value: 'none' },
@@ -9,18 +10,7 @@ const MEDIA_TYPES = [
   { title: 'Video', value: 'video' },
 ];
 
-const MUSCLE_GROUPS = [
-  'Pecho',
-  'Espalda',
-  'Hombros',
-  'Piernas',
-  'Bíceps',
-  'Tríceps',
-  'Core',
-  'Glúteos',
-  'Gemelos',
-  'General',
-];
+const DEFAULT_MUSCLE = 'Full Body';
 
 const props = defineProps({
   saving: { type: Boolean, default: false },
@@ -31,7 +21,7 @@ const emit = defineEmits(['submit', 'cancel-edit']);
 
 const form = reactive({
   name: '',
-  target_muscle: 'General',
+  target_muscle: DEFAULT_MUSCLE,
   description: '',
   media_type: 'none',
   media_url: '',
@@ -41,18 +31,26 @@ const isEditing = () => Boolean(props.editingExercise?.id);
 
 const resetForm = () => {
   form.name = '';
-  form.target_muscle = 'General';
+  form.target_muscle = DEFAULT_MUSCLE;
   form.description = '';
   form.media_type = 'none';
   form.media_url = '';
 };
+
+function resolveMuscleForForm(exercise) {
+  const primary = exercise?.primary_muscle?.trim();
+  if (primary && MUSCLE_OPTIONS.includes(primary)) return primary;
+  const target = exercise?.target_muscle?.trim();
+  if (target && MUSCLE_OPTIONS.includes(target)) return target;
+  return DEFAULT_MUSCLE;
+}
 
 watch(
   () => props.editingExercise,
   (exercise) => {
     if (exercise) {
       form.name = exercise.name || '';
-      form.target_muscle = exercise.target_muscle || 'General';
+      form.target_muscle = resolveMuscleForForm(exercise);
       form.description = exercise.description || '';
       form.media_type = exercise.media_type || 'none';
       form.media_url = exercise.media_url || '';
@@ -77,6 +75,7 @@ const handleSubmit = () => {
   emit('submit', {
     name,
     target_muscle: form.target_muscle,
+    primary_muscle: form.target_muscle,
     description: form.description.trim() || null,
     media_type: form.media_type,
     media_url: form.media_type === 'none' ? null : (form.media_url.trim() || null),
@@ -118,7 +117,7 @@ defineExpose({ resetForm });
 
     <v-select
       v-model="form.target_muscle"
-      :items="MUSCLE_GROUPS"
+      :items="MUSCLE_OPTIONS"
       label="Grupo muscular"
       density="compact"
       class="mb-3"

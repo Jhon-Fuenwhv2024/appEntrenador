@@ -598,7 +598,9 @@ Lista ejercicios globales (`created_by_trainer_id IS NULL`) y los del trainer au
 
 Query:
 
-- `?q=press` — filtro por `name` / `name_es` / músculo (LIKE)
+- `?q=press` — filtro por `name` / `name_es` / `primary_muscle` / `target_muscle*` (LIKE)
+- `?muscle=Pecho` — filtro exacto por etiqueta HITL (`primary_muscle` o secundario)
+- `?warmup=1` — solo ejercicios con `is_warmup = 1`
 - `?limit=6` — tamaño de página (default **6**, máximo **100**)
 - `?page=1` — página actual (1-based)
 - `?enriched=1` — solo ejercicios con `name_es` o `local_media_path` (Feature 044)
@@ -619,6 +621,9 @@ Respuesta:
       "description_es": "...",
       "target_muscle": "Chest",
       "target_muscle_es": "Pecho",
+      "primary_muscle": "Pecho",
+      "secondary_muscles": ["Tríceps", "Hombros"],
+      "is_warmup": false,
       "media_type": "gif",
       "media_url": "https://raw.githubusercontent.com/...",
       "local_media_path": "/uploads/exercises/exercise_1.gif",
@@ -631,7 +636,9 @@ Respuesta:
     "limit": 6,
     "page": 1,
     "totalPages": 150,
-    "returned": 6
+    "returned": 6,
+    "muscle": null,
+    "warmup": false
   }
 }
 ```

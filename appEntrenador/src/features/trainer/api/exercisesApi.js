@@ -5,7 +5,14 @@ const EXERCISES_PAGE_LIMIT = 100;
 const MAX_CATALOG_PAGES = 50;
 
 /**
- * @param {string|{ q?: string, limit?: number, page?: number, enriched?: boolean }} [options]
+ * @param {string|{
+ *   q?: string,
+ *   limit?: number,
+ *   page?: number,
+ *   enriched?: boolean,
+ *   muscle?: string|null,
+ *   warmup?: boolean,
+ * }} [options]
  */
 export function getExercises(options) {
   const params = {};
@@ -16,6 +23,8 @@ export function getExercises(options) {
     if (options.limit != null) params.limit = options.limit;
     if (options.page != null) params.page = options.page;
     if (options.enriched) params.enriched = 1;
+    if (options.muscle) params.muscle = options.muscle;
+    if (options.warmup) params.warmup = 1;
   }
   return http.get('/exercises', {
     params: Object.keys(params).length ? params : undefined,
@@ -25,7 +34,7 @@ export function getExercises(options) {
 /**
  * Fetches the full trainer catalog by paging (API caps limit at 100).
  * Used by routine/template autocompletes that need every exercise.
- * @param {{ q?: string, enriched?: boolean }} [options]
+ * @param {{ q?: string, enriched?: boolean, muscle?: string|null, warmup?: boolean }} [options]
  * @returns {Promise<object[]>}
  */
 export async function getAllExercises(options = {}) {
@@ -37,6 +46,8 @@ export async function getAllExercises(options = {}) {
     const res = await getExercises({
       q: options.q,
       enriched: options.enriched,
+      muscle: options.muscle,
+      warmup: options.warmup,
       limit: EXERCISES_PAGE_LIMIT,
       page,
     });
