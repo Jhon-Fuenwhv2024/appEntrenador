@@ -7,10 +7,6 @@ const clientsServicePath = path.resolve(
   __dirname,
   '../src/modules/clients/clients.service.js',
 );
-const nutritionServicePath = path.resolve(
-  __dirname,
-  '../src/modules/nutrition/nutrition.service.js',
-);
 
 test('rolls back active plan changes when nutrition target sync fails', async () => {
   const events = [];
@@ -23,6 +19,9 @@ test('rolls back active plan changes when nutrition target sync fails', async ()
     },
     async query(sql) {
       events.push(sql.trim().replace(/\s+/g, ' '));
+      if (sql.includes('INSERT INTO nutrition_targets')) {
+        throw syncError;
+      }
       if (sql.includes('INSERT INTO diet_plans')) {
         return [{ insertId: nextInsertId++ }];
       }
@@ -65,26 +64,6 @@ test('rolls back active plan changes when nutrition target sync fails', async ()
       },
     },
   };
-  require.cache[nutritionServicePath] = {
-    id: nutritionServicePath,
-    filename: nutritionServicePath,
-    loaded: true,
-    exports: {
-      async syncFromDietPlanTotals(trainerId, clientId, totals, queryExecutor) {
-        assert.equal(trainerId, 3);
-        assert.equal(clientId, 7);
-        assert.deepEqual(totals, {
-          calories: 0,
-          protein_g: 0,
-          carbs_g: 0,
-          fats_g: 0,
-        });
-        assert.equal(queryExecutor, connection);
-        events.push('sync');
-        throw syncError;
-      },
-    },
-  };
 
   const dietPlansService = require('../src/modules/diet-plans/diet-plans.service');
 
@@ -101,10 +80,10 @@ test('rolls back active plan changes when nutrition target sync fails', async ()
               food_name: 'Café',
               quantity: 1,
               unit: 'taza',
-              calories: 0,
-              protein_g: 0,
-              carbs_g: 0,
-              fats_g: 0,
+              calories: 300,
+              protein_g: 20,
+              carbs_g: 30,
+              fats_g: 10,
             },
           ],
         },
@@ -114,7 +93,11 @@ test('rolls back active plan changes when nutrition target sync fails', async ()
   );
 
   assert.ok(events.some((event) => event.startsWith('UPDATE diet_plans')));
-  assert.ok(events.indexOf('sync') < events.indexOf('rollback'));
+  const syncIndex = events.findIndex((event) =>
+    event.startsWith('INSERT INTO nutrition_targets'),
+  );
+  assert.ok(syncIndex > -1);
+  assert.ok(syncIndex < events.indexOf('rollback'));
   assert.ok(!events.includes('commit'));
   assert.equal(events.at(-1), 'release');
 });
