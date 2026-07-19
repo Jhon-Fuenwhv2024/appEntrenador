@@ -53,8 +53,8 @@ function normalizePayload(payload) {
   };
 }
 
-async function getByClientId(clientId) {
-  const [rows] = await db.query(
+async function getByClientId(clientId, queryExecutor = db) {
+  const [rows] = await queryExecutor.query(
     `SELECT ${SELECT_COLUMNS}
      FROM nutrition_targets
      WHERE client_id = ?
@@ -90,7 +90,7 @@ async function getForRequester(requester, clientId) {
 /**
  * PUT (UPSERT): solo el trainer dueño del cliente.
  */
-async function upsertForTrainer(trainerId, clientId, payload) {
+async function upsertForTrainer(trainerId, clientId, payload, queryExecutor = db) {
   if (!Number.isInteger(clientId) || clientId <= 0) {
     throw createHttpError('clientId inválido.', 400);
   }
@@ -98,7 +98,7 @@ async function upsertForTrainer(trainerId, clientId, payload) {
   await clientsService.getClientOwnedByTrainer(clientId, trainerId);
   const data = normalizePayload(payload || {});
 
-  await db.query(
+  await queryExecutor.query(
     `INSERT INTO nutrition_targets (
       client_id, trainer_id, calories, protein_g, carbs_g, fats_g
     ) VALUES (?, ?, ?, ?, ?, ?)
@@ -118,7 +118,7 @@ async function upsertForTrainer(trainerId, clientId, payload) {
     ],
   );
 
-  return getByClientId(clientId);
+  return getByClientId(clientId, queryExecutor);
 }
 
 /**
@@ -136,14 +136,19 @@ function roundMacroToPositiveInt(value, fieldLabel) {
   return num;
 }
 
-async function syncFromDietPlanTotals(trainerId, clientId, totals = {}) {
+async function syncFromDietPlanTotals(
+  trainerId,
+  clientId,
+  totals = {},
+  queryExecutor = db,
+) {
   const payload = {
     calories: roundMacroToPositiveInt(totals.calories, 'calories'),
     protein_g: roundMacroToPositiveInt(totals.protein_g, 'protein_g'),
     carbs_g: roundMacroToPositiveInt(totals.carbs_g, 'carbs_g'),
     fats_g: roundMacroToPositiveInt(totals.fats_g, 'fats_g'),
   };
-  return upsertForTrainer(trainerId, clientId, payload);
+  return upsertForTrainer(trainerId, clientId, payload, queryExecutor);
 }
 
 module.exports = {
