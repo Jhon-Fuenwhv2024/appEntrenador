@@ -4,6 +4,7 @@
  */
 import { onMounted, reactive, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
+import { changeMyPassword } from '../../shared/api/accountApi.js';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import {
   buildProfileFormData,
@@ -13,6 +14,7 @@ import {
 import { clearSession, getSessionUser } from '../../shared/auth/session.js';
 import { normalizeMembershipPeriod } from '../../shared/membership/period.js';
 import AppShell from '../../shared/layout/AppShell.vue';
+import ChangePasswordForm from '../../shared/components/ChangePasswordForm.vue';
 import ProfileFormCard from '../../shared/components/ProfileFormCard.vue';
 import { getMyMembership } from './api/membershipApi.js';
 import ClientProfileMembershipCard from './components/ClientProfileMembershipCard.vue';
@@ -24,6 +26,7 @@ const profile = shallowRef(null);
 const membership = shallowRef(null);
 const loading = shallowRef(true);
 const saving = shallowRef(false);
+const savingPassword = shallowRef(false);
 const loadError = shallowRef('');
 
 const snackbar = reactive({
@@ -81,6 +84,21 @@ async function onSave({ fields, fotoFile, done }) {
     done?.(false);
   } finally {
     saving.value = false;
+  }
+}
+
+async function onChangePassword({ current_password, new_password, done }) {
+  try {
+    savingPassword.value = true;
+    await changeMyPassword({ current_password, new_password });
+    notify('Contraseña actualizada');
+    done?.(true);
+  } catch (error) {
+    console.error('Error cambiando contraseña:', error);
+    notify(getApiErrorMessage(error, 'No se pudo cambiar la contraseña'), 'error');
+    done?.(false);
+  } finally {
+    savingPassword.value = false;
   }
 }
 
@@ -150,6 +168,11 @@ onMounted(() => {
             :profile="profile"
             :saving="saving"
             @save="onSave"
+          />
+
+          <ChangePasswordForm
+            :saving="savingPassword"
+            @submit="onChangePassword"
           />
 
           <ClientProfileMembershipCard :membership="membership" />

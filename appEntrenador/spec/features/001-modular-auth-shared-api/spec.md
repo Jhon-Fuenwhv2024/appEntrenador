@@ -12,12 +12,12 @@ Hoy las URLs de la API están duplicadas en componentes, auth está repartido si
 
 ## Criterios de aceptación
 
-- [ ] Existe un cliente Axios compartido (p. ej. `src/shared/api/`) usado por login/registro (y trainer donde aplique) en lugar de URLs hardcodeadas repetidas en cada componente.
-- [ ] Los componentes/vistas de login y registro viven bajo `src/features/auth/` (o rutas equivalentes documentadas), importados desde el router sin romper `/` y `/registro`.
-- [ ] El backend expone auth desde `backend/src/modules/auth/` (routes → controller → service o estructura equivalente), montado desde `server.js`.
-- [ ] Login, registro con token e invitación (`generate-token`) siguen funcionando como antes.
-- [ ] No se cambia el schema MySQL ni se añade JWT en esta feature.
-- [ ] `spec/constitution/roadmap.md` refleja el estado al cerrar la feature.
+- [x] Existe un cliente Axios compartido (p. ej. `src/shared/api/`) usado por login/registro (y trainer donde aplique) en lugar de URLs hardcodeadas repetidas en cada componente.
+- [x] Los componentes/vistas de login y registro viven bajo `src/features/auth/` (o rutas equivalentes documentadas), importados desde el router sin romper `/` y `/registro`.
+- [x] El backend expone auth desde `backend/src/modules/auth/` (routes → controller → service o estructura equivalente), montado desde `server.js`.
+- [x] Login, registro con token e invitación (`generate-token`) siguen funcionando como antes.
+- [x] No se cambia el schema MySQL ni se añade JWT en esta feature.
+- [x] `spec/constitution/roadmap.md` refleja el estado al cerrar la feature.
 
 ## Fuera de alcance
 

@@ -1,6 +1,6 @@
 # 024 · Ajustes de cuenta
 
-**Estado:** implementado (trainer); client password UI pendiente de slot dedicado
+**Estado:** implementado (trainer); client password UI implemented via 045
 
 **Depende de:** 016 (slot Ajustes)
 

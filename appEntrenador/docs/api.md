@@ -407,13 +407,14 @@ Body JSON:
 }
 ```
 
-Valida bcrypt de la actual, hashea la nueva. La sesión JWT actual **sigue válida** (no fuerza re-login).
+Valida bcrypt de la actual, hashea la nueva. La sesión JWT actual **sigue válida** (no fuerza re-login). Roles: `trainer` | `client`.
 
-UI trainer: `/trainer/settings` (perfil colapsable + cambio de contraseña).
+UI trainer: `/trainer/settings` (perfil colapsable + cambio de contraseña).  
+UI client: `/client/profile` (`ChangePasswordForm`, Feature 045).
 
 ## Perfil alumno (`alumnos_info` · Feature 020)
 
-Tabla 1:1 con `usuarios` (rol client). Upsert al guardar. Avatares en `backend/public/uploads/avatars` servidos en `/uploads/...` (fuera de `/api`).
+Tabla 1:1 con `usuarios` (rol client). Upsert al guardar. Avatares en `backend/public/uploads/avatars` servidos en `/uploads/avatars/...` (fuera de `/api`; **requiere JWT** Bearer o `?token=`).
 
 ### `GET /profile/:userId`
 
@@ -1140,7 +1141,7 @@ Body: `{ "date": "2026-07-15" }`. Si existe el log, lo borra (`completed: false`
 
 ## Check-in semanal y fotos de progreso (Feature 033)
 
-Tablas `weekly_checkins` + `progress_photos`. Fotos opcionales (JPG/PNG, máx. 5 MB). Almacenamiento local en `backend/public/uploads/photos`, servido en `/uploads/photos/...`.
+Tablas `weekly_checkins` + `progress_photos`. Fotos opcionales (JPG/PNG, máx. 5 MB). Almacenamiento local en `backend/public/uploads/photos`, servido en `/uploads/photos/...` (**requiere JWT** Bearer o `?token=`; catálogo `/uploads/exercises` sigue público).
 
 ### `POST /checkins` (client)
 
@@ -1176,7 +1177,7 @@ Respuesta (`201`):
 
 ### `GET /checkins/client/:clientId` (trainer | client)
 
-Historial cronológico con fotos asociadas. Trainer: solo alumnos propios. Client: solo su propio `clientId`.
+Historial cronológico con fotos asociadas. Trainer: solo alumnos propios. Client: solo su propio `clientId`. Incluye `reviewed_at` (`null` = pendiente de revisión).
 
 ```json
 {
@@ -1190,11 +1191,16 @@ Historial cronológico con fotos asociadas. Trainer: solo alumnos propios. Clien
       "stress_level": 2,
       "diet_adherence": 5,
       "notes": null,
+      "reviewed_at": null,
       "photos": []
     }
   ]
 }
 ```
+
+### `PATCH /checkins/:id/review` (trainer)
+
+Marca `reviewed_at = NOW()` si el check-in pertenece a un alumno del trainer. Idempotente si ya estaba revisado. Baja el KPI `pendingTasks.unreviewedCheckins` del dashboard (Feature 035).
 
 ## Mensajería interna (Feature 034)
 

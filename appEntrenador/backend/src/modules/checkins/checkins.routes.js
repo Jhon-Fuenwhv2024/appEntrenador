@@ -20,4 +20,11 @@ router.get(
   checkinsController.listByClient,
 );
 
+router.patch(
+  '/checkins/:id/review',
+  authenticate,
+  requireRole('trainer'),
+  checkinsController.markReviewed,
+);
+
 module.exports = router;

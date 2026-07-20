@@ -169,7 +169,7 @@ const membershipBadge = computed(() => {
         <div
           v-else
           class="c360-chip c360-chip--slot c360-chip--empty"
-          title="Consistencia (próximamente)"
+          title="Sin datos de consistencia aún"
         >
           <v-icon icon="mdi-fire" size="14" start />
           Consistencia

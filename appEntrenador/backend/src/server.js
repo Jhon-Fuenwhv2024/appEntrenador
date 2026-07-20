@@ -1,6 +1,5 @@
 require('dotenv').config();
 
-const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const { PORT } = require('./config/env');
@@ -43,6 +42,7 @@ const {
   ensureExercisesMediaDir,
 } = require('./db/ensureExercisesI18nColumns');
 const { ensureExercisesMuscleTags } = require('./db/ensureExercisesMuscleTags');
+const { mountPrivateUploads } = require('./middleware/authenticatePrivateUploads');
 
 const app = express();
 
@@ -52,8 +52,8 @@ ensureExercisesMediaDir();
 
 app.use(cors());
 app.use(express.json());
-// Media local de ejercicios (y otros uploads): /uploads/... → backend/public/uploads
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+// Photos/avatars: JWT (Bearer o ?token=). Exercises: público.
+mountPrivateUploads(app, express);
 
 app.use('/api', authRoutes);
 app.use('/api/invites', invitesRoutes);

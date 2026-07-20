@@ -14,14 +14,14 @@ Hoy `GET /api/clients` vive directamente en `backend/src/server.js` y `TrainerDa
 
 ## Criterios de aceptación
 
-- [ ] `GET /api/clients` vive en `backend/src/modules/clients/` con routes, controller y service.
-- [ ] `backend/src/server.js` solo monta el módulo de clientes; no contiene SQL ni lógica de negocio de clientes.
-- [ ] El frontend consume clientes mediante `src/features/trainer/api/clientsApi.js` usando `src/shared/api/http.js`.
-- [ ] `TrainerDashboard` vive bajo `src/features/trainer/` o queda reemplazado por una vista equivalente importada desde esa feature.
-- [ ] La UI del entrenador conserva el listado de alumnos y la generación de invitaciones.
-- [ ] Los errores de clientes usan el formato JSON unificado del backend.
-- [ ] No se cambia el schema MySQL ni se añade CRUD de rutinas en esta feature.
-- [ ] `spec/constitution/roadmap.md` refleja el estado al cerrar la feature.
+- [x] `GET /api/clients` vive en `backend/src/modules/clients/` con routes, controller y service.
+- [x] `backend/src/server.js` solo monta el módulo de clientes; no contiene SQL ni lógica de negocio de clientes.
+- [x] El frontend consume clientes mediante `src/features/trainer/api/clientsApi.js` usando `src/shared/api/http.js`.
+- [x] `TrainerDashboard` vive bajo `src/features/trainer/` o queda reemplazado por una vista equivalente importada desde esa feature.
+- [x] La UI del entrenador conserva el listado de alumnos y la generación de invitaciones.
+- [x] Los errores de clientes usan el formato JSON unificado del backend.
+- [x] No se cambia el schema MySQL ni se añade CRUD de rutinas en esta feature.
+- [x] `spec/constitution/roadmap.md` refleja el estado al cerrar la feature.
 
 ## Fuera de alcance
 

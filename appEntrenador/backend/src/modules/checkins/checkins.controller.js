@@ -54,7 +54,24 @@ async function listByClient(req, res) {
   }
 }
 
+/**
+ * PATCH /api/checkins/:id/review
+ */
+async function markReviewed(req, res) {
+  try {
+    const data = await checkinsService.markReviewed(req.user, req.params.id);
+    return res.json({
+      success: true,
+      message: 'Check-in marcado como revisado',
+      data,
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error marcando check-in como revisado:');
+  }
+}
+
 module.exports = {
   create,
   listByClient,
+  markReviewed,
 };

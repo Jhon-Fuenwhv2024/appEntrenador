@@ -12,33 +12,33 @@ Enriquece el catálogo de ejercicios (hoy en inglés, seed wrkout) con **nombres
 
 ### Base de datos
 
-- [ ] Columnas en `exercises` (preferido MVP):
+- [x] Columnas en `exercises` (preferido MVP):
   - `name_es` VARCHAR nullable
   - `description_es` TEXT nullable
   - opcional: `target_muscle_es` VARCHAR nullable
-- [ ] Alternativa aceptable: tabla `exercise_translations` (`exercise_id`, `locale`, `name`, `description`, UNIQUE)
-- [ ] Migración + ensure + `script_db.sql`
-- [ ] Mapeo estable: preferir match por nombre EN / slug; documentar tasa de match y casos sin pareja
+- [x] Alternativa aceptable: tabla `exercise_translations` (`exercise_id`, `locale`, `name`, `description`, UNIQUE)
+- [x] Migración + ensure + `script_db.sql`
+- [x] Mapeo estable: preferir match por nombre EN / slug; documentar tasa de match y casos sin pareja
 
 ### Script de scraping
 
-- [ ] Script en `backend/scripts/` (ej. `scrapeFitcronExercises.js`), ejecutable con `node`
-- [ ] Stack: `axios` + `cheerio` preferido; Puppeteer solo si el HTML lo exige
-- [ ] Extrae: nombre ES, descripción, músculos implicados (según disponibilidad en la página)
-- [ ] Scraping ético: respetar `robots.txt` / ToS, rate-limit, User-Agent identificable, sin martillar el sitio
-- [ ] Modos: `--dry-run` (solo reportar matches) y upsert a DB
-- [ ] No exponer el scraper como endpoint público
+- [x] Script en `backend/scripts/` (ej. `scrapeFitcronExercises.js`), ejecutable con `node`
+- [x] Stack: `axios` + `cheerio` preferido; Puppeteer solo si el HTML lo exige
+- [x] Extrae: nombre ES, descripción, músculos implicados (según disponibilidad en la página)
+- [x] Scraping ético: respetar `robots.txt` / ToS, rate-limit, User-Agent identificable, sin martillar el sitio
+- [x] Modos: `--dry-run` (solo reportar matches) y upsert a DB
+- [x] No exponer el scraper como endpoint público
 
 ### Backend / API
 
-- [ ] Listados de ejercicios incluyen campos ES (o locale)
-- [ ] FE trainer/cliente puede preferir `name_es || name` (y description equivalente)
-- [ ] Crear/editar ejercicio custom del trainer sigue funcionando; ES opcional
+- [x] Listados de ejercicios incluyen campos ES (o locale)
+- [x] FE trainer/cliente puede preferir `name_es || name` (y description equivalente)
+- [x] Crear/editar ejercicio custom del trainer sigue funcionando; ES opcional
 
 ### Frontend
 
-- [ ] Catálogo y comboboxes muestran etiqueta en español cuando `name_es` exista
-- [ ] Sin adoptar vue-i18n completo en esta feature
+- [x] Catálogo y comboboxes muestran etiqueta en español cuando `name_es` exista
+- [x] Sin adoptar vue-i18n completo en esta feature
 
 ## Fuera de alcance
 

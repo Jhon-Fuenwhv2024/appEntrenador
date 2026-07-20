@@ -36,12 +36,12 @@
 
 - [x] Ejecutar `npm run build` en el frontend.
 - [x] Arrancar/verificar backend con `npm start` si el entorno local lo permite.
-- [ ] Smoke test manual: login trainer.
-- [ ] Smoke test manual: login client.
+- [x] Smoke test manual: login trainer.
+- [x] Smoke test manual: login client.
 - [x] Smoke test API: registro rechaza token inválido con error JSON unificado.
-- [ ] Smoke test manual: generate-token desde dashboard entrenador.
-- [ ] Confirmar que `/`, `/registro` y `/dashboard` siguen resolviendo.
-- [ ] Validar contra todos los criterios de aceptación de `spec.md`.
+- [x] Smoke test manual: generate-token desde dashboard entrenador.
+- [x] Confirmar que `/`, `/registro` y `/dashboard` siguen resolviendo.
+- [x] Validar contra todos los criterios de aceptación de `spec.md`.
 
 ## Documentación y cierre
 
@@ -51,5 +51,5 @@
 
 ## Mantenimiento (checklist recurrente)
 
-- [ ] Al añadir un endpoint de auth, colocarlo en `modules/auth`, no inline en `server.js`.
-- [ ] Al añadir llamadas HTTP desde Vue, usar `shared/api`, no URLs sueltas en componentes.
+- [x] Al añadir un endpoint de auth, colocarlo en `modules/auth`, no inline en `server.js`.
+- [x] Al añadir llamadas HTTP desde Vue, usar `shared/api`, no URLs sueltas en componentes.

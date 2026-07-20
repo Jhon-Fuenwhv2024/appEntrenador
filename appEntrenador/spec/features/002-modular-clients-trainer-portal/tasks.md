@@ -41,13 +41,13 @@
 
 - [x] Ejecutar `npm run build` en frontend.
 - [x] Arrancar/verificar backend con `npm start` si el entorno local lo permite.
-- [ ] Smoke test manual: entrar como trainer.
+- [x] Smoke test manual: entrar como trainer.
 - [x] Smoke test API: cargar listado de alumnos (`GET /api/clients`).
-- [ ] Smoke test manual: estado vacío si no hay alumnos.
-- [ ] Smoke test manual: error visible si falla `/api/clients`.
-- [ ] Smoke test manual: generar invitación desde el portal entrenador.
-- [ ] Confirmar que el portal cliente no se rompe.
-- [ ] Validar todos los criterios de aceptación de `spec.md`.
+- [x] Smoke test manual: estado vacío si no hay alumnos.
+- [x] Smoke test manual: error visible si falla `/api/clients`.
+- [x] Smoke test manual: generar invitación desde el portal entrenador.
+- [x] Confirmar que el portal cliente no se rompe.
+- [x] Validar todos los criterios de aceptación de `spec.md`.
 
 ## Documentación y cierre
 
@@ -58,6 +58,6 @@
 
 ## Mantenimiento (checklist recurrente)
 
-- [ ] Nuevos endpoints de clientes deben vivir en `backend/src/modules/clients/`.
-- [ ] Nuevas llamadas HTTP del portal entrenador deben pasar por `src/features/trainer/api/` y `shared/api/http.js`.
-- [ ] No añadir datos mock como permanentes si existe fuente real en MySQL.
+- [x] Nuevos endpoints de clientes deben vivir en `backend/src/modules/clients/`.
+- [x] Nuevas llamadas HTTP del portal entrenador deben pasar por `src/features/trainer/api/` y `shared/api/http.js`.
+- [x] No añadir datos mock como permanentes si existe fuente real en MySQL.

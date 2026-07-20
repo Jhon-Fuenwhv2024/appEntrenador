@@ -4,8 +4,9 @@
  * Timeline + miniaturas con visor ampliado.
  */
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
-import { API_ORIGIN, getApiErrorMessage } from '../../../shared/api/http.js';
-import { getClientCheckins } from '../api/checkinsApi.js';
+import { getApiErrorMessage } from '../../../shared/api/http.js';
+import { resolveMediaSrc } from '../../../shared/utils/mediaUrl.js';
+import { getClientCheckins, markCheckinReviewed } from '../api/checkinsApi.js';
 
 const POSE_LABELS = {
   front: 'Frente',
@@ -29,6 +30,7 @@ const viewerOpen = shallowRef(false);
 const viewerSrc = shallowRef('');
 const viewerCaption = shallowRef('');
 const poseFilter = shallowRef('all');
+const reviewingId = shallowRef(null);
 
 const poseFilterItems = [
   { title: 'Todas las poses', value: 'all' },
@@ -38,13 +40,7 @@ const poseFilterItems = [
 ];
 
 function resolvePhotoSrc(imageUrl) {
-  const url = typeof imageUrl === 'string' ? imageUrl.trim() : '';
-  if (!url) return '';
-  if (/^https?:\/\//i.test(url) || url.startsWith('blob:') || url.startsWith('data:')) {
-    return url;
-  }
-  const path = url.startsWith('/') ? url : `/${url}`;
-  return `${API_ORIGIN}${path}`;
+  return resolveMediaSrc(imageUrl);
 }
 
 function formatDateLabel(isoDate) {
@@ -117,6 +113,31 @@ function openViewer(photo) {
   viewerSrc.value = resolvePhotoSrc(photo.image_url);
   viewerCaption.value = `${POSE_LABELS[photo.pose_type] || photo.pose_type} · ${formatDateLabel(photo.taken_at)}`;
   viewerOpen.value = true;
+}
+
+async function onMarkReviewed(item) {
+  if (!item?.id || item.reviewed_at) return;
+  try {
+    reviewingId.value = item.id;
+    const response = await markCheckinReviewed(item.id);
+    const updated = response.data?.data;
+    const idx = checkins.value.findIndex((c) => c.id === item.id);
+    if (idx >= 0) {
+      checkins.value[idx] = {
+        ...checkins.value[idx],
+        reviewed_at: updated?.reviewed_at ?? new Date().toISOString(),
+      };
+    }
+    emit('notify', { text: 'Check-in marcado como revisado', color: 'success' });
+  } catch (error) {
+    console.error('Error marcando check-in:', error);
+    emit('notify', {
+      text: getApiErrorMessage(error, 'No se pudo marcar como revisado'),
+      color: 'error',
+    });
+  } finally {
+    reviewingId.value = null;
+  }
 }
 
 watch(
@@ -197,40 +218,62 @@ defineExpose({ reload: loadCheckins });
 
         <v-card class="checkin-card" color="surface" variant="tonal">
           <v-card-text class="py-3 px-3">
-            <div class="checkin-metrics">
-              <div class="checkin-chip">
-                <v-icon icon="mdi-sleep" size="14" />
-                Sueño
-                <v-chip
-                  size="x-small"
-                  :color="ratingColor(item.sleep_quality, 'sleep')"
-                  variant="flat"
-                >
-                  {{ item.sleep_quality }}/5
-                </v-chip>
+            <div class="checkin-card__top">
+              <div class="checkin-metrics">
+                <div class="checkin-chip">
+                  <v-icon icon="mdi-sleep" size="14" />
+                  Sueño
+                  <v-chip
+                    size="x-small"
+                    :color="ratingColor(item.sleep_quality, 'sleep')"
+                    variant="flat"
+                  >
+                    {{ item.sleep_quality }}/5
+                  </v-chip>
+                </div>
+                <div class="checkin-chip">
+                  <v-icon icon="mdi-head-heart-outline" size="14" />
+                  Estrés
+                  <v-chip
+                    size="x-small"
+                    :color="ratingColor(item.stress_level, 'stress')"
+                    variant="flat"
+                  >
+                    {{ item.stress_level }}/5
+                  </v-chip>
+                </div>
+                <div class="checkin-chip">
+                  <v-icon icon="mdi-food-apple-outline" size="14" />
+                  Dieta
+                  <v-chip
+                    size="x-small"
+                    :color="ratingColor(item.diet_adherence, 'diet')"
+                    variant="flat"
+                  >
+                    {{ item.diet_adherence }}/5
+                  </v-chip>
+                </div>
               </div>
-              <div class="checkin-chip">
-                <v-icon icon="mdi-head-heart-outline" size="14" />
-                Estrés
-                <v-chip
-                  size="x-small"
-                  :color="ratingColor(item.stress_level, 'stress')"
-                  variant="flat"
-                >
-                  {{ item.stress_level }}/5
-                </v-chip>
-              </div>
-              <div class="checkin-chip">
-                <v-icon icon="mdi-food-apple-outline" size="14" />
-                Dieta
-                <v-chip
-                  size="x-small"
-                  :color="ratingColor(item.diet_adherence, 'diet')"
-                  variant="flat"
-                >
-                  {{ item.diet_adherence }}/5
-                </v-chip>
-              </div>
+              <v-chip
+                v-if="item.reviewed_at"
+                size="x-small"
+                color="success"
+                variant="tonal"
+                prepend-icon="mdi-check"
+              >
+                Revisado
+              </v-chip>
+              <v-btn
+                v-else
+                size="x-small"
+                color="primary"
+                variant="tonal"
+                :loading="reviewingId === item.id"
+                prepend-icon="mdi-eye-check-outline"
+                @click="onMarkReviewed(item)"
+              >
+                Marcar revisado
+              </v-btn>
             </div>
 
             <p v-if="item.notes" class="checkin-notes">{{ item.notes }}</p>
@@ -319,10 +362,19 @@ defineExpose({ reload: loadCheckins });
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.checkin-card__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+}
+
 .checkin-metrics {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 0.85rem;
+  flex: 1 1 auto;
 }
 
 .checkin-chip {

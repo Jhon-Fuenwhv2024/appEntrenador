@@ -22,7 +22,8 @@ El Inicio del entrenador necesita KPIs gerenciales (retención, cola de tareas, 
 
 - Fuente: `weekly_checkins` de alumnos del trainer.
 - **Sin revisar:** `reviewed_at IS NULL`.
-- Columna `reviewed_at` (DATETIME nullable) añadida en Feature 035. Marcar revisión (UI/API) puede llegar después; el KPI solo cuenta pendientes.
+- Columna `reviewed_at` (DATETIME nullable) añadida en Feature 035.
+- Marcar revisión: `PATCH /api/checkins/:id/review` (trainer dueño) + botón en `CheckinsHistoryPanel`. El KPI cuenta solo `reviewed_at IS NULL`.
 
 ### Dieta por asignar
 

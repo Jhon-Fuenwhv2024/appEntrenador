@@ -12,34 +12,34 @@ Calcula y muestra la **racha** de días/entrenos del alumno y un **score de cons
 
 ### Datos / persistencia
 
-- [ ] Tabla `client_streaks` (recomendado):
+- [x] Tabla `client_streaks` (recomendado):
   - `client_id` UNIQUE FK
   - `current_streak` INT
   - `best_streak` INT
   - `week_goal` INT default 3 (entrenos/semana)
   - `updated_at`
-- [ ] Alternativa aceptable en MVP: cálculo 100% on-the-fly sin tabla, persistiendo solo `week_goal` (columna en `alumnos_info` o tabla mínima).
-- [ ] Fuente de verdad de “día con entreno”: `workout_sessions` con status finished (fecha local/UTC documentada).
-- [ ] Score 0–100: fórmula documentada (ej. % de meta semanal últimos 7 días + bonus de racha, cap 100).
+- [x] Alternativa aceptable en MVP: cálculo 100% on-the-fly sin tabla, persistiendo solo `week_goal` (columna en `alumnos_info` o tabla mínima).
+- [x] Fuente de verdad de “día con entreno”: `workout_sessions` con status finished (fecha local/UTC documentada).
+- [x] Score 0–100: fórmula documentada (ej. % de meta semanal últimos 7 días + bonus de racha, cap 100).
 
 ### Backend
 
-- [ ] `GET /me/consistency` — client: `{ current_streak, best_streak, week_goal, workouts_this_week, score, days_remaining_in_week? }`.
-- [ ] `GET /clients/:clientId/consistency` — trainer dueño.
-- [ ] `PUT /clients/:clientId/consistency` o `PUT .../week-goal` — trainer actualiza `week_goal`.
-- [ ] Recalcular racha al cerrar sesión (hook en workout-sessions) o lazy en GET.
-- [ ] Notificaciones opcionales: `streak_milestone` (ej. 7 días), `streak_at_risk` (sin entreno y racha > 0).
+- [x] `GET /me/consistency` — client: `{ current_streak, best_streak, week_goal, workouts_this_week, score, days_remaining_in_week? }`.
+- [x] `GET /clients/:clientId/consistency` — trainer dueño.
+- [x] `PUT /clients/:clientId/consistency` o `PUT .../week-goal` — trainer actualiza `week_goal`.
+- [x] Recalcular racha al cerrar sesión (hook en workout-sessions) o lazy en GET.
+- [x] Notificaciones opcionales: `streak_milestone` (ej. 7 días), `streak_at_risk` (sin entreno y racha > 0).
 
 ### UI Cliente
 
-- [ ] Widget en Inicio (038): “Racha: N días” + progreso meta semanal “X/Y entrenos”.
-- [ ] Micro-celebración al proteger/alargar racha (puede reutilizar patrón visual de 041, sin confeti de PR).
-- [ ] En Progreso: mejor racha histórica.
+- [x] Widget en Inicio (038): “Racha: N días” + progreso meta semanal “X/Y entrenos”.
+- [x] Micro-celebración al proteger/alargar racha (puede reutilizar patrón visual de 041, sin confeti de PR).
+- [x] En Progreso: mejor racha histórica.
 
 ### UI Entrenador
 
-- [ ] Score + racha en cabecera Ficha 360 (039).
-- [ ] Control para editar meta semanal (`week_goal`).
+- [x] Score + racha en cabecera Ficha 360 (039).
+- [x] Control para editar meta semanal (`week_goal`).
 
 ## Fuera de alcance
 

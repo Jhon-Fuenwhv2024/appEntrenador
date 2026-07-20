@@ -295,7 +295,7 @@ Check-in semanal de biofeedback (sueño / estrés / dieta, escala 1–5) y fotos
 
 Feature 035 añade `reviewed_at` (DATETIME nullable): `NULL` = check-in sin revisar por el trainer (KPI de cola en dashboard).
 
-Migraciones: [`016_weekly_checkins_progress_photos.sql`](../backend/db/migrations/016_weekly_checkins_progress_photos.sql), [`022_weekly_checkins_reviewed_at.sql`](../backend/db/migrations/022_weekly_checkins_reviewed_at.sql). Al arrancar, `ensureCheckinsTables` aplica `CREATE TABLE IF NOT EXISTS` + `ALTER` idempotente de `reviewed_at`. Archivos en `backend/public/uploads/photos`.
+Migraciones: [`016_weekly_checkins_progress_photos.sql`](../backend/db/migrations/016_weekly_checkins_progress_photos.sql), [`022_weekly_checkins_reviewed_at.sql`](../backend/db/migrations/022_weekly_checkins_reviewed_at.sql). Al arrancar, `ensureCheckinsTables` aplica `CREATE TABLE IF NOT EXISTS` + `ALTER` idempotente de `reviewed_at`. Archivos en `backend/public/uploads/photos` (HTTP con JWT Bearer o `?token=`). Trainer marca revisión con `PATCH /api/checkins/:id/review`.
 
 ```bash
 cd backend

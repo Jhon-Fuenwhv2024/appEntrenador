@@ -13,24 +13,24 @@ Detecta automáticamente cuando un alumno supera su máximo histórico de peso (
 
 ### Base de datos
 
-- [ ] Tabla `personal_records`:
+- [x] Tabla `personal_records`:
   - `id`, `client_id` FK, `exercise_id` nullable (catálogo), `exercise_name`
   - `weight`, `reps`, `achieved_at`, `session_id`, `set_log_id` nullable
   - Índices por (`client_id`, `exercise_name`) o (`client_id`, `exercise_id`)
 
 ### Backend
 
-- [ ] Módulo `backend/src/modules/personal-records/` (Route → Controller → Service).
-- [ ] Detección al finalizar sesión en `workout-sessions` (comparar sets de la sesión vs máximos previos en `workout_set_logs` / `personal_records`).
-- [ ] `GET /me/personal-records` — client.
-- [ ] `GET /clients/:clientId/personal-records` — trainer dueño.
-- [ ] Notificación `pr_achieved` al cliente (y opcionalmente al trainer) vía módulo `notifications`.
+- [x] Módulo `backend/src/modules/personal-records/` (Route → Controller → Service).
+- [x] Detección al finalizar sesión en `workout-sessions` (comparar sets de la sesión vs máximos previos en `workout_set_logs` / `personal_records`).
+- [x] `GET /me/personal-records` — client.
+- [x] `GET /clients/:clientId/personal-records` — trainer dueño.
+- [x] Notificación `pr_achieved` al cliente (y opcionalmente al trainer) vía módulo `notifications`.
 
 ### UI
 
-- [ ] Overlay/celebración en `WorkoutPlayerView` al recibir PRs en la respuesta de cierre de sesión.
-- [ ] Sección “Mis récords” en `ClientProgressView`.
-- [ ] Chip/widget “PRs este mes” en Ficha 360 (039) cuando esté disponible.
+- [x] Overlay/celebración en `WorkoutPlayerView` al recibir PRs en la respuesta de cierre de sesión.
+- [x] Sección “Mis récords” en `ClientProgressView`.
+- [x] Chip/widget “PRs este mes” en Ficha 360 (039) cuando esté disponible.
 
 ## Regla de detección (MVP)
 

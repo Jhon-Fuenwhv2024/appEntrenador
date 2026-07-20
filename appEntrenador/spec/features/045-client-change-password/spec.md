@@ -12,22 +12,22 @@ Replica en el **portal cliente** la misma UX de cambio de contraseña que ya tie
 
 ### Backend
 
-- [ ] Confirmar que `POST /api/me/password` acepta rol `client` (`requireRole('trainer', 'client')`).
-- [ ] Sin cambios de contrato si ya funciona; solo hardening/docs si falta algo.
-- [ ] Validación: password actual correcta (bcrypt), nueva distinta/longitud mínima según 024.
-- [ ] Operación solo sobre `req.user.id` (nunca IDs ajenos).
+- [x] Confirmar que `POST /api/me/password` acepta rol `client` (`requireRole('trainer', 'client')`).
+- [x] Sin cambios de contrato si ya funciona; solo hardening/docs si falta algo.
+- [x] Validación: password actual correcta (bcrypt), nueva distinta/longitud mínima según 024.
+- [x] Operación solo sobre `req.user.id` (nunca IDs ajenos).
 
 ### Frontend
 
-- [ ] Montar `ChangePasswordForm` (o equivalente) en `ClientProfileView` (`/client/profile`).
-- [ ] Misma semántica que trainer: actual + nueva + confirmación; errores visibles vía notificaciones/interceptor.
-- [ ] Usar `changeMyPassword` de `shared/api/accountApi.js`.
-- [ ] Contraste Trainfit: CTA primary legible (`on-primary`).
+- [x] Montar `ChangePasswordForm` (o equivalente) en `ClientProfileView` (`/client/profile`).
+- [x] Misma semántica que trainer: actual + nueva + confirmación; errores visibles vía notificaciones/interceptor.
+- [x] Usar `changeMyPassword` de `shared/api/accountApi.js`.
+- [x] Contraste Trainfit: CTA primary legible (`on-primary`).
 
 ### Validación
 
-- [ ] Smoke: cliente autenticado cambia password y puede re-login.
-- [ ] Trainer settings no se rompe.
+- [x] Smoke: cliente autenticado cambia password y puede re-login.
+- [x] Trainer settings no se rompe.
 
 ## Fuera de alcance
 

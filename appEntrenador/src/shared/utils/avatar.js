@@ -1,9 +1,10 @@
-import { API_ORIGIN } from '../api/http.js';
 import defaultAvatar from '../../assets/foto_perfil.png';
+import { resolveMediaSrc } from './mediaUrl.js';
 
 /**
  * Resolve display URL for a profile photo.
  * Uses uploaded `/uploads/...` URL when present; otherwise default asset.
+ * Avatars require auth token query (see mediaUrl.js).
  * @param {string|null|undefined} fotoUrl
  * @returns {string}
  */
@@ -12,11 +13,11 @@ export function resolveAvatarSrc(fotoUrl) {
   if (!url || url === 'default_avatar.png') {
     return defaultAvatar;
   }
-  if (/^https?:\/\//i.test(url) || url.startsWith('blob:') || url.startsWith('data:')) {
+  if (url.startsWith('blob:') || url.startsWith('data:')) {
     return url;
   }
-  const path = url.startsWith('/') ? url : `/${url}`;
-  return `${API_ORIGIN}${path}`;
+  const resolved = resolveMediaSrc(url);
+  return resolved || defaultAvatar;
 }
 
 export { defaultAvatar };

@@ -101,6 +101,12 @@ function mapPhotoRow(row) {
   };
 }
 
+function formatDateTimeField(value) {
+  if (value == null) return null;
+  if (value instanceof Date) return value.toISOString();
+  return String(value);
+}
+
 function mapCheckinRow(row, photos = []) {
   return {
     id: Number(row.id),
@@ -110,6 +116,7 @@ function mapCheckinRow(row, photos = []) {
     stress_level: Number(row.stress_level),
     diet_adherence: Number(row.diet_adherence),
     notes: row.notes ?? null,
+    reviewed_at: formatDateTimeField(row.reviewed_at),
     photos: photos.map(mapPhotoRow),
   };
 }
@@ -244,7 +251,7 @@ async function listByClient(requester, clientIdParam) {
   }
 
   const [checkinRows] = await db.query(
-    `SELECT id, client_id, created_at, sleep_quality, stress_level, diet_adherence, notes
+    `SELECT id, client_id, created_at, sleep_quality, stress_level, diet_adherence, notes, reviewed_at
      FROM weekly_checkins
      WHERE client_id = ?
      ORDER BY created_at DESC, id DESC`,
@@ -280,9 +287,55 @@ async function listByClient(requester, clientIdParam) {
   ));
 }
 
+/**
+ * PATCH /api/checkins/:id/review — trainer dueño marca check-in como revisado.
+ */
+async function markReviewed(requester, checkinIdParam) {
+  if (requester.rol !== 'trainer') {
+    throw createHttpError('Solo el entrenador puede marcar revisión.', 403);
+  }
+
+  const checkinId = parsePositiveId(checkinIdParam, 'checkinId');
+
+  const [rows] = await db.query(
+    `SELECT id, client_id, created_at, sleep_quality, stress_level, diet_adherence, notes, reviewed_at
+     FROM weekly_checkins
+     WHERE id = ?
+     LIMIT 1`,
+    [checkinId],
+  );
+
+  if (!rows.length) {
+    throw createHttpError('Check-in no encontrado.', 404);
+  }
+
+  const row = rows[0];
+  await clientsService.getClientOwnedByTrainer(Number(row.client_id), requester.id);
+
+  if (row.reviewed_at != null) {
+    return mapCheckinRow(row, []);
+  }
+
+  await db.execute(
+    `UPDATE weekly_checkins SET reviewed_at = NOW() WHERE id = ? AND reviewed_at IS NULL`,
+    [checkinId],
+  );
+
+  const [updatedRows] = await db.query(
+    `SELECT id, client_id, created_at, sleep_quality, stress_level, diet_adherence, notes, reviewed_at
+     FROM weekly_checkins
+     WHERE id = ?
+     LIMIT 1`,
+    [checkinId],
+  );
+
+  return mapCheckinRow(updatedRows[0], []);
+}
+
 module.exports = {
   createForClient,
   listByClient,
+  markReviewed,
   parseLocalDateString,
   todayLocalDateString,
 };

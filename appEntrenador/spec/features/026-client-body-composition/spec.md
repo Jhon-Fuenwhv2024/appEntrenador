@@ -28,22 +28,22 @@ Todas las circunferencias son en centímetros (`DECIMAL(5,2)`).
 | `notes` | TEXT | Observaciones del trainer (Nullable). |
 
 ## Criterios de aceptación
-- [ ] Schema: Tabla `body_composition_logs` con todos los campos del dominio.
-- [ ] Trainer: `POST` / `PUT` para crear y actualizar mediciones de alumnos propios.
-- [ ] Client: `GET` listado de solo lectura; **sin** POST/PUT/DELETE.
-- [ ] Frontend Trainer: Modal o formulario de nueva medición. Si es la primera vez, altura está en blanco. Si ya hay registros, autocompletar `height_cm` con el último valor.
-- [ ] Backend: Cálculo de IMC ($kg/m^2$) en el servicio.
+- [x] Schema: Tabla `body_composition_logs` con todos los campos del dominio.
+- [x] Trainer: `POST` / `PUT` para crear y actualizar mediciones de alumnos propios.
+- [x] Client: `GET` listado de solo lectura; **sin** POST/PUT/DELETE.
+- [x] Frontend Trainer: Modal o formulario de nueva medición. Si es la primera vez, altura está en blanco. Si ya hay registros, autocompletar `height_cm` con el último valor.
+- [x] Backend: Cálculo de IMC ($kg/m^2$) en el servicio.
 
 ### UI
 
-- [ ] Trainer: sección en ficha del alumno para crear/editar/ver historial de composición corporal
-- [ ] Client: vista de solo lectura (bloque en “Mi progreso” / dashboard o ruta ligera bajo shell)
-- [ ] Contraste tema dark / CTAs `color="primary"` según reglas UI del proyecto
+- [x] Trainer: sección en ficha del alumno para crear/editar/ver historial de composición corporal
+- [x] Client: vista de solo lectura (bloque en “Mi progreso” / dashboard o ruta ligera bajo shell)
+- [x] Contraste tema dark / CTAs `color="primary"` según reglas UI del proyecto
 
 ### Cierre
 
-- [ ] Docs `api` / `data-flows` / `database-schema`
-- [ ] Build OK (frontend) y API arranca sin errores de ruta
+- [x] Docs `api` / `data-flows` / `database-schema`
+- [x] Build OK (frontend) y API arranca sin errores de ruta
 
 ## Fuera de alcance
 

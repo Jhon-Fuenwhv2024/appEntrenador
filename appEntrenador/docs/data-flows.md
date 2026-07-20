@@ -136,8 +136,9 @@
 1. Cliente en **Mi progreso** abre el modal **Hacer Check-in Semanal** (`WeeklyCheckinDialog`).
 2. Envía `POST /checkins` como `multipart/form-data` (ratings 1–5 + notas; fotos `front`/`side`/`back` opcionales, ≤5 MB).
 3. Backend (transacción): inserta `weekly_checkins` y, si hay archivos, filas en `progress_photos` con `image_url` bajo `/uploads/photos/…`.
-4. Trainer en la ficha del alumno (pestaña **Check-ins**) carga `GET /checkins/client/:clientId` y ve timeline + miniaturas ampliables.
+4. Trainer en la ficha del alumno (pestaña **Check-ins**) carga `GET /checkins/client/:clientId` y ve timeline + miniaturas ampliables (`?token=` en URLs de foto).
 5. `reviewed_at` queda `NULL` al crear (cola “sin revisar” del dashboard 035).
+6. Trainer pulsa **Marcar revisado** → `PATCH /checkins/:id/review` → `reviewed_at = NOW()`; el KPI de pendientes baja.
 
 ## Dashboard analítico del trainer (Feature 035)
 
