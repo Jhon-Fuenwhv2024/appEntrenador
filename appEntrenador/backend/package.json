@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
+    "start:prod": "NODE_ENV=production node src/server.js",
     "db:create-exercises": "node scripts/createExercisesTable.js",
     "db:create-workout-sessions": "node scripts/createWorkoutSessionsTables.js",
     "db:create-alumnos-info": "node scripts/createAlumnosInfoTable.js",

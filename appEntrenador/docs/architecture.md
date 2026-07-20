@@ -31,6 +31,8 @@ Los componentes legacy `src/components/Login.vue`, `src/components/Register.vue`
 
 El backend monta módulos bajo `/api` desde `backend/src/server.js`.
 
+- DB: `backend/src/config/db.js` usa variables `DB_*` (local XAMPP por defecto; Render/TiDB vía env + `DB_SSL`).
+- Despliegue: [`docs/deploy-render.md`](deploy-render.md) (API) y [`docs/deploy-cloudflare.md`](deploy-cloudflare.md) (frontend).
 - `backend/src/middleware/auth.js`: JWT (`authenticate`) y roles (`requireRole`); claim `is_superadmin` en `req.user`.
 - `backend/src/middleware/requireSuperAdmin.js` + `checkTrainerLimits.js`: gate SuperAdmin y límite FREE (Feature 037).
 - `backend/src/modules/auth/`: login (emite JWT con `is_superadmin`) y registro por invitación (consume token vía `invites`).

@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const { PORT } = require('./config/env');
+const { PORT, CORS_ORIGINS, NODE_ENV } = require('./config/env');
 const authRoutes = require('./modules/auth/auth.routes');
 const invitesRoutes = require('./modules/invites/invites.routes');
 const clientsRoutes = require('./modules/clients/clients.routes');
@@ -50,8 +50,37 @@ ensureAvatarsDir();
 ensurePhotosDir();
 ensureExercisesMediaDir();
 
-app.use(cors());
+const corsOptions =
+  CORS_ORIGINS.length > 0
+    ? {
+        origin(origin, callback) {
+          // Allow non-browser clients (no Origin) and whitelisted frontends.
+          if (!origin || CORS_ORIGINS.includes(origin)) {
+            callback(null, true);
+            return;
+          }
+          callback(new Error(`CORS blocked for origin: ${origin}`));
+        },
+      }
+    : undefined;
+
+if (NODE_ENV === 'production' && CORS_ORIGINS.length === 0) {
+  console.warn(
+    '[cors] CORS_ORIGINS vacío en producción: se permite cualquier origen. Define CORS_ORIGINS en Render.',
+  );
+}
+
+app.use(cors(corsOptions));
 app.use(express.json());
+
+app.get('/health', (_req, res) => {
+  res.status(200).json({ success: true, message: 'ok' });
+});
+
+app.get('/api/health', (_req, res) => {
+  res.status(200).json({ success: true, message: 'ok' });
+});
+
 // Photos/avatars: JWT (Bearer o ?token=). Exercises: público.
 mountPrivateUploads(app, express);
 
@@ -151,8 +180,9 @@ async function start() {
     console.error('No se pudieron asegurar columnas muscle tags de exercises:', error.message);
   }
 
-  app.listen(PORT, () => {
-    console.log(`Servidor API modular (JWT) corriendo en http://localhost:${PORT}`);
+  // Render / containers require binding 0.0.0.0 (not only localhost).
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor API modular (JWT) en 0.0.0.0:${PORT} (${NODE_ENV})`);
   });
 }
 

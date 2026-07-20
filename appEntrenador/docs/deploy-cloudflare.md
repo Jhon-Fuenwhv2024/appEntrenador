@@ -27,7 +27,8 @@ En el Worker **entrenadorfit**, configura:
 
 Variable de entorno de **build** (no runtime del Worker):
 
-- `VITE_API_URL` = URL pública del backend, ej. `https://tu-api.ejemplo.com/api`
+- En repo: `.env.production` → `VITE_API_URL=https://appentrenador.onrender.com/api`
+- O en Cloudflare Builds: misma variable `VITE_API_URL`
 
 Sin backend desplegado, el UI carga pero login/API fallarán (esperado).
 
