@@ -140,12 +140,14 @@ Respuesta exitosa (`201`):
     "token": "abc123",
     "status": "pending",
     "fecha_creacion": "2026-07-14T12:00:00.000Z",
-    "link_invitacion": "http://localhost:5173/registro?token=abc123"
+    "link_invitacion": "https://entrenadorfit.example.workers.dev/registro?token=abc123"
   },
   "token": "abc123",
-  "link_invitacion": "http://localhost:5173/registro?token=abc123"
+  "link_invitacion": "https://entrenadorfit.example.workers.dev/registro?token=abc123"
 }
 ```
+
+`link_invitacion` se construye con `APP_PUBLIC_URL` (`${APP_PUBLIC_URL}/registro?token=…`). En local el default es `http://localhost:5173`.
 
 ### `GET /invites`
 
