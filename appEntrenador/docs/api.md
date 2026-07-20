@@ -448,7 +448,7 @@ Respuesta `data`:
 
 Misma autorización que GET. Acepta `multipart/form-data` (campos de texto + archivo opcional `foto`).
 
-Campos de texto: `email` (en `usuarios`, Feature 056; solo el propio client puede cambiarlo), `telefono`, `fecha_nacimiento`, `sexo`, `lesiones`, `objetivo`.  
+Campos de texto: `email` (en `usuarios`, Feature 056; solo el propio client puede cambiarlo), `telefono`, `fecha_nacimiento`, `sexo`, `lesiones`, `objetivo`.
 Archivo: `foto` (JPEG/PNG/WebP/GIF, máx. 2 MB) → guarda en disco y persiste URL relativa en `foto_url`.
 
 Si no existe fila en `alumnos_info`, la crea (upsert). `email` se actualiza en `usuarios` (único, válido) únicamente cuando el client edita su propio perfil; un trainer no puede cambiar el correo de recuperación de sus clientes.
