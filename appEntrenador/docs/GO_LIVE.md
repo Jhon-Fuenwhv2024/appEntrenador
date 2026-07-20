@@ -3,10 +3,15 @@
 ## Ya hecho en TiDB
 
 - Esquema `coach_db` importado (25 tablas).
-- Usuario demo trainer:
-  - **username:** `demo_trainer`
-  - **password:** `TrainfitDemo2026!`
-  - Cambia la password tras el primer login.
+- Usuarios de prueba:
+  - **demo_trainer** / `TrainfitDemo2026!`
+  - **Camila123** / `Camila123` (trainer)
+  - Cambia las passwords tras el primer login.
+
+## Diagnóstico backend
+
+- `GET /health` y `GET /api/health` → proceso vivo
+- `GET /api/health/db` → prueba real a TiDB (si falla, mira `mysqlCode` en el JSON / logs de Render)
 
 ## Obligatorias en Render (no van en Git)
 

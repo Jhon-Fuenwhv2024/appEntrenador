@@ -81,6 +81,33 @@ app.get('/api/health', (_req, res) => {
   res.status(200).json({ success: true, message: 'ok' });
 });
 
+app.get('/api/health/db', async (_req, res) => {
+  try {
+    const db = require('./config/db');
+    const [rows] = await db.query('SELECT 1 AS ok');
+    return res.status(200).json({
+      success: true,
+      message: 'db ok',
+      data: { ok: rows?.[0]?.ok === 1 },
+    });
+  } catch (error) {
+    console.error('[health/db]', {
+      message: error.message,
+      code: error.code,
+      errno: error.errno,
+    });
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'db error',
+      message: error.message || 'db error',
+      code: 500,
+      data: {
+        mysqlCode: typeof error.code === 'string' ? error.code : undefined,
+      },
+    });
+  }
+});
+
 // Photos/avatars: JWT (Bearer o ?token=). Exercises: público.
 mountPrivateUploads(app, express);
 

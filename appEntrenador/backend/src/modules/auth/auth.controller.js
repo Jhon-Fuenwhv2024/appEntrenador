@@ -1,10 +1,23 @@
 const authService = require('./auth.service');
 
+function resolveHttpStatus(error) {
+  const raw = error?.statusCode ?? error?.code;
+  const n = Number(raw);
+  if (Number.isInteger(n) && n >= 400 && n < 600) return n;
+  return 500;
+}
+
 function sendError(res, error, context) {
-  const code = error.code || 500;
+  const code = resolveHttpStatus(error);
   const message = error.message || 'Error interno del servidor.';
 
-  console.error(context, error);
+  console.error(context, {
+    message: error.message,
+    code: error.code,
+    statusCode: error.statusCode,
+    sqlState: error.sqlState,
+    errno: error.errno,
+  });
 
   return res.status(code).json({
     success: false,
