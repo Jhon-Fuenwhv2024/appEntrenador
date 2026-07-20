@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const db = require('../../config/db');
+const { APP_PUBLIC_URL } = require('../../config/env');
 
 const INVITE_STATUSES = Object.freeze({
   PENDING: 'pending',
@@ -13,8 +14,9 @@ function createHttpError(message, code) {
   return error;
 }
 
+/** Local: APP_PUBLIC_URL=http://localhost:5173 · Prod: URL pública del frontend. */
 function buildInviteLink(token) {
-  return `http://localhost:5173/registro?token=${token}`;
+  return `${APP_PUBLIC_URL}/registro?token=${encodeURIComponent(token)}`;
 }
 
 function mapInviteRow(row) {

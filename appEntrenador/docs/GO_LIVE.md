@@ -8,10 +8,22 @@
   - **Camila123** / `Camila123` (trainer)
   - Cambia las passwords tras el primer login.
 
-## Diagnóstico backend
+## Importar dump poblado (`db/coach_db.sql`)
 
-- `GET /health` y `GET /api/health` → proceso vivo
-- `GET /api/health/db` → prueba real a TiDB (si falla, mira `mysqlCode` en el JSON / logs de Render)
+Desde `backend/` (con las mismas `DB_*` que Render / TiDB):
+
+```bash
+# Windows PowerShell ejemplo
+$env:DB_HOST="gateway01.ap-northeast-1.prod.aws.tidbcloud.com"
+$env:DB_PORT="4000"
+$env:DB_USER="TU_USER.root"
+$env:DB_PASSWORD="TU_PASSWORD"
+$env:DB_NAME="coach_db"
+$env:DB_SSL="true"
+node scripts/importSqlDump.js db/coach_db.sql
+```
+
+Eso **borra las tablas actuales** de `coach_db` e importa el dump phpMyAdmin.
 
 ## Obligatorias en Render (no van en Git)
 
