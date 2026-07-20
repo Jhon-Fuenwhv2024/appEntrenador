@@ -13,6 +13,11 @@ body,
   padding: 0;
 }
 
+html,
+body {
+  overflow-x: hidden;
+}
+
 body {
   font-family: sans-serif;
 }

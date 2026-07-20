@@ -20,7 +20,7 @@ export function updateProfile(userId, payload) {
  */
 export function buildProfileFormData(fields, fotoFile = null) {
   const formData = new FormData();
-  const keys = ['telefono', 'fecha_nacimiento', 'sexo', 'lesiones', 'objetivo'];
+  const keys = ['email', 'telefono', 'fecha_nacimiento', 'sexo', 'lesiones', 'objetivo'];
   for (const key of keys) {
     if (fields[key] == null) continue;
     formData.append(key, String(fields[key]));

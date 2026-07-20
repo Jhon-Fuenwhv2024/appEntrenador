@@ -50,7 +50,35 @@ async function register(req, res) {
   }
 }
 
+async function forgotPassword(req, res) {
+  try {
+    const result = await authService.forgotPassword(req.body || {});
+
+    return res.json({
+      success: true,
+      message: result.message,
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error en forgot-password:');
+  }
+}
+
+async function resetPassword(req, res) {
+  try {
+    await authService.resetPassword(req.body || {});
+
+    return res.json({
+      success: true,
+      message: 'Contraseña actualizada. Ya puedes iniciar sesión.',
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error en reset-password:');
+  }
+}
+
 module.exports = {
   login,
   register,
+  forgotPassword,
+  resetPassword,
 };

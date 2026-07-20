@@ -9,6 +9,12 @@ CREATE TABLE usuarios (
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     nombre VARCHAR(100) NOT NULL,
+    email VARCHAR(255) NULL UNIQUE
+      COMMENT 'Correo para recuperación de contraseña (Feature 056)',
+    reset_password_token VARCHAR(64) NULL
+      COMMENT 'SHA-256 hex del token de reset (Feature 056)',
+    reset_password_expires DATETIME NULL
+      COMMENT 'Expiración del token de reset (Feature 056)',
     rol ENUM('trainer', 'client') NOT NULL DEFAULT 'client',
     trainer_id INT NULL,
     is_superadmin BOOLEAN NOT NULL DEFAULT FALSE

@@ -37,6 +37,7 @@ const { ensurePersonalRecordsTable } = require('./db/ensurePersonalRecordsTable'
 const { ensureClientStreaksTable } = require('./db/ensureClientStreaksTable');
 const { ensureDietPlansTables } = require('./db/ensureDietPlansTables');
 const { ensureSaasColumns } = require('./db/ensureSaasColumns');
+const { ensureUsuariosEmailResetColumns } = require('./db/ensureUsuariosEmailResetColumns');
 const {
   ensureExercisesI18nColumns,
   ensureExercisesMediaDir,
@@ -82,6 +83,12 @@ async function start() {
     await ensureSaasColumns();
   } catch (error) {
     console.error('No se pudieron asegurar las columnas SaaS:', error.message);
+  }
+
+  try {
+    await ensureUsuariosEmailResetColumns();
+  } catch (error) {
+    console.error('No se pudieron asegurar columnas email/reset de usuarios:', error.message);
   }
 
   try {

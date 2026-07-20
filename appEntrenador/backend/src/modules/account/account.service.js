@@ -41,9 +41,20 @@ function resolveAvatarPublicUrl(file) {
   return `/uploads/avatars/${file.filename}`;
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function normalizeEmail(value) {
+  if (typeof value !== 'string') return '';
+  return value.trim().toLowerCase();
+}
+
+function isValidEmail(email) {
+  return Boolean(email) && email.length <= 255 && EMAIL_RE.test(email);
+}
+
 async function loadUserRow(userId) {
   const [rows] = await db.query(
-    `SELECT id, username, nombre, rol, is_superadmin
+    `SELECT id, username, nombre, email, rol, is_superadmin
      FROM usuarios
      WHERE id = ?
      LIMIT 1`,
@@ -61,6 +72,7 @@ async function getMyAccount(userId) {
     id: user.id,
     username: user.username,
     nombre: user.nombre,
+    email: user.email || null,
     rol: user.rol,
     is_superadmin: toBool(user.is_superadmin),
     telefono: null,
@@ -102,6 +114,8 @@ async function updateMyAccount(userId, body = {}, uploadedFile = null) {
   const user = await loadUserRow(userId);
   const nombreRaw = body.nombre != null ? String(body.nombre).trim() : undefined;
   const telefonoRaw = body.telefono != null ? String(body.telefono).trim() : undefined;
+  const emailProvided = body.email != null;
+  const emailRaw = emailProvided ? normalizeEmail(body.email) : undefined;
   const fotoUrl = uploadedFile ? resolveAvatarPublicUrl(uploadedFile) : undefined;
 
   if (nombreRaw !== undefined) {
@@ -117,6 +131,15 @@ async function updateMyAccount(userId, body = {}, uploadedFile = null) {
     throw createHttpError('El teléfono no puede superar 20 caracteres.', 400);
   }
 
+  if (emailProvided) {
+    if (!emailRaw) {
+      throw createHttpError('El correo electrónico no puede quedar vacío.', 400);
+    }
+    if (!isValidEmail(emailRaw)) {
+      throw createHttpError('Debes indicar un correo electrónico válido.', 400);
+    }
+  }
+
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
@@ -125,6 +148,20 @@ async function updateMyAccount(userId, body = {}, uploadedFile = null) {
       await connection.query(
         'UPDATE usuarios SET nombre = ? WHERE id = ?',
         [nombreRaw, userId],
+      );
+    }
+
+    if (emailProvided) {
+      const [dup] = await connection.query(
+        'SELECT id FROM usuarios WHERE email = ? AND id <> ? LIMIT 1',
+        [emailRaw, userId],
+      );
+      if (dup.length > 0) {
+        throw createHttpError('El correo electrónico ya está en uso.', 400);
+      }
+      await connection.query(
+        'UPDATE usuarios SET email = ? WHERE id = ?',
+        [emailRaw, userId],
       );
     }
 

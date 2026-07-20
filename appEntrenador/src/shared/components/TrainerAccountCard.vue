@@ -21,6 +21,7 @@ const emit = defineEmits(['save']);
 const editing = shallowRef(false);
 const form = reactive({
   nombre: '',
+  email: '',
   telefono: '',
 });
 const fotoFile = shallowRef(null);
@@ -41,6 +42,12 @@ const facts = computed(() => [
     value: props.account?.username ? `@${props.account.username}` : null,
   },
   {
+    key: 'email',
+    label: 'Correo',
+    icon: 'mdi-email-outline',
+    value: props.account?.email || null,
+  },
+  {
     key: 'telefono',
     label: 'Teléfono',
     icon: 'mdi-phone-outline',
@@ -50,6 +57,7 @@ const facts = computed(() => [
 
 function syncForm(account) {
   form.nombre = account?.nombre || '';
+  form.email = account?.email || '';
   form.telefono = account?.telefono || '';
   fotoFile.value = null;
   if (previewObjectUrl.value) {
@@ -86,6 +94,7 @@ function onSubmit() {
   emit('save', {
     fields: {
       nombre: form.nombre,
+      email: form.email,
       telefono: form.telefono,
     },
     fotoFile: fotoFile.value,
@@ -191,6 +200,17 @@ function onSubmit() {
         class="mb-3"
         readonly
         hint="El usuario no se puede cambiar"
+        persistent-hint
+      />
+      <v-text-field
+        v-model="form.email"
+        label="Correo electrónico"
+        type="email"
+        variant="outlined"
+        density="compact"
+        class="mb-3"
+        autocomplete="email"
+        hint="Necesario para recuperar la contraseña"
         persistent-hint
       />
       <v-text-field

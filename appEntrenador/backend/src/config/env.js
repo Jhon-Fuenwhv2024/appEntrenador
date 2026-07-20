@@ -14,8 +14,29 @@ if (!JWT_SECRET) {
   );
 }
 
+function parseBool(value, fallback = false) {
+  if (value == null || value === '') return fallback;
+  return ['1', 'true', 'yes', 'on'].includes(String(value).toLowerCase());
+}
+
+const SMTP = {
+  host: process.env.SMTP_HOST || '',
+  port: Number(process.env.SMTP_PORT) || 587,
+  secure: parseBool(process.env.SMTP_SECURE, false),
+  user: process.env.SMTP_USER || '',
+  pass: process.env.SMTP_PASS || '',
+  from: process.env.SMTP_FROM || 'Trainfit <noreply@trainfit.local>',
+};
+
+const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || 'http://localhost:5173').replace(
+  /\/$/,
+  '',
+);
+
 module.exports = {
   JWT_SECRET: JWT_SECRET || 'trainfit-dev-only-change-me',
   JWT_EXPIRES_IN,
   PORT,
+  SMTP,
+  APP_PUBLIC_URL,
 };

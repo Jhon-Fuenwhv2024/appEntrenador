@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import LoginView from './features/auth/LoginView.vue';
 import Dashboard from './components/Dashboard.vue';
 import RegisterView from './features/auth/RegisterView.vue';
+import ResetPasswordView from './features/auth/ResetPasswordView.vue';
 import Client360View from './features/trainer/client-360/Client360View.vue';
 import ExercisesCatalogView from './features/trainer/ExercisesCatalogView.vue';
 import ClientsListView from './features/trainer/ClientsListView.vue';
@@ -26,6 +27,12 @@ const routes = [
     path: '/registro',
     name: 'Registro',
     component: RegisterView,
+    meta: { guestOnly: true },
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: ResetPasswordView,
     meta: { guestOnly: true },
   },
   {

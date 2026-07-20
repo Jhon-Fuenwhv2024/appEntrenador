@@ -28,6 +28,7 @@ const emit = defineEmits(['save']);
 const editing = shallowRef(false);
 
 const form = reactive({
+  email: '',
   telefono: '',
   fecha_nacimiento: '',
   sexo: '',
@@ -48,6 +49,12 @@ const displayName = computed(() => props.profile?.nombre || 'Alumno');
 const facts = computed(() => {
   const p = props.profile || {};
   return [
+    {
+      key: 'email',
+      label: 'Correo',
+      icon: 'mdi-email-outline',
+      value: p.email || null,
+    },
     {
       key: 'telefono',
       label: 'Teléfono',
@@ -93,6 +100,7 @@ function formatBirthdate(value) {
 }
 
 function syncFormFromProfile(profile) {
+  form.email = profile?.email || '';
   form.telefono = profile?.telefono || '';
   form.fecha_nacimiento = profile?.fecha_nacimiento
     ? String(profile.fecha_nacimiento).slice(0, 10)
@@ -140,6 +148,7 @@ function onFileChange(file) {
 function onSubmit() {
   emit('save', {
     fields: {
+      email: form.email,
       telefono: form.telefono,
       fecha_nacimiento: form.fecha_nacimiento,
       sexo: form.sexo,
@@ -196,7 +205,7 @@ function onSubmit() {
               <v-icon icon="mdi-account-details-outline" size="22" class="mb-2" />
               <p class="mb-1">Aún no hay datos de perfil</p>
               <p class="text-caption text-medium-emphasis mb-3">
-                Teléfono, objetivo, lesiones y foto se verán aquí cuando los completes.
+                Correo, teléfono, objetivo, lesiones y foto se verán aquí cuando los completes.
               </p>
               <v-btn
                 color="primary"
@@ -286,6 +295,18 @@ function onSubmit() {
       </div>
 
       <v-row dense>
+        <v-col cols="12">
+          <v-text-field
+            v-model="form.email"
+            label="Correo electrónico"
+            type="email"
+            variant="outlined"
+            density="compact"
+            autocomplete="email"
+            hint="Necesario para recuperar la contraseña"
+            persistent-hint
+          />
+        </v-col>
         <v-col cols="12" sm="6">
           <v-text-field
             v-model="form.telefono"

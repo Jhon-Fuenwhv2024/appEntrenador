@@ -27,11 +27,23 @@ function formatDateOnly(value) {
   return str.slice(0, 10);
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function normalizeEmail(value) {
+  if (typeof value !== 'string') return '';
+  return value.trim().toLowerCase();
+}
+
+function isValidEmail(email) {
+  return Boolean(email) && email.length <= 255 && EMAIL_RE.test(email);
+}
+
 function mapProfileRow(user, info) {
   return {
     user_id: user.id,
     nombre: user.nombre,
     username: user.username,
+    email: user.email || null,
     rol: user.rol,
     telefono: info?.telefono ?? null,
     fecha_nacimiento: formatDateOnly(info?.fecha_nacimiento),
@@ -48,7 +60,7 @@ function mapProfileRow(user, info) {
  */
 async function assertCanAccessProfile(actor, targetUserId) {
   const [users] = await db.query(
-    `SELECT id, nombre, username, rol, trainer_id
+    `SELECT id, nombre, username, email, rol, trainer_id
      FROM usuarios
      WHERE id = ?
      LIMIT 1`,
@@ -100,6 +112,8 @@ function normalizeProfilePayload(body = {}) {
   const fechaRaw = body.fecha_nacimiento != null
     ? String(body.fecha_nacimiento).trim()
     : undefined;
+  const emailProvided = body.email != null;
+  const emailRaw = emailProvided ? normalizeEmail(body.email) : undefined;
 
   if (sexoRaw !== undefined && sexoRaw !== '' && !SEX_OPTIONS.includes(sexoRaw)) {
     throw createHttpError('Sexo inválido. Usa Masculino, Femenino u Otro.', 400);
@@ -120,12 +134,22 @@ function normalizeProfilePayload(body = {}) {
     throw createHttpError('El objetivo no puede superar 100 caracteres.', 400);
   }
 
+  if (emailProvided) {
+    if (!emailRaw) {
+      throw createHttpError('El correo electrónico no puede quedar vacío.', 400);
+    }
+    if (!isValidEmail(emailRaw)) {
+      throw createHttpError('Debes indicar un correo electrónico válido.', 400);
+    }
+  }
+
   return {
     telefono: telefono === undefined ? undefined : (telefono || null),
     objetivo: objetivo === undefined ? undefined : (objetivo || null),
     lesiones: lesiones === undefined ? undefined : (lesiones || null),
     sexo: sexoRaw === undefined ? undefined : (sexoRaw || null),
     fecha_nacimiento: fechaRaw === undefined ? undefined : (fechaRaw || null),
+    email: emailProvided ? emailRaw : undefined,
   };
 }
 
@@ -142,6 +166,20 @@ async function upsertProfile(actor, targetUserId, body, uploadedFile) {
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
+
+    if (fields.email !== undefined) {
+      const [dup] = await connection.query(
+        'SELECT id FROM usuarios WHERE email = ? AND id <> ? LIMIT 1',
+        [fields.email, targetUserId],
+      );
+      if (dup.length > 0) {
+        throw createHttpError('El correo electrónico ya está en uso.', 400);
+      }
+      await connection.query(
+        'UPDATE usuarios SET email = ? WHERE id = ?',
+        [fields.email, targetUserId],
+      );
+    }
 
     const [existing] = await connection.query(
       'SELECT id, telefono, fecha_nacimiento, sexo, lesiones, objetivo, foto_url FROM alumnos_info WHERE user_id = ? LIMIT 1 FOR UPDATE',

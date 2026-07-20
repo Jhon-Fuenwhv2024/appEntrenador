@@ -12,6 +12,7 @@ const router = useRouter();
 
 const nombre = shallowRef('');
 const username = shallowRef('');
+const email = shallowRef('');
 const password = shallowRef('');
 const token = shallowRef('');
 const showPassword = shallowRef(false);
@@ -45,6 +46,7 @@ const handleRegister = async () => {
       username: username.value,
       password: password.value,
       nombre: nombre.value,
+      email: email.value,
       token: token.value,
     });
 
@@ -66,17 +68,17 @@ const handleRegister = async () => {
 
 <template>
   <div class="login-wrapper">
-    <v-card class="elevation-24 pa-8 login-card" color="surface">
+    <v-card class="elevation-24 login-card" color="surface">
       <div class="app-brand">
         <div class="app-brand-icon">
           <AppLogo size="lg" />
         </div>
         <span class="app-brand-name">{{ APP_NAME }}</span>
       </div>
-      <h2 class="text-primary font-weight-bold login-title text-center mb-2">Crear Cuenta</h2>
-      <p class="text-body-2 text-center mb-4 text-grey">Completa tus datos para unirte.</p>
+      <h2 class="text-primary font-weight-bold login-title">Crear Cuenta</h2>
+      <p class="text-body-2 text-medium-emphasis mb-4">Completa tus datos para unirte.</p>
 
-      <v-card-text class="px-0 pb-0">
+      <v-card-text>
         <v-form @submit.prevent="handleRegister">
           <v-text-field
             v-model="nombre"
@@ -86,7 +88,7 @@ const handleRegister = async () => {
             required
             density="comfortable"
             hide-details="auto"
-            class="mb-3"
+            class="login-field"
           />
 
           <v-text-field
@@ -97,7 +99,20 @@ const handleRegister = async () => {
             required
             density="comfortable"
             hide-details="auto"
-            class="mb-3"
+            class="login-field"
+          />
+
+          <v-text-field
+            v-model="email"
+            label="Correo electrónico"
+            type="email"
+            prepend-icon="mdi-email-outline"
+            color="primary"
+            required
+            density="comfortable"
+            hide-details="auto"
+            class="login-field"
+            autocomplete="email"
           />
 
           <v-text-field
@@ -110,6 +125,7 @@ const handleRegister = async () => {
             required
             density="comfortable"
             hide-details="auto"
+            class="login-field"
             @click:append-inner="showPassword = !showPassword"
           />
 
@@ -117,7 +133,7 @@ const handleRegister = async () => {
             v-if="alertMessage"
             :type="alertType"
             variant="tonal"
-            class="mt-4 text-body-2"
+            class="mb-4 text-body-2"
           >
             {{ alertMessage }}
           </v-alert>
@@ -126,7 +142,7 @@ const handleRegister = async () => {
             type="submit"
             block
             color="primary"
-            class="mt-6 font-weight-bold login-submit-btn"
+            class="font-weight-bold login-submit-btn"
             size="large"
           >
             Registrarse
@@ -137,4 +153,4 @@ const handleRegister = async () => {
   </div>
 </template>
 
-<style src="../../assets/login.css" scoped></style>
+<style src="../../assets/login.css"></style>

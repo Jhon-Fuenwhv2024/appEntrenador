@@ -1,16 +1,16 @@
-/* Auth screens: login + register */
+/* Auth screens: login + register + reset */
 
 .login-wrapper {
   box-sizing: border-box;
   width: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
+  /* Llena el viewport sin pasarse (evita scrollbar del body) */
+  height: 100dvh;
+  max-height: 100dvh;
   margin: 0;
-  padding: 24px 16px;
+  padding: 20px 16px;
   display: grid;
   place-items: center;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   background: linear-gradient(rgba(18, 18, 18, 0.85), rgba(18, 18, 18, 0.95)),
     url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1920&auto=format&fit=crop');
   background-size: cover;
@@ -20,35 +20,39 @@
 
 .login-card {
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
   justify-self: center;
   align-self: center;
-  border-radius: 16px !important;
-  background-color: rgba(30, 30, 30, 0.82) !important;
+  border-radius: 18px !important;
+  background-color: rgba(30, 30, 30, 0.88) !important;
   backdrop-filter: blur(16px);
   border: 1px solid rgba(0, 229, 255, 0.15);
   box-sizing: border-box;
+  padding: 2rem 1.75rem !important;
 }
 
 .login-title {
   text-align: center;
   width: 100%;
-  margin-top: 6px;
-  margin-bottom: 15px;
+  margin-top: 4px;
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
 }
 
-.text-body-2 {
+.login-card .text-body-2 {
   text-align: center;
   width: 100%;
-  margin-bottom: 8px;
+  margin-bottom: 0.75rem;
+  line-height: 1.45;
 }
 
 .app-brand {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 1.25rem;
 }
 
 .app-brand-icon {
@@ -68,44 +72,90 @@
 .app-brand-name {
   font-size: 22px;
   font-weight: 700;
-  color: #FFFFFF;
+  color: #ffffff;
   letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+/* Form fields: breathing room between icon and label/text */
+.login-field {
+  margin-bottom: 1.1rem !important;
+}
+
+.login-card .login-field .v-input__prepend {
+  margin-inline-end: 14px !important;
+  padding-top: 0 !important;
+  align-self: center;
+}
+
+.login-card .login-field .v-field {
+  --v-field-padding-start: 4px;
+  letter-spacing: 0.01em;
+}
+
+.login-card .login-field .v-label {
+  letter-spacing: 0.015em;
+}
+
+.login-card .login-field .v-field__input {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  min-height: 44px;
+}
+
+.login-card .login-field .v-field__append-inner {
+  padding-inline-start: 8px;
+}
+
+.login-forgot-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.35rem;
+  margin-bottom: 0.75rem;
+  padding-top: 0.15rem;
 }
 
 .login-submit-btn {
   min-height: 48px;
+  margin-top: 0.5rem !important;
+  letter-spacing: 0.02em;
+}
+
+.login-card .v-card-text {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-top: 0.25rem !important;
 }
 
 @media (max-width: 600px) {
   .login-wrapper {
-    /* svh = área visible real (sin chrome del browser) */
-    min-height: 100svh;
-    height: 100svh;
-    padding: 20px 32px;
-    padding-left: max(32px, env(safe-area-inset-left, 0px));
-    padding-right: max(32px, env(safe-area-inset-right, 0px));
-    place-items: center;
+    height: 100dvh;
+    max-height: 100dvh;
+    padding: 16px 20px;
+    padding-left: max(20px, env(safe-area-inset-left, 0px));
+    padding-right: max(20px, env(safe-area-inset-right, 0px));
+    overflow: hidden;
   }
 
   .login-card {
-    max-width: 320px;
+    max-width: 360px;
     width: 100%;
     margin: 0;
     justify-self: center;
     align-self: center;
     border-radius: 20px !important;
-    padding: 1.5rem 1.25rem !important;
+    padding: 1.5rem 1.35rem !important;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
   }
 
   .app-brand {
-    margin-bottom: 12px;
+    margin-bottom: 0.85rem;
     gap: 8px;
   }
 
   .app-brand-icon {
-    width: 64px;
-    height: 64px;
+    width: 60px;
+    height: 60px;
     padding: 8px;
   }
 
@@ -114,12 +164,34 @@
   }
 
   .login-title {
-    font-size: 1.35rem;
-    margin-bottom: 8px;
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+  }
+
+  .login-field {
+    margin-bottom: 0.85rem !important;
+  }
+
+  .login-card .login-field .v-input__prepend {
+    margin-inline-end: 12px !important;
+  }
+
+  .login-forgot-row {
+    margin-top: 0.2rem;
+    margin-bottom: 0.65rem;
   }
 
   .login-submit-btn {
-    min-height: 48px;
+    min-height: 46px;
     font-size: 1rem;
+    margin-top: 0.25rem !important;
+  }
+}
+
+/* Pantallas muy bajas (p. ej. teclado / landscape): scroll interno solo si hace falta */
+@media (max-height: 560px) {
+  .login-wrapper {
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 }

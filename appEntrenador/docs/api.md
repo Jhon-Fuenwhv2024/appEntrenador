@@ -4,7 +4,7 @@ Base local por defecto: `http://localhost:3000/api`.
 
 El frontend consume la API mediante `src/shared/api/http.js`, que permite configurar `VITE_API_URL`, adjunta `Authorization: Bearer <token>` y normaliza errores con el formato `{ success: false, error, message, code }`.
 
-Secretos del backend: copiar `backend/.env.example` a `backend/.env` (`JWT_SECRET`, `JWT_EXPIRES_IN`, `PORT`).
+Secretos del backend: copiar `backend/.env.example` a `backend/.env` (`JWT_SECRET`, `JWT_EXPIRES_IN`, `PORT`, SMTP y `APP_PUBLIC_URL` para Feature 056).
 
 ## Auth
 
@@ -51,16 +51,59 @@ Body:
   "username": "cliente",
   "password": "clave",
   "nombre": "Nombre Cliente",
+  "email": "cliente@ejemplo.com",
   "token": "token-invitacion"
 }
 ```
+
+`email` es obligatorio (Feature 056), se normaliza a minúsculas y debe ser único.
 
 Errores relevantes:
 
 | Código | Cuándo |
 |--------|--------|
-| `400` | Falta el token, o el username ya está en uso |
+| `400` | Falta el token, email inválido, username/email ya en uso |
 | `403` | Token inexistente, ya usado/revocado, o sin trainer vinculado |
+
+### `POST /auth/forgot-password` (público · Feature 056)
+
+Solicita un enlace de restablecimiento. **Siempre** responde éxito genérico (sin enumerar si la cuenta existe).
+
+Body (preferido: `username`; `email` queda como compatibilidad):
+
+```json
+{
+  "username": "camila123"
+}
+```
+
+El servidor busca el usuario, toma su `email` registrado y envía el enlace. Si no hay email en la cuenta, responde el mismo mensaje genérico.
+
+Respuesta:
+
+```json
+{
+  "success": true,
+  "message": "Si la cuenta existe y tiene un correo registrado, te hemos enviado un enlace para restablecer tu contraseña."
+}
+```
+
+Si el usuario existe y tiene email: genera token opaco, guarda `SHA-256` + expiry 1h en `usuarios`, envía email SMTP (Nodemailer → Resend) con enlace `${APP_PUBLIC_URL}/reset-password?token=…`.
+
+**Resend / dominio `trainfit.co`:** `SMTP_FROM=Trainfit <noreply@trainfit.co>` tras verificar DNS (DKIM + SPF) en Resend. Mientras el dominio esté `pending`, Resend puede rechazar envíos. Si el envío falla en desarrollo, el backend imprime el enlace de reset en consola.
+
+### `POST /auth/reset-password` (público · Feature 056)
+
+Body:
+
+```json
+{
+  "token": "token-del-enlace",
+  "password": "nuevaSegura"
+}
+```
+
+Valida hash+expiry, hashea con bcrypt (mín. 6 caracteres), invalida el token. Respuesta `200` con `{ success: true, message }`.
 
 ### `POST /generate-token` (trainer + JWT) — alias
 
@@ -333,6 +376,7 @@ Devuelve datos de cuenta:
   "id": 1,
   "username": "coach",
   "nombre": "Juan Coach",
+  "email": "coach@ejemplo.com",
   "rol": "trainer",
   "telefono": "3001112233",
   "foto_url": "/uploads/avatars/user_1.jpg",
@@ -340,14 +384,15 @@ Devuelve datos de cuenta:
 }
 ```
 
+- `email` vive en `usuarios` (Feature 056; nullable en usuarios legacy).
 - Trainer: `telefono` / `foto_url` / `saas_plan` (`FREE` | `PRO`) desde `trainers_info` (plan default `FREE`).
 - Client: `telefono` / `foto_url` desde `alumnos_info` si existen (sin `saas_plan`).
 
 ### `PUT /me/account`
 
-`multipart/form-data` opcional. Campos: `nombre`, `telefono`, archivo `foto`.
+`multipart/form-data` opcional. Campos: `nombre`, `email`, `telefono`, archivo `foto`.
 
-Actualiza `usuarios.nombre` y hace upsert en `trainers_info` (trainer) o `alumnos_info` (client) para teléfono/foto.
+Actualiza `usuarios.nombre` / `usuarios.email` y hace upsert en `trainers_info` (trainer) o `alumnos_info` (client) para teléfono/foto.
 
 Respuesta incluye `data` (cuenta) y `token` JWT renovado (para reflejar el nuevo nombre en claims). Mantener sesión en frontend con el token nuevo.
 
@@ -384,6 +429,7 @@ Respuesta `data`:
   "user_id": 12,
   "nombre": "Ana",
   "username": "ana",
+  "email": "ana@ejemplo.com",
   "rol": "client",
   "telefono": "3001234567",
   "fecha_nacimiento": "1998-05-12",
@@ -401,10 +447,10 @@ Respuesta `data`:
 
 Misma autorización que GET. Acepta `multipart/form-data` (campos de texto + archivo opcional `foto`).
 
-Campos de texto: `telefono`, `fecha_nacimiento`, `sexo`, `lesiones`, `objetivo`.  
+Campos de texto: `email` (en `usuarios`, Feature 056), `telefono`, `fecha_nacimiento`, `sexo`, `lesiones`, `objetivo`.  
 Archivo: `foto` (JPEG/PNG/WebP/GIF, máx. 2 MB) → guarda en disco y persiste URL relativa en `foto_url`.
 
-Si no existe fila en `alumnos_info`, la crea (upsert).
+Si no existe fila en `alumnos_info`, la crea (upsert). `email` se actualiza en `usuarios` (único, válido).
 
 ## Rutinas
 

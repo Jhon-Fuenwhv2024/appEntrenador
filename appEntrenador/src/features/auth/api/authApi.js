@@ -8,6 +8,17 @@ export function registerClient(payload) {
   return http.post('/register', payload);
 }
 
+/**
+ * @param {{ username?: string, email?: string }} payload
+ */
+export function forgotPassword(payload) {
+  return http.post('/auth/forgot-password', payload);
+}
+
+export function resetPassword({ token, password }) {
+  return http.post('/auth/reset-password', { token, password });
+}
+
 /** Prefer features/trainer/api/invitationsApi.createInvite (Feature 023). */
 export function generateInvitation() {
   return http.post('/invites');
