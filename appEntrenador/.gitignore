@@ -16,6 +16,11 @@ dist-ssr
 !.env.example
 backend/.env
 
+# Cloudflare Workers / Wrangler
+.wrangler
+.dev.vars
+.dev.vars*
+
 # Uploaded avatars (keep folder via .gitkeep)
 backend/public/uploads/avatars/*
 !backend/public/uploads/avatars/.gitkeep
