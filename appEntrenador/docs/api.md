@@ -147,7 +147,7 @@ Respuesta exitosa (`201`):
 }
 ```
 
-`link_invitacion` se construye con `APP_PUBLIC_URL` (`${APP_PUBLIC_URL}/registro?token=…`). En local el default es `http://localhost:5173`.
+`link_invitacion` usa `http://localhost:5173` cuando `NODE_ENV !== production`; en producción usa `APP_PUBLIC_URL` (`${APP_PUBLIC_URL}/registro?token=…`).
 
 ### `GET /invites`
 
