@@ -1,5 +1,8 @@
 const crypto = require('crypto');
 const db = require('../../config/db');
+const { APP_PUBLIC_URL, NODE_ENV } = require('../../config/env');
+
+const LOCAL_APP_URL = 'http://localhost:5173';
 
 const INVITE_STATUSES = Object.freeze({
   PENDING: 'pending',
@@ -13,8 +16,16 @@ function createHttpError(message, code) {
   return error;
 }
 
+/** Local → Vite; producción → APP_PUBLIC_URL (Workers / dominio público). */
+function resolveInviteBaseUrl() {
+  if (NODE_ENV !== 'production') {
+    return LOCAL_APP_URL;
+  }
+  return APP_PUBLIC_URL || LOCAL_APP_URL;
+}
+
 function buildInviteLink(token) {
-  return `http://localhost:5173/registro?token=${token}`;
+  return `${resolveInviteBaseUrl()}/registro?token=${encodeURIComponent(token)}`;
 }
 
 function mapInviteRow(row) {
