@@ -159,9 +159,27 @@ function resolveAvatarPublicUrl(file) {
 }
 
 async function upsertProfile(actor, targetUserId, body, uploadedFile) {
-  await assertCanAccessProfile(actor, targetUserId);
+  const target = await assertCanAccessProfile(actor, targetUserId);
   const fields = normalizeProfilePayload(body);
   const fotoUrl = uploadedFile ? resolveAvatarPublicUrl(uploadedFile) : undefined;
+
+  if (
+    actor.rol === 'trainer'
+    && fields.email !== undefined
+    && fields.email !== normalizeEmail(target.email)
+  ) {
+    throw createHttpError(
+      'Solo el cliente puede cambiar su correo de recuperación.',
+      403,
+    );
+  }
+
+  // El formulario del trainer reenvía el email visible aunque no haya cambiado.
+  // No lo escribimos: el correo es una credencial de recuperación, no un dato
+  // de perfil que el trainer pueda administrar.
+  if (actor.rol === 'trainer') {
+    fields.email = undefined;
+  }
 
   const connection = await db.getConnection();
   try {
