@@ -43,6 +43,7 @@
 39. **041 · Récords Personales (PRs) y Celebraciones** — Detección al cerrar sesión + overlay. Absorbe **030**. Spec: `041-personal-records-celebrations`.
 40. **042 · Rachas y Score de Consistencia** — Racha + meta semanal + score 0–100 en Inicio y Ficha 360. Spec: `042-streaks-consistency-score`.
 41. **059 · Workout Player híbrido** — Media + checklist de series + descanso con anillo ±15 / Up next. Spec: `059-workout-player-hybrid-ux`.
+42. **060 · Resumen Client 360 densidad** — Membresía vista/edición, consistencia compacta, historial agrupado + paginación. Spec: `060-client-360-resumen-density`.
 
 ## Siguiente (Epic Fitness)
 

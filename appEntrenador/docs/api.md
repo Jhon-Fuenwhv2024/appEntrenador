@@ -321,7 +321,7 @@ Agregado 360 para la ficha del alumno (solo trainer dueño). Incluye perfil, con
 }
 ```
 
-UI: `/trainer/clients/:clientId` (`Client360View`) con secciones vía `?tab=` (`resumen` | `programacion` | `nutricion` | `medidas` | `checkins` | `graficas` | `chat`). En Resumen: `MembershipPanel` + `ConsistencyPanel` + badge sticky de días restantes / score.
+UI: `/trainer/clients/:clientId` (`Client360View`) con secciones vía `?tab=` (`resumen` | `programacion` | `nutricion` | `medidas` | `checkins` | `graficas` | `chat`). En Resumen (Feature 060): `MembershipPanel` (vista/edición), `ConsistencyPanel` strip compacto, widgets + historial paginado.
 
 ## Membresía del alumno (Feature 040)
 
@@ -874,11 +874,33 @@ Body: `{ "week_goal": 4 }` (entero 1–14). Devuelve el payload de consistencia 
 
 ### `GET /me/workout-sessions` (client) — Feature 021
 
-Lista las sesiones propias del cliente autenticado (máx. 50, más recientes primero). Misma forma que el GET del trainer: cada ítem incluye `sets[]` anidados. Ownership: solo `workout_sessions.client_id = req.user.id` (no acepta `clientId` en params/body).
+Lista las sesiones propias del cliente autenticado (máx. 50, más recientes primero). **`data` es un array** de sesiones; cada ítem incluye `sets[]` anidados. Ownership: solo `workout_sessions.client_id = req.user.id` (no acepta `clientId` en params/body).
 
-### `GET /clients/:clientId/workout-sessions` (trainer)
+### `GET /clients/:clientId/workout-sessions` (trainer) — Feature 012 + 060
 
-Historial del alumno propio (ownership). Incluye `sets[]` anidados.
+Historial del alumno propio (ownership). Query opcional:
+
+| Param | Default | Notas |
+|-------|---------|--------|
+| `limit` | `5` (UI Resumen) / default API `8` | Entero 1–30 |
+| `offset` | `0` | Para «Ver más» |
+
+Respuesta:
+
+```json
+{
+  "success": true,
+  "data": {
+    "sessions": [ /* … con sets[] */ ],
+    "hasMore": true,
+    "total": 42,
+    "limit": 8,
+    "offset": 0
+  }
+}
+```
+
+UI Resumen 360: lista agrupada por día + botón Ver más.
 
 ## Composición corporal (Feature 026)
 

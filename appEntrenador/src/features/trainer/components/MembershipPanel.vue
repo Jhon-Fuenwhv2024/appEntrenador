@@ -1,7 +1,6 @@
 <script setup>
 /**
- * Panel trainer compacto: membresía mensual del alumno (Feature 040).
- * Solo elige inicio; el vencimiento (+30 días) lo calcula el backend.
+ * Mini status card de membresía (040 + 060). Vista densa; edición bajo demanda.
  */
 import { computed, onMounted, reactive, shallowRef, watch } from 'vue';
 import { getApiErrorMessage } from '../../../shared/api/http.js';
@@ -26,10 +25,19 @@ const STATUS_OPTIONS = [
   { value: 'expired', title: 'Vencido' },
 ];
 
+const STATUS_LABEL = {
+  active: 'Al día',
+  owing: 'Pendiente',
+  expired: 'Vencido',
+};
+
 const loading = shallowRef(false);
 const saving = shallowRef(false);
 const loadError = shallowRef('');
 const notesOpen = shallowRef(false);
+const editing = shallowRef(false);
+const hasMembership = shallowRef(false);
+const savedSnapshot = shallowRef(null);
 
 const form = reactive({
   status: 'active',
@@ -50,9 +58,11 @@ const periodEndLabel = computed(() => {
   return formatMembershipDate(end);
 });
 
-const periodRangeHint = computed(() => {
-  if (!form.period_start || !computedPeriodEnd.value) return '';
-  return `${formatMembershipDate(form.period_start)} → ${formatMembershipDate(computedPeriodEnd.value)}`;
+const statusTitle = computed(() => STATUS_LABEL[form.status] || form.status || '—');
+
+const expiresShort = computed(() => {
+  if (!computedPeriodEnd.value) return '—';
+  return `Vence ${periodEndLabel.value}`;
 });
 
 function todayDateOnly() {
@@ -72,11 +82,25 @@ function resetForm() {
   notesOpen.value = false;
 }
 
+function snapshotFromForm() {
+  return {
+    status: form.status,
+    period_start: form.period_start,
+    period_end: form.period_end,
+    notes: form.notes,
+    block_on_unpaid: form.block_on_unpaid,
+    hasMembership: hasMembership.value,
+  };
+}
+
 function applyMembership(data) {
   if (!data) {
+    hasMembership.value = false;
     resetForm();
+    savedSnapshot.value = null;
     return;
   }
+  hasMembership.value = true;
   form.status = data.status || 'active';
   form.period_start = data.period_start
     ? String(data.period_start).slice(0, 10)
@@ -85,6 +109,23 @@ function applyMembership(data) {
   form.notes = data.notes || '';
   form.block_on_unpaid = Boolean(data.block_on_unpaid);
   notesOpen.value = Boolean(form.notes);
+  savedSnapshot.value = snapshotFromForm();
+}
+
+function restoreSnapshot() {
+  const snap = savedSnapshot.value;
+  if (!snap) {
+    hasMembership.value = false;
+    resetForm();
+    return;
+  }
+  hasMembership.value = Boolean(snap.hasMembership);
+  form.status = snap.status;
+  form.period_start = snap.period_start;
+  form.period_end = snap.period_end;
+  form.notes = snap.notes;
+  form.block_on_unpaid = Boolean(snap.block_on_unpaid);
+  notesOpen.value = Boolean(form.notes);
 }
 
 async function loadMembership() {
@@ -92,15 +133,30 @@ async function loadMembership() {
   try {
     loading.value = true;
     loadError.value = '';
+    editing.value = false;
     const response = await getClientMembership(props.clientId);
     applyMembership(response.data?.data ?? null);
   } catch (error) {
     console.error('Error cargando membresía:', error);
     loadError.value = getApiErrorMessage(error, 'No se pudo cargar la membresía');
+    hasMembership.value = false;
     resetForm();
   } finally {
     loading.value = false;
   }
+}
+
+function startEdit() {
+  if (!hasMembership.value) {
+    resetForm();
+  }
+  editing.value = true;
+  notesOpen.value = Boolean(form.notes);
+}
+
+function cancelEdit() {
+  restoreSnapshot();
+  editing.value = false;
 }
 
 async function onSave() {
@@ -125,6 +181,7 @@ async function onSave() {
     const response = await upsertClientMembership(props.clientId, payload);
     const data = response.data?.data ?? null;
     applyMembership(data);
+    editing.value = false;
     emit('notify', { text: 'Membresía guardada', color: 'success' });
     emit('updated', data);
   } catch (error) {
@@ -148,45 +205,94 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="mp" aria-labelledby="mp-title">
-    <header class="mp__head">
-      <div class="mp__head-text">
-        <h3 id="mp-title" class="mp__title">Membresía</h3>
-        <span class="mp__plan">Mensual · 30 días</span>
+  <section
+    class="mp"
+    :class="{ 'mp--editing': editing }"
+    aria-labelledby="mp-title"
+  >
+    <!-- Vista compacta -->
+    <template v-if="!editing">
+      <div class="mp__mini">
+        <div class="mp__mini-left">
+          <v-icon icon="mdi-card-account-details-outline" size="16" class="mp__ico" />
+          <div class="mp__mini-copy">
+            <div class="mp__mini-top">
+              <h3 id="mp-title" class="mp__title">Membresía</h3>
+              <span
+                v-if="hasMembership && !loading && !loadError"
+                class="mp__dot"
+                :class="`mp__dot--${form.status}`"
+                :title="statusTitle"
+              />
+            </div>
+            <v-progress-linear
+              v-if="loading"
+              indeterminate
+              color="primary"
+              height="2"
+              class="mp__loader"
+            />
+            <p v-else-if="loadError" class="mp__err">{{ loadError }}</p>
+            <template v-else-if="hasMembership">
+              <p class="mp__line">
+                <span class="mp__status" :class="`mp__status--${form.status}`">
+                  {{ statusTitle }}
+                </span>
+                <span class="mp__sep">·</span>
+                <span class="mp__expire">{{ expiresShort }}</span>
+                <v-icon
+                  v-if="form.block_on_unpaid"
+                  icon="mdi-lock"
+                  size="12"
+                  class="mp__lock"
+                  title="Bloqueo si no paga"
+                />
+              </p>
+            </template>
+            <p v-else class="mp__empty">Sin asignar</p>
+          </div>
+        </div>
+        <button
+          v-if="!loading && !loadError"
+          type="button"
+          class="mp__icon-btn"
+          :aria-label="hasMembership ? 'Editar membresía' : 'Asignar membresía'"
+          @click="startEdit"
+        >
+          <v-icon
+            :icon="hasMembership ? 'mdi-pencil-outline' : 'mdi-plus'"
+            size="16"
+          />
+        </button>
       </div>
-      <v-btn
-        type="submit"
-        form="mp-form"
-        color="primary"
-        size="small"
-        :loading="saving"
-        :disabled="loading"
-      >
-        Guardar
-      </v-btn>
-    </header>
+    </template>
 
-    <v-progress-linear
-      v-if="loading"
-      indeterminate
-      color="primary"
-      height="2"
-      class="mb-2"
-    />
+    <!-- Edición expandida -->
+    <template v-else>
+      <header class="mp__edit-head">
+        <h3 id="mp-title" class="mp__title">Membresía</h3>
+        <div class="mp__edit-actions">
+          <v-btn
+            variant="text"
+            size="x-small"
+            :disabled="saving"
+            @click="cancelEdit"
+          >
+            Cancelar
+          </v-btn>
+          <v-btn
+            type="submit"
+            form="mp-form"
+            color="primary"
+            size="x-small"
+            :loading="saving"
+          >
+            Guardar
+          </v-btn>
+        </div>
+      </header>
 
-    <v-alert
-      v-else-if="loadError"
-      type="error"
-      variant="tonal"
-      density="compact"
-      class="mb-2"
-    >
-      {{ loadError }}
-    </v-alert>
-
-    <form id="mp-form" class="mp__form" @submit.prevent="onSave">
-      <div class="mp__status-row">
-        <span class="mp__label">Estado</span>
+      <form id="mp-form" class="mp__form" @submit.prevent="onSave">
         <div class="mp__chips" role="group" aria-label="Estado de pago">
           <button
             v-for="opt in STATUS_OPTIONS"
@@ -197,137 +303,232 @@ onMounted(() => {
               'mp__chip--on': form.status === opt.value,
               [`mp__chip--${opt.value}`]: form.status === opt.value,
             }"
-            :disabled="loading || saving"
+            :disabled="saving"
             @click="form.status = opt.value"
           >
             {{ opt.title }}
           </button>
         </div>
-      </div>
 
-      <div class="mp__period">
-        <v-text-field
-          v-model="form.period_start"
-          type="date"
-          label="Inicio"
+        <div class="mp__period">
+          <v-text-field
+            v-model="form.period_start"
+            type="date"
+            label="Inicio"
+            density="compact"
+            variant="outlined"
+            hide-details
+            :disabled="saving"
+            class="mp__date"
+          />
+          <div class="mp__end" :title="periodEndLabel">
+            <span class="mp__end-kicker">Vence</span>
+            <strong>{{ periodEndLabel }}</strong>
+          </div>
+        </div>
+
+        <label class="mp__check">
+          <input
+            v-model="form.block_on_unpaid"
+            type="checkbox"
+            :disabled="saving"
+          >
+          Bloquear rutinas si no paga
+        </label>
+
+        <button
+          type="button"
+          class="mp__notes-toggle"
+          :disabled="saving"
+          @click="notesOpen = !notesOpen"
+        >
+          <v-icon
+            :icon="notesOpen ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+            size="14"
+          />
+          Notas
+          <span v-if="form.notes && !notesOpen" class="mp__notes-dot" />
+        </button>
+
+        <v-textarea
+          v-if="notesOpen"
+          v-model="form.notes"
+          placeholder="Solo visibles para ti"
           density="compact"
           variant="outlined"
+          rows="2"
+          auto-grow
           hide-details
-          :disabled="loading || saving"
-          class="mp__date"
+          :disabled="saving"
         />
-        <div class="mp__end">
-          <span class="mp__end-kicker">Vence</span>
-          <strong>{{ periodEndLabel }}</strong>
-          <span v-if="periodRangeHint" class="mp__end-range">{{ periodRangeHint }}</span>
-        </div>
-      </div>
-
-      <div class="mp__block-row">
-        <v-switch
-          v-model="form.block_on_unpaid"
-          color="error"
-          density="compact"
-          hide-details
-          inset
-          :disabled="loading || saving"
-          class="mp__switch"
-        >
-          <template #label>
-            <span class="mp__switch-label">Bloquear rutinas si no paga</span>
-          </template>
-        </v-switch>
-      </div>
-
-      <button
-        type="button"
-        class="mp__notes-toggle"
-        :disabled="loading || saving"
-        @click="notesOpen = !notesOpen"
-      >
-        <v-icon
-          :icon="notesOpen ? 'mdi-chevron-up' : 'mdi-chevron-down'"
-          size="16"
-        />
-        Notas internas
-        <span v-if="form.notes && !notesOpen" class="mp__notes-dot" />
-      </button>
-
-      <v-textarea
-        v-if="notesOpen"
-        v-model="form.notes"
-        placeholder="Solo visibles para ti"
-        density="compact"
-        variant="outlined"
-        rows="2"
-        auto-grow
-        hide-details
-        :disabled="loading || saving"
-      />
-    </form>
+      </form>
+    </template>
   </section>
 </template>
 
 <style scoped>
 .mp {
-  padding: 0.65rem 0.75rem 0.7rem;
-  border-radius: 12px;
+  height: 100%;
+  min-height: 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.mp__head {
+.mp--editing {
+  padding: 0.55rem 0.7rem 0.65rem;
+}
+
+.mp__mini {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.65rem;
-  margin-bottom: 0.55rem;
+  gap: 0.4rem;
+  min-height: 2.5rem;
 }
 
-.mp__head-text {
-  min-width: 0;
+.mp__mini-left {
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.5rem;
+  align-items: flex-start;
+  gap: 0.45rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.mp__ico {
+  flex-shrink: 0;
+  margin-top: 0.12rem;
+  color: #8b929e;
+}
+
+.mp__mini-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.mp__mini-top {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .mp__title {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #8b929e;
+}
+
+.mp__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mp__dot--active { background: #00e5ff; }
+.mp__dot--owing { background: #ffb020; }
+.mp__dot--expired { background: #ff8a80; }
+
+.mp__loader {
+  margin-top: 0.35rem;
+  max-width: 6rem;
+}
+
+.mp__line {
+  margin: 0.12rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.3rem;
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+
+.mp__status {
   font-weight: 800;
 }
 
-.mp__plan {
-  font-size: 0.68rem;
+.mp__status--active { color: #00e5ff; }
+.mp__status--owing { color: #ffb020; }
+.mp__status--expired { color: #ff8a80; }
+
+.mp__sep {
+  color: #5c6370;
+}
+
+.mp__expire {
+  font-weight: 600;
+  color: #c5cad3;
+  font-variant-numeric: tabular-nums;
+}
+
+.mp__lock {
+  color: #ff8a80;
+}
+
+.mp__empty {
+  margin: 0.1rem 0 0;
+  font-size: 0.78rem;
   font-weight: 600;
   color: #8b929e;
+}
+
+.mp__err {
+  margin: 0.1rem 0 0;
+  font-size: 0.7rem;
+  color: #ff8a80;
+}
+
+.mp__icon-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #c5cad3;
+  cursor: pointer;
+}
+
+.mp__icon-btn:hover {
+  border-color: rgba(0, 229, 255, 0.35);
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.08);
+}
+
+.mp__edit-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.mp__edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
 }
 
 .mp__form {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
-}
-
-.mp__status-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.mp__label {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #8b929e;
+  gap: 0.45rem;
 }
 
 .mp__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.3rem;
 }
 
 .mp__chip {
@@ -335,11 +536,10 @@ onMounted(() => {
   background: rgba(255, 255, 255, 0.04);
   color: #c5cad3;
   border-radius: 999px;
-  padding: 0.22rem 0.65rem;
-  font-size: 0.72rem;
+  padding: 0.18rem 0.55rem;
+  font-size: 0.68rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .mp__chip:disabled {
@@ -366,95 +566,99 @@ onMounted(() => {
 }
 
 .mp__period {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
   align-items: stretch;
+  gap: 0.4rem;
+}
+
+.mp__date {
+  flex: 0 0 auto;
+  width: 9.75rem;
+  max-width: 100%;
 }
 
 .mp__date :deep(.v-field) {
-  min-height: 40px !important;
+  min-height: 34px !important;
+}
+
+.mp__date :deep(.v-field__input) {
+  min-height: 34px !important;
+  font-size: 0.78rem;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }
 
 .mp__end {
-  display: flex;
+  flex: 0 0 auto;
+  display: inline-flex;
   flex-direction: column;
   justify-content: center;
-  gap: 0.08rem;
-  padding: 0.4rem 0.55rem;
-  border-radius: 10px;
+  gap: 0.02rem;
+  min-width: 4.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
   background: rgba(0, 229, 255, 0.08);
-  border: 1px solid rgba(0, 229, 255, 0.16);
-  min-width: 0;
+  border: 1px solid rgba(0, 229, 255, 0.14);
 }
 
 .mp__end-kicker {
-  font-size: 0.58rem;
+  font-size: 0.52rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #00e5ff;
+  line-height: 1;
 }
 
 .mp__end strong {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 800;
   color: #fff;
   line-height: 1.2;
-}
-
-.mp__end-range {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: #8b929e;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.mp__block-row {
-  margin-top: -0.1rem;
+.mp__check {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #c5cad3;
+  cursor: pointer;
+  user-select: none;
 }
 
-.mp__switch {
-  margin-inline-start: 0;
-}
-
-.mp__switch-label {
-  font-size: 0.78rem;
-  line-height: 1.25;
-  color: #e8eaed;
+.mp__check input {
+  accent-color: #ff8a80;
 }
 
 .mp__notes-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.2rem;
   align-self: flex-start;
   margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
   color: #8b929e;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   cursor: pointer;
 }
 
-.mp__notes-toggle:hover {
-  color: #c5cad3;
-}
-
 .mp__notes-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: #00e5ff;
 }
 
-@media (max-width: 520px) {
-  .mp__period {
-    grid-template-columns: 1fr;
+@media (max-width: 420px) {
+  .mp__date {
+    width: 100%;
   }
 }
 </style>

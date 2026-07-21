@@ -47,7 +47,7 @@ El backend monta módulos bajo `/api` desde `backend/src/server.js`.
 - `backend/src/modules/templates/`: CRUD de plantillas + `POST /templates/:id/assign` (deep copy a `rutinas`/`ejercicios`; Feature 018).
 - `backend/src/modules/exercises/`: catálogo `exercises` — `GET/POST /api/exercises` (trainer: globales + propios). Seed (`backend/scripts/seedExercises.js`) desde clone local de wrkout/exercises.json; `media_url` = raw GitHub. Las líneas de rutina/plantilla pueden vincularse con `exercise_id` + `nombre` denormalizado (Feature 022). Ver [`docs/database-schema.md`](database-schema.md).
 - `backend/src/modules/admin-exercises/`: HITL superadmin — `GET /api/admin/exercises/untagged`, `PATCH /api/admin/exercises/:id/tag` (`primary_muscle` / `secondary_muscles`). UI: `/admin/exercises/tagger`. Ver [`docs/exercise-muscle-tagger.md`](exercise-muscle-tagger.md).
-- `backend/src/modules/workout-sessions/`: `POST/GET /me/workout-sessions` (client) y `GET /clients/:id/workout-sessions` (trainer). Feature 012 + 021.
+- `backend/src/modules/workout-sessions/`: `POST/GET /me/workout-sessions` (client, array) y `GET /clients/:id/workout-sessions` (trainer, paginado `{ sessions, hasMore, total }` — Feature 060). Feature 012 + 021.
 - `backend/src/modules/body-composition/`: historial antropométrico (Feature 026).
 - `backend/src/modules/progress/`: series para gráficas — `GET /progress/metrics/:clientId`, `GET /progress/exercises/:clientId` (Feature 027).
 - `backend/src/modules/nutrition/`: objetivos diarios macros/calorías — `GET/PUT /api/nutrition/:clientId` (Feature 031).

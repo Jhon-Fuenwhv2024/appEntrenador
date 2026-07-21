@@ -184,17 +184,42 @@ function mapSession(session, sets) {
   };
 }
 
-async function listSessionsForClient(clientId) {
+async function listSessionsForClient(clientId, options = {}) {
+  const limitRaw = Number(options.limit);
+  const offsetRaw = Number(options.offset);
+  const limit = Number.isFinite(limitRaw)
+    ? Math.min(Math.max(Math.trunc(limitRaw), 1), 50)
+    : 8;
+  const offset = Number.isFinite(offsetRaw) && offsetRaw > 0
+    ? Math.trunc(offsetRaw)
+    : 0;
+
+  const [countRows] = await db.query(
+    `SELECT COUNT(*) AS total
+     FROM workout_sessions
+     WHERE client_id = ?`,
+    [clientId],
+  );
+  const total = Number(countRows[0]?.total) || 0;
+
   const [sessions] = await db.query(
     `SELECT id, client_id, routine_id, routine_name, started_at, finished_at, status, created_at
      FROM workout_sessions
      WHERE client_id = ?
      ORDER BY finished_at DESC, id DESC
-     LIMIT 50`,
-    [clientId],
+     LIMIT ? OFFSET ?`,
+    [clientId, limit, offset],
   );
 
-  if (sessions.length === 0) return [];
+  if (sessions.length === 0) {
+    return {
+      sessions: [],
+      hasMore: false,
+      total,
+      limit,
+      offset,
+    };
+  }
 
   const sessionIds = sessions.map((s) => s.id);
   const placeholders = sessionIds.map(() => '?').join(',');
@@ -213,17 +238,27 @@ async function listSessionsForClient(clientId) {
     bySession.set(set.session_id, list);
   }
 
-  return sessions.map((session) => mapSession(session, bySession.get(session.id) || []));
+  const mapped = sessions.map((session) => mapSession(session, bySession.get(session.id) || []));
+  const hasMore = offset + mapped.length < total;
+
+  return {
+    sessions: mapped,
+    hasMore,
+    total,
+    limit,
+    offset,
+  };
 }
 
-/** Client portal: only sessions owned by req.user.id */
+/** Client portal: only sessions owned by req.user.id. Returns array (compat 021). */
 async function listMySessions(clientId) {
-  return listSessionsForClient(clientId);
+  const result = await listSessionsForClient(clientId, { limit: 50, offset: 0 });
+  return result.sessions;
 }
 
-async function listSessionsForClientAsTrainer(trainerId, clientId) {
+async function listSessionsForClientAsTrainer(trainerId, clientId, options = {}) {
   await clientsService.getClientOwnedByTrainer(clientId, trainerId);
-  return listSessionsForClient(clientId);
+  return listSessionsForClient(clientId, options);
 }
 
 module.exports = {

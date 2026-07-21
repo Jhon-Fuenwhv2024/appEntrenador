@@ -41,6 +41,9 @@ const clientId = computed(() => Number(route.params.clientId));
 const overview = shallowRef(null);
 const clientProfile = shallowRef(null);
 const workoutSessions = shallowRef([]);
+const sessionsHasMore = shallowRef(false);
+const sessionsLoadingMore = shallowRef(false);
+const SESSIONS_PAGE_SIZE = 12;
 const loading = shallowRef(true);
 const savingProfile = shallowRef(false);
 /** Remonta el panel 031 cuando un plan activo sincroniza macros. */
@@ -128,18 +131,50 @@ const loadOverview = async () => {
   }
 };
 
-const loadSessions = async () => {
+const loadSessions = async ({ append = false } = {}) => {
   try {
-    const sessionsRes = await getClientWorkoutSessions(clientId.value);
-    workoutSessions.value = sessionsRes.data.data ?? [];
+    if (append) {
+      sessionsLoadingMore.value = true;
+    }
+    const offset = append ? workoutSessions.value.length : 0;
+    const sessionsRes = await getClientWorkoutSessions(clientId.value, {
+      limit: SESSIONS_PAGE_SIZE,
+      offset,
+    });
+    const payload = sessionsRes.data?.data;
+    const list = Array.isArray(payload)
+      ? payload
+      : (payload?.sessions ?? []);
+    const hasMore = Array.isArray(payload)
+      ? false
+      : Boolean(payload?.hasMore);
+
+    if (append) {
+      const seen = new Set(workoutSessions.value.map((s) => s.id));
+      const next = list.filter((s) => !seen.has(s.id));
+      workoutSessions.value = [...workoutSessions.value, ...next];
+    } else {
+      workoutSessions.value = list;
+    }
+    sessionsHasMore.value = hasMore;
   } catch (error) {
     console.error('Error cargando historial de entrenamientos:', error);
-    workoutSessions.value = [];
+    if (!append) {
+      workoutSessions.value = [];
+      sessionsHasMore.value = false;
+    }
     showNotification(
       getApiErrorMessage(error, 'No se pudo cargar el historial de entrenamientos'),
       'warning',
     );
+  } finally {
+    sessionsLoadingMore.value = false;
   }
+};
+
+const loadMoreSessions = () => {
+  if (sessionsLoadingMore.value || !sessionsHasMore.value) return;
+  return loadSessions({ append: true });
 };
 
 const loadProfileFallback = async () => {
@@ -219,6 +254,7 @@ watch(clientId, () => {
   overview.value = null;
   clientProfile.value = null;
   workoutSessions.value = [];
+  sessionsHasMore.value = false;
   loadData();
 });
 
@@ -293,21 +329,26 @@ onMounted(() => {
             v-if="activeTab === 'resumen'"
             class="c360-stack"
           >
-            <MembershipPanel
-              :client-id="clientId"
-              @notify="onChildNotify"
-              @updated="onMembershipUpdated"
-            />
-            <ConsistencyPanel
-              :client-id="clientId"
-              @notify="onChildNotify"
-              @updated="onConsistencyUpdated"
-            />
+            <div class="c360-status-row">
+              <MembershipPanel
+                :client-id="clientId"
+                @notify="onChildNotify"
+                @updated="onMembershipUpdated"
+              />
+              <ConsistencyPanel
+                :client-id="clientId"
+                @notify="onChildNotify"
+                @updated="onConsistencyUpdated"
+              />
+            </div>
             <Client360Overview
               :overview="overview"
               :sessions="workoutSessions"
+              :sessions-has-more="sessionsHasMore"
+              :sessions-loading-more="sessionsLoadingMore"
               :client-name="client?.nombre || ''"
               @go-tab="setTab"
+              @load-more-sessions="loadMoreSessions"
             />
           </div>
 
@@ -434,6 +475,19 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+}
+
+.c360-status-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+@media (min-width: 600px) {
+  .c360-status-row {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .c360-panel {

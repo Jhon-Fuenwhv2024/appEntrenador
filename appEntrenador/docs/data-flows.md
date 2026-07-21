@@ -43,10 +43,16 @@
 
 1. Trainer abre `/trainer/clients/:clientId` → `Client360View` carga `GET /clients/:id/overview` (perfil + última sesión + conteos + último check-in + nutrition targets + membresía 040 + slots 041–042).
 2. Cabecera sticky muestra avatar/objetivo/última sesión y badge de membresía (días restantes / Pendiente / Vencida); navegación por `?tab=` (Resumen · Programación · Nutrición & Hábitos · Medidas · Check-ins · Gráficas · Chat).
-3. Resumen monta `MembershipPanel` (PUT membresía) + `ConsistencyPanel` (meta semanal 042) + widgets de decisión (incl. PRs del mes 041) + historial de sesiones (`GET /clients/:id/workout-sessions`).
+3. Resumen (Feature 060): `MembershipPanel` en **vista** por defecto (Editar abre formulario) + `ConsistencyPanel` strip compacto (meta bajo demanda) + widgets de decisión (incl. PRs del mes 041) + historial agrupado por día con `GET /clients/:id/workout-sessions?limit=&offset=` y «Ver más».
 4. Overview incluye `consistencyScore` y `prsThisMonth` calculados en server.
 5. Programación reutiliza CRUD de rutinas; paneles existentes (nutrición, hábitos, body-comp, check-ins, gráficas, perfil, chat) se montan por sección sin perder CRUD.
 6. Ownership: el overview y cada panel validan `trainer_id` del alumno.
+
+## Densidad Resumen 360 (Feature 060)
+
+1. Trainer abre Resumen → membresía y consistencia ocupan poco espacio (estado legible, no formularios permanentes).
+2. Historial Resumen: solo **Hoy** y **Ayer** visibles (columnas); estados Completada vs Sin completar (`abandoned`); días anteriores colapsados. Carga inicial ~12 sesiones.
+3. Portal cliente `GET /me/workout-sessions` sigue devolviendo **array** (máx. 50) para no romper Progreso 021.
 
 ## Membresía y control de pago (Feature 040)
 

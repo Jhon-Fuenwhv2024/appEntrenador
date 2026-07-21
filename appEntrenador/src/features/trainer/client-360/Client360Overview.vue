@@ -4,7 +4,7 @@
  * quick actions, session history, and null-safe PR slot (041).
  */
 import { computed } from 'vue';
-import WorkoutSessionHistoryList from '../../../shared/components/WorkoutSessionHistoryList.vue';
+import Client360RecentSessions from './Client360RecentSessions.vue';
 
 const props = defineProps({
   overview: {
@@ -15,13 +15,21 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  sessionsHasMore: {
+    type: Boolean,
+    default: false,
+  },
+  sessionsLoadingMore: {
+    type: Boolean,
+    default: false,
+  },
   clientName: {
     type: String,
     default: '',
   },
 });
 
-const emit = defineEmits(['go-tab']);
+const emit = defineEmits(['go-tab', 'load-more-sessions']);
 
 const lastSession = computed(() => props.overview?.lastSession || null);
 const lastCheckin = computed(() => props.overview?.lastCheckin || null);
@@ -155,19 +163,12 @@ const prsLabel = computed(() => {
       </v-btn>
     </div>
 
-    <section class="c360-panel">
-      <div class="c360-panel__head">
-        <h2 class="c360-panel__title">Entrenamientos recientes</h2>
-        <span class="c360-panel__hint">
-          {{ clientName ? `Historial de ${clientName}` : 'Toca para detalle' }}
-        </span>
-      </div>
-      <WorkoutSessionHistoryList
-        :sessions="sessions"
-        compact
-        empty-text="Sin sesiones registradas."
-      />
-    </section>
+    <Client360RecentSessions
+      :sessions="sessions"
+      :has-more="sessionsHasMore"
+      :loading-more="sessionsLoadingMore"
+      @load-more="emit('load-more-sessions')"
+    />
   </div>
 </template>
 

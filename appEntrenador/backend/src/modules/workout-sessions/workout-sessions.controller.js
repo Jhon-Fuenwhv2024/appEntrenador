@@ -117,13 +117,21 @@ async function listMine(req, res) {
 async function listForClient(req, res) {
   try {
     const clientId = Number(req.params.clientId);
-    const sessions = await workoutSessionsService.listSessionsForClientAsTrainer(
+    let limit = req.query.limit != null ? Number(req.query.limit) : 8;
+    const offset = req.query.offset != null ? Number(req.query.offset) : 0;
+    if (Number.isFinite(limit)) {
+      limit = Math.min(Math.max(Math.trunc(limit), 1), 30);
+    } else {
+      limit = 8;
+    }
+    const result = await workoutSessionsService.listSessionsForClientAsTrainer(
       req.user.id,
       clientId,
+      { limit, offset },
     );
     return res.json({
       success: true,
-      data: sessions,
+      data: result,
     });
   } catch (error) {
     return sendError(res, error, 'Error listando historial de entrenamientos:');
