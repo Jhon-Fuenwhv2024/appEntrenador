@@ -620,10 +620,10 @@ onMounted(() => {
 }
 
 .player-media {
-  margin: 0 -16px 14px;
-  width: calc(100% + 32px);
-  max-width: none;
-  border-radius: 0;
+  margin: 0 0 14px;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 16px;
 }
 
 .player-footer {
@@ -656,9 +656,7 @@ onMounted(() => {
   }
 
   .player-media {
-    margin: 0 0 16px;
-    width: 100%;
-    border-radius: 16px;
+    margin-bottom: 16px;
   }
 
   .player-footer {

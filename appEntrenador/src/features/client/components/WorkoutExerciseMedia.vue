@@ -99,23 +99,40 @@ const embedSrc = computed(() => (
 
 <style scoped>
 .workout-media {
+  box-sizing: border-box;
   width: 100%;
-  aspect-ratio: 4 / 3;
-  max-height: min(42vh, 320px);
+  max-width: 100%;
+  /* Square frame: exercise GIFs are usually square/portrait; landscape was cropping them. */
+  aspect-ratio: 1 / 1;
+  max-height: min(52vh, 400px);
   border-radius: 16px;
   overflow: hidden;
-  background: #000;
+  background: #0B0D12;
   border: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-inline: auto;
 }
 
 .workout-media__frame {
+  display: block;
+  box-sizing: border-box;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center center;
   border: 0;
+  background: transparent;
+  margin: 0;
+  padding: 0;
+}
+
+/* iframe/video need a definite box fill */
+iframe.workout-media__frame,
+video.workout-media__frame {
   background: #000;
 }
 
@@ -153,11 +170,8 @@ const embedSrc = computed(() => (
 
 @media (min-width: 480px) {
   .workout-media {
-    aspect-ratio: 16 / 10;
-  }
-
-  .workout-media__frame {
-    object-fit: contain;
+    aspect-ratio: 4 / 3;
+    max-height: min(48vh, 420px);
   }
 }
 </style>
