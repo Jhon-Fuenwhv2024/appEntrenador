@@ -3,21 +3,21 @@
  * Feature 058 — Preview de solo lectura de la rutina del día (lista + media).
  * No inicia sesión de workout ni registra series.
  */
-import { computed, onMounted, ref, shallowRef } from 'vue';
+import { computed, onMounted, shallowRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   getApiErrorMessage,
   isMembershipBlockedError,
 } from '../../shared/api/http.js';
 import { getSessionUser } from '../../shared/auth/session.js';
+import { normalizeMembershipPeriod } from '../../shared/membership/period.js';
 import { getMyMembership } from './api/membershipApi.js';
 import { getMyRoutines } from './api/routinesApi.js';
 import WorkoutExerciseMedia from './components/WorkoutExerciseMedia.vue';
+import WorkoutHintExpandable from './components/WorkoutHintExpandable.vue';
 import { isMembershipAccessBlocked } from './utils/membershipUi.js';
-import { normalizeMembershipPeriod } from '../../shared/membership/period.js';
 
 const MEMBERSHIP_BLOCKED_MSG = 'Tu membresía venció — habla con tu entrenador.';
-const INFO_PREVIEW_CHARS = 15;
 
 const route = useRoute();
 const router = useRouter();
@@ -26,8 +26,6 @@ const loading = shallowRef(true);
 const loadError = shallowRef('');
 const membershipBlocked = shallowRef(false);
 const routine = shallowRef(null);
-/** Keys of exercises with full info expanded. */
-const expandedInfoKeys = ref([]);
 
 const exercises = computed(() => (
   Array.isArray(routine.value?.ejercicios) ? routine.value.ejercicios : []
@@ -53,30 +51,6 @@ function exerciseInfo(ex) {
   const descEs = typeof ex?.description_es === 'string' ? ex.description_es.trim() : '';
   if (descEs) return descEs;
   return '';
-}
-
-function infoNeedsTruncate(text) {
-  return text.length > INFO_PREVIEW_CHARS;
-}
-
-function isInfoExpanded(key) {
-  return expandedInfoKeys.value.includes(key);
-}
-
-function toggleInfo(key) {
-  if (isInfoExpanded(key)) {
-    expandedInfoKeys.value = expandedInfoKeys.value.filter((k) => k !== key);
-  } else {
-    expandedInfoKeys.value = [...expandedInfoKeys.value, key];
-  }
-}
-
-function displayInfo(ex, index) {
-  const text = exerciseInfo(ex);
-  if (!text) return '';
-  const key = exerciseKey(ex, index);
-  if (isInfoExpanded(key) || !infoNeedsTruncate(text)) return text;
-  return `${text.slice(0, INFO_PREVIEW_CHARS)}...`;
 }
 
 function prescriptionLabel(ex) {
@@ -120,7 +94,6 @@ async function loadRoutine() {
     loadError.value = '';
     membershipBlocked.value = false;
     routine.value = null;
-    expandedInfoKeys.value = [];
 
     const routineId = Number(route.params.routineId);
     const [routinesRes] = await Promise.all([
@@ -193,10 +166,6 @@ onMounted(() => {
     </v-alert>
 
     <main v-else-if="routine" class="preview-main">
-      <p class="preview-lead">
-        Revisa los ejercicios y las demos antes de empezar. Esta vista no registra series.
-      </p>
-
       <ol class="preview-list" aria-label="Ejercicios de la rutina">
         <li
           v-for="(ex, index) in exercises"
@@ -231,19 +200,11 @@ onMounted(() => {
             {{ restLabel(ex) }}
           </p>
 
-          <div v-if="exerciseInfo(ex)" class="preview-card__info">
-            <p class="preview-card__hint">
-              {{ displayInfo(ex, index) }}
-            </p>
-            <button
-              v-if="infoNeedsTruncate(exerciseInfo(ex))"
-              type="button"
-              class="preview-card__more"
-              @click="toggleInfo(exerciseKey(ex, index))"
-            >
-              {{ isInfoExpanded(exerciseKey(ex, index)) ? 'ver menos' : 'ver más' }}
-            </button>
-          </div>
+          <WorkoutHintExpandable
+            v-if="exerciseInfo(ex)"
+            class="preview-card__hint-wrap"
+            :text="exerciseInfo(ex)"
+          />
         </li>
       </ol>
 
@@ -365,13 +326,7 @@ onMounted(() => {
   max-width: 560px;
   width: 100%;
   margin: 0 auto;
-}
-
-.preview-lead {
-  margin: 0 0 0.85rem;
-  font-size: 0.8rem;
-  color: #8b929e;
-  line-height: 1.4;
+  box-sizing: border-box;
 }
 
 .preview-list {
@@ -388,6 +343,7 @@ onMounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.07);
   background: rgba(255, 255, 255, 0.03);
   padding: 0.75rem;
+  overflow: hidden;
 }
 
 .preview-card__head {
@@ -446,7 +402,15 @@ onMounted(() => {
 }
 
 .preview-card__media {
-  margin-bottom: 0.45rem;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 0.45rem;
+}
+
+/* Slightly shorter in the list so several demos fit on screen; still full GIF via contain. */
+.preview-card__media :deep(.workout-media) {
+  max-height: min(42vh, 340px);
 }
 
 .preview-card__rest {
@@ -458,33 +422,9 @@ onMounted(() => {
   color: #8b929e;
 }
 
-.preview-card__info {
-  margin-top: 0.35rem;
-}
-
-.preview-card__hint {
-  margin: 0;
-  font-size: 0.75rem;
-  color: #c5cad3;
-  line-height: 1.35;
-  word-break: break-word;
-}
-
-.preview-card__more {
-  margin: 0.2rem 0 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #00e5ff;
-  font-size: 0.72rem;
-  font-weight: 700;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.preview-card__more:hover {
-  color: #5ef0ff;
+.preview-card__hint-wrap {
+  margin-top: 0.45rem;
+  margin-bottom: 0;
 }
 
 .preview-empty {
