@@ -372,7 +372,7 @@ async function enforceSingleActive(connection, clientId, activePlanId) {
  * Si el plan queda activo, sincroniza totales → nutrition_targets (031).
  * Objetivos diarios siguen editables sin plan de comidas.
  */
-async function syncNutritionTargetsIfActive(trainerId, plan) {
+async function syncNutritionTargetsIfActive(trainerId, plan, queryExecutor = db) {
   if (!plan?.is_active || plan.client_id == null) return null;
 
   return nutritionService.syncFromDietPlanTotals(trainerId, plan.client_id, {
@@ -380,7 +380,7 @@ async function syncNutritionTargetsIfActive(trainerId, plan) {
     protein_g: plan.protein_g,
     carbs_g: plan.carbs_g,
     fats_g: plan.fats_g,
-  });
+  }, queryExecutor);
 }
 
 async function listDietPlans(trainerId, clientIdFilter) {
@@ -450,6 +450,15 @@ async function createDietPlan(trainerId, payload) {
 
     if (data.is_active) {
       await enforceSingleActive(connection, data.client_id, planId);
+      await syncNutritionTargetsIfActive(
+        trainerId,
+        {
+          is_active: true,
+          client_id: data.client_id,
+          ...data.totals,
+        },
+        connection,
+      );
     }
 
     await connection.commit();
@@ -461,7 +470,6 @@ async function createDietPlan(trainerId, payload) {
   }
 
   const plan = await getFullPlanById(planId);
-  await syncNutritionTargetsIfActive(trainerId, plan);
   return plan;
 }
 
@@ -505,6 +513,15 @@ async function updateDietPlan(trainerId, planId, payload) {
 
     if (data.is_active) {
       await enforceSingleActive(connection, data.client_id, planId);
+      await syncNutritionTargetsIfActive(
+        trainerId,
+        {
+          is_active: true,
+          client_id: data.client_id,
+          ...data.totals,
+        },
+        connection,
+      );
     }
 
     await connection.commit();
@@ -516,7 +533,6 @@ async function updateDietPlan(trainerId, planId, payload) {
   }
 
   const plan = await getFullPlanById(planId);
-  await syncNutritionTargetsIfActive(trainerId, plan);
   return plan;
 }
 
@@ -557,6 +573,12 @@ async function activateDietPlan(trainerId, planId) {
       [planId, trainerId],
     );
 
+    await syncNutritionTargetsIfActive(
+      trainerId,
+      { ...plan, is_active: true },
+      connection,
+    );
+
     await connection.commit();
   } catch (error) {
     await connection.rollback();
@@ -566,7 +588,6 @@ async function activateDietPlan(trainerId, planId) {
   }
 
   const fullPlan = await getFullPlanById(planId);
-  await syncNutritionTargetsIfActive(trainerId, fullPlan);
   return fullPlan;
 }
 
