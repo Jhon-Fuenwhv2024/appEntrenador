@@ -115,10 +115,13 @@ const membershipBadge = computed(() => {
       >
         Alumnos
       </v-btn>
+      <div class="c360-header__actions">
+        <slot name="actions" />
+      </div>
     </div>
 
     <div class="c360-header__main">
-      <v-avatar size="52" class="c360-header__avatar">
+      <v-avatar size="48" class="c360-header__avatar">
         <v-img :src="avatarSrc" alt="" cover />
       </v-avatar>
 
@@ -184,8 +187,8 @@ const membershipBadge = computed(() => {
   position: sticky;
   top: 0;
   z-index: 8;
-  padding: 0.45rem 0 0.65rem;
-  margin-bottom: 0.15rem;
+  padding: 0 0 0.5rem;
+  margin-bottom: 0;
   background: linear-gradient(
     180deg,
     rgba(11, 13, 18, 0.98) 0%,
@@ -196,6 +199,21 @@ const membershipBadge = computed(() => {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.c360-header__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 1.75rem;
+}
+
+.c360-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
 .c360-header__back {
   min-height: 28px !important;
 }
@@ -204,8 +222,8 @@ const membershipBadge = computed(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 0.75rem;
-  margin-top: 0.2rem;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
 }
 
 .c360-header__avatar {
@@ -219,30 +237,30 @@ const membershipBadge = computed(() => {
 
 .c360-header__name {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 800;
   line-height: 1.2;
   letter-spacing: -0.02em;
 }
 
 .c360-header__user {
-  margin: 0.1rem 0 0;
-  font-size: 0.75rem;
+  margin: 0.05rem 0 0;
+  font-size: 0.72rem;
   color: #c5cad3;
 }
 
 .c360-header__objective {
-  margin: 0.25rem 0 0;
-  font-size: 0.78rem;
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
   color: #8b929e;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 .c360-header__meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
   flex: 1 1 100%;
 }
 
@@ -257,9 +275,9 @@ const membershipBadge = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
-  padding: 0.2rem 0.5rem;
+  padding: 0.18rem 0.45rem;
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   line-height: 1.2;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);

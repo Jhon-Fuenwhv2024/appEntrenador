@@ -272,25 +272,13 @@ onMounted(() => {
 
 <template>
   <AppShell role="trainer" active="clients">
-    <main class="main-content flex-grow-1 overflow-y-auto">
+    <main class="main-content c360-main flex-grow-1 overflow-y-auto">
       <div class="c360-body">
-        <div class="c360-topbar">
-          <button
-            type="button"
-            class="header-logout-btn"
-            title="Cerrar sesión"
-            aria-label="Cerrar sesión"
-            @click="handleLogout"
-          >
-            <v-icon icon="mdi-logout-variant" size="20" />
-          </button>
-        </div>
-
         <v-progress-linear
           v-if="loading"
           indeterminate
           color="primary"
-          class="mb-3"
+          class="mb-2"
           height="2"
         />
 
@@ -304,7 +292,19 @@ onMounted(() => {
             :routines-count="routinesCount"
             :sessions-count="sessionsCount"
             @back="router.push('/trainer/clients')"
-          />
+          >
+            <template #actions>
+              <button
+                type="button"
+                class="header-logout-btn"
+                title="Cerrar sesión"
+                aria-label="Cerrar sesión"
+                @click="handleLogout"
+              >
+                <v-icon icon="mdi-logout-variant" size="20" />
+              </button>
+            </template>
+          </Client360Header>
 
           <div class="c360-tabs-wrap">
             <v-tabs
@@ -431,26 +431,29 @@ onMounted(() => {
 <style src="../../../assets/trainerDashboard.css" scoped></style>
 
 <style scoped>
+.c360-main.main-content {
+  padding-top: 10px !important;
+  padding-bottom: 1rem !important;
+}
+
 .c360-body {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0.5rem 1rem 1.25rem;
+  padding: 0 0.85rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.55rem;
 }
 
 @media (min-width: 960px) {
-  .c360-body {
-    padding: 0.35rem 1.25rem 1.5rem;
+  .c360-main.main-content {
+    padding-top: 12px !important;
   }
-}
 
-.c360-topbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: -0.25rem;
+  .c360-body {
+    padding: 0 1.15rem 1.25rem;
+  }
 }
 
 .c360-tabs-wrap {
@@ -474,7 +477,7 @@ onMounted(() => {
 .c360-stack {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.65rem;
 }
 
 .c360-status-row {
