@@ -44,3 +44,9 @@ datos usuarios appEntrenador.txt
 
 # Local clone of wrkout/exercises.json (seed source; do not vendor images)
 backend/data/wrkout-exercises/
+
+# Database dumps may contain credentials, reset tokens, and personal data.
+backend/db/*.sql
+!backend/db/script_db.sql
+!backend/db/migrations/
+!backend/db/migrations/*.sql
