@@ -59,7 +59,9 @@ const corsOptions =
             callback(null, true);
             return;
           }
-          callback(new Error(`CORS blocked for origin: ${origin}`));
+          // Reject without throwing: throwing skips ACAO headers and looks like a network/CORS failure.
+          console.warn(`[cors] blocked origin: ${origin}`);
+          callback(null, false);
         },
       }
     : undefined;
@@ -68,6 +70,8 @@ if (NODE_ENV === 'production' && CORS_ORIGINS.length === 0) {
   console.warn(
     '[cors] CORS_ORIGINS vacío en producción: se permite cualquier origen. Define CORS_ORIGINS en Render.',
   );
+} else if (NODE_ENV !== 'production') {
+  console.info(`[cors] origins permitidos: ${CORS_ORIGINS.join(', ') || '(cualquiera)'}`);
 }
 
 app.use(cors(corsOptions));

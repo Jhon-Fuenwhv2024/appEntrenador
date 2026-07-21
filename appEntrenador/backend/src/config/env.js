@@ -35,10 +35,23 @@ const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || 'http://localhost:5173').r
 );
 
 /** Comma-separated frontend origins for CORS (e.g. https://entrenadorfit.xxx.workers.dev). */
-const CORS_ORIGINS = String(process.env.CORS_ORIGINS || '')
+const CORS_ORIGINS_FROM_ENV = String(process.env.CORS_ORIGINS || '')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+/** En desarrollo siempre permitimos Vite local, aunque CORS_ORIGINS apunte a un túnel/prod. */
+const LOCAL_DEV_ORIGINS = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173',
+];
+
+const CORS_ORIGINS =
+  NODE_ENV === 'production'
+    ? CORS_ORIGINS_FROM_ENV
+    : [...new Set([...LOCAL_DEV_ORIGINS, ...CORS_ORIGINS_FROM_ENV])];
 
 module.exports = {
   JWT_SECRET: JWT_SECRET || 'trainfit-dev-only-change-me',

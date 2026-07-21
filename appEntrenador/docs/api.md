@@ -2,7 +2,18 @@
 
 Base local por defecto: `http://localhost:3000/api`.
 
-El frontend consume la API mediante `src/shared/api/http.js`, que permite configurar `VITE_API_URL`, adjunta `Authorization: Bearer <token>` y normaliza errores con el formato `{ success: false, error, message, code }`.
+El frontend resuelve la URL en `src/config/api.js` (usada por `src/shared/api/http.js`):
+
+| Dónde corre el front | API usada |
+|---|---|
+| `localhost` / `127.0.0.1` | `http://localhost:3000/api` |
+| Cloudflare / host público | `VITE_API_URL` (`.env.production`) o `https://appentrenador.onrender.com/api` |
+
+Axios adjunta `Authorization: Bearer <token>` y normaliza errores con `{ success: false, error, message, code }`.
+
+**CORS en Render:** `CORS_ORIGINS` debe incluir la URL exacta del front (p. ej. `https://entrenadorfit.jhonf172016.workers.dev`).
+
+**CORS en local:** en desarrollo el backend siempre permite `http://localhost:5173` (y `127.0.0.1` / preview `4173`), aunque `CORS_ORIGINS` apunte a un túnel. Si ves `CORS blocked for origin: http://localhost:5173`, reinicia el backend tras actualizar `backend/.env`.
 
 Secretos del backend: copiar `backend/.env.example` a `backend/.env` (`JWT_SECRET`, `JWT_EXPIRES_IN`, `PORT`, SMTP y `APP_PUBLIC_URL` para Feature 056).
 

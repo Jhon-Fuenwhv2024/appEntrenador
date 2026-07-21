@@ -37,14 +37,10 @@
             "id": "87bb7b09588444f7",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "features futuros.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "features futuros"
+              "title": "Nueva pestaña"
             }
           }
         ]

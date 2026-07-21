@@ -12,7 +12,7 @@ La fuente de verdad es:
 ## Archivos clave
 
 - `wrangler.jsonc` — `assets.directory = ./dist` + `not_found_handling = single-page-application` (fallback SPA; no uses `public/_redirects` con `/* → /index.html`, Cloudflare lo rechaza como loop)
-- Variable de build: `VITE_API_URL` (opcional en local; en prod = URL del API con `/api`)
+- Variable de build: `VITE_API_URL` (prod = URL del API con `/api`). Si falta, el front usa el fallback de `src/config/api.js` (Render) y **nunca** localhost en un host público.
 
 ## Workers Builds (dashboard / CI)
 

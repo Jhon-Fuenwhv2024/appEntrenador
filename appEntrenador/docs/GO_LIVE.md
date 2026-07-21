@@ -68,6 +68,8 @@ Prueba: [https://appentrenador.onrender.com/health](https://appentrenador.onrend
 VITE_API_URL=https://appentrenador.onrender.com/api
 ```
 
+La URL también se elige en runtime (`src/config/api.js`): en un host público **nunca** se usa `localhost`, aunque falte la variable de build.
+
 Cloudflare Workers Builds debe:
 
 
@@ -76,6 +78,8 @@ Cloudflare Workers Builds debe:
 | Root / working dir | `appEntrenador`       |
 | Build              | `npm run build`       |
 | Deploy             | `npx wrangler deploy` |
+
+En Render, confirma que `CORS_ORIGINS` coincide con la URL de Cloudflare (sin barra final).
 
 
 
