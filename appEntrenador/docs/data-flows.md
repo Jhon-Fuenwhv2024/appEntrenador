@@ -90,13 +90,14 @@
    - Feature **058**: también puede pulsar **Ver rutina** → `/client/routine/:routineId` (preview solo lectura con lista completa + GIF/video vía `WorkoutExerciseMedia`); desde ahí **Empezar rutina** entra al Player.
 2. Frontend carga `GET /me/routines` (incluye `last_log` por ejercicio si hay historial) y muestra **Comenzar entrenamiento**.
 3. En ese tap se desbloquea el audio HTML5 (`useTimer.unlockAudio`) y arranca `useWorkoutSession` (serie, descanso, auto-avance).
-4. El descanso usa `targetEndTime` (wall clock) + `visibilitychange`: al volver del background se recalcula `targetEndTime - Date.now()`; si ya expiró, contador a 0, beep y avance de serie. No se confía en ticks que resten `1` cada segundo.
-5. El Player muestra “Último: X kg × Y” de forma informativa; **no** autocompleta los inputs con ese historial.
-6. Al terminar, `POST /me/workout-sessions` persiste peso/reps por serie.
-7. Tras guardar (status `completed`): detección de PRs (041) → `new_prs[]` + notificación `pr_achieved`; recalculo de racha/score (042) → `consistency` en la respuesta; Player muestra overlay si hay PRs.
-8. En la siguiente sesión, ese log queda disponible como `last_log` (match por `client_id` + nombre de ejercicio; los ids de línea de deep copy no afectan).
-9. Trainer consulta `GET /clients/:id/workout-sessions` y ve el historial en la ficha del alumno; `GET /clients/:id/routines` también incluye `last_log` por ejercicio.
-10. Cliente consulta `GET /me/workout-sessions` en **Mi progreso** (`/client/progress`) — Feature 021; sección **Mis récords** vía `GET /me/personal-records`.
+4. **Feature 059 (UX híbrida):** fase `working` = media del ejercicio + checklist de series (Set | Anterior | kg×reps | estado) + CTA Completar serie; header con duración de sesión. Fase `resting` = anillo de progreso, controles ±15 s, Omitir y bloque **Up next** (respeta superseries 029).
+5. El descanso usa `targetEndTime` (wall clock) + `visibilitychange`: al volver del background se recalcula `targetEndTime - Date.now()`; si ya expiró, contador a 0, beep y avance de serie. No se confía en ticks que resten `1` cada segundo. `useTimer.adjust` mueve el deadline (±15) sin romper ADR-0002.
+6. La columna **Anterior** del checklist usa `last_log` de forma informativa; **no** autocompleta los inputs con ese historial (inputs siguen el peso/reps prescritos de la rutina).
+7. Al terminar, `POST /me/workout-sessions` persiste peso/reps por serie (contrato sin cambios).
+8. Tras guardar (status `completed`): detección de PRs (041) → `new_prs[]` + notificación `pr_achieved`; recalculo de racha/score (042) → `consistency` en la respuesta; Player muestra overlay si hay PRs.
+9. En la siguiente sesión, ese log queda disponible como `last_log` (match por `client_id` + nombre de ejercicio; los ids de línea de deep copy no afectan).
+10. Trainer consulta `GET /clients/:id/workout-sessions` y ve el historial en la ficha del alumno; `GET /clients/:id/routines` también incluye `last_log` por ejercicio.
+11. Cliente consulta `GET /me/workout-sessions` en **Mi progreso** (`/client/progress`) — Feature 021; sección **Mis récords** vía `GET /me/personal-records`.
 
 ## PRs y celebraciones (Feature 041)
 

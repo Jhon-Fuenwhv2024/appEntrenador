@@ -42,6 +42,7 @@
 38. **040 · Membresía y Control de Pago del Alumno** — Periodo, estado, días restantes visibles al cliente, soft-lock. Evoluciona **036**. Distinto de SaaS plataforma **037**. Spec: `040-client-membership-payments`.
 39. **041 · Récords Personales (PRs) y Celebraciones** — Detección al cerrar sesión + overlay. Absorbe **030**. Spec: `041-personal-records-celebrations`.
 40. **042 · Rachas y Score de Consistencia** — Racha + meta semanal + score 0–100 en Inicio y Ficha 360. Spec: `042-streaks-consistency-score`.
+41. **059 · Workout Player híbrido** — Media + checklist de series + descanso con anillo ±15 / Up next. Spec: `059-workout-player-hybrid-ux`.
 
 ## Siguiente (Epic Fitness)
 

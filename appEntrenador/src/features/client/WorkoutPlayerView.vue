@@ -11,6 +11,10 @@ import { createMyWorkoutSession } from './api/workoutSessionsApi.js';
 import { useWorkoutSession } from './composables/useWorkoutSession.js';
 import PrCelebrationOverlay from './components/PrCelebrationOverlay.vue';
 import WorkoutExerciseMedia from './components/WorkoutExerciseMedia.vue';
+import WorkoutFinishedSummary from './components/WorkoutFinishedSummary.vue';
+import WorkoutHintExpandable from './components/WorkoutHintExpandable.vue';
+import WorkoutRestRing from './components/WorkoutRestRing.vue';
+import WorkoutSetsChecklist from './components/WorkoutSetsChecklist.vue';
 
 const MEMBERSHIP_BLOCKED_MSG = 'Tu membresía venció — habla con tu entrenador.';
 
@@ -34,10 +38,12 @@ const streakMessage = shallowRef('');
 const {
   phase,
   restFormattedTime,
+  restProgress,
   actualWeight,
   actualReps,
   logs,
   startedAt,
+  sessionElapsedFormatted,
   currentExercise,
   exerciseIndex,
   totalExercises,
@@ -46,9 +52,12 @@ const {
   currentSupersetGroup,
   exercises,
   currentSetNumber,
+  setsChecklist,
+  nextExercisePreview,
   start,
   completeSet,
   skipRest,
+  adjustRest,
   unlockAudio,
 } = useWorkoutSession();
 
@@ -60,6 +69,39 @@ const exerciseCounter = computed(() => {
   if (!totalExercises.value) return '';
   return `Ejercicio ${exerciseIndex.value + 1} de ${totalExercises.value}`;
 });
+
+/** Global progress 0–100 across exercises (Feature 059). */
+const globalProgressPct = computed(() => {
+  const total = totalExercises.value;
+  if (!total) return 0;
+  if (phase.value === 'finished') return 100;
+  return Math.min(100, Math.round(((exerciseIndex.value) / total) * 100));
+});
+
+const showSessionClock = computed(() => (
+  phase.value === 'working' || phase.value === 'resting'
+));
+
+/** Unique exercises logged this session (finish summary). */
+const finishedExercisesCount = computed(() => {
+  const names = new Set();
+  for (const entry of logs.value) {
+    const key = entry.exerciseId != null
+      ? `id:${entry.exerciseId}`
+      : `name:${entry.exerciseName || ''}`;
+    names.add(key);
+  }
+  return names.size;
+});
+
+/** Total volume = Σ (weight × reps). */
+const finishedVolumeKg = computed(() => (
+  logs.value.reduce((sum, entry) => {
+    const w = Number(entry.weight) || 0;
+    const r = Number(entry.reps) || 0;
+    return sum + (w * r);
+  }, 0)
+));
 
 const isInSupersetGroup = computed(() => {
   const group = currentSupersetGroup.value;
@@ -213,6 +255,13 @@ onMounted(() => {
         <div class="player-eyebrow">Entrenando</div>
         <div v-if="sessionRoutineName" class="player-routine">{{ sessionRoutineName }}</div>
       </div>
+      <div
+        v-if="showSessionClock"
+        class="player-elapsed"
+        aria-label="Duración de la sesión"
+      >
+        {{ sessionElapsedFormatted }}
+      </div>
     </header>
 
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mx-4" />
@@ -236,11 +285,7 @@ onMounted(() => {
     >
       <p class="player-step">Listo</p>
       <h1 class="player-title">{{ sessionRoutineName || 'Tu rutina' }}</h1>
-      <p class="player-rest-copy mb-4">
-        Cuando pulses comenzar, el temporizador de descanso podrá avisarte con sonido
-        aunque minimices el navegador.
-      </p>
-      <button type="button" class="player-cta" @click="onBeginWorkout">
+      <button type="button" class="player-cta player-cta--ready" @click="onBeginWorkout">
         Comenzar entrenamiento
       </button>
     </main>
@@ -248,6 +293,19 @@ onMounted(() => {
     <main v-else-if="phase === 'working' && currentExercise" class="player-main">
       <div class="player-scroll">
         <p class="player-step">{{ exerciseCounter }}</p>
+        <div
+          class="player-progress"
+          role="progressbar"
+          :aria-valuenow="globalProgressPct"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          :aria-label="exerciseCounter"
+        >
+          <div
+            class="player-progress__bar"
+            :style="{ width: `${globalProgressPct}%` }"
+          />
+        </div>
 
         <v-card
           v-if="isInSupersetGroup"
@@ -288,45 +346,14 @@ onMounted(() => {
           :exercise-name="currentExercise.name_es || currentExercise.nombre"
         />
 
-        <p v-if="exerciseHint" class="player-hint">{{ exerciseHint }}</p>
+        <WorkoutHintExpandable :text="exerciseHint" />
 
-        <p
-          v-if="currentExercise.last_log"
-          class="player-last-log text-caption"
-        >
-          Último: {{ currentExercise.last_log.weight }}kg × {{ currentExercise.last_log.reps }}
-        </p>
-
-        <div class="player-inputs" role="group" aria-label="Registro de la serie">
-          <label class="player-field">
-            <span class="player-field__label">Peso</span>
-            <span class="player-field__unit">kg</span>
-            <input
-              v-model.number="actualWeight"
-              class="player-field__input"
-              type="number"
-              min="0"
-              step="0.5"
-              inputmode="decimal"
-              aria-label="Peso en kilogramos"
-            >
-          </label>
-          <label class="player-field">
-            <span class="player-field__label">Repeticiones</span>
-            <span class="player-field__unit">reps</span>
-            <input
-              v-model.number="actualReps"
-              class="player-field__input"
-              type="number"
-              min="1"
-              step="1"
-              inputmode="numeric"
-              aria-label="Repeticiones"
-            >
-          </label>
-        </div>
-
-        <p v-if="formError" class="player-error">{{ formError }}</p>
+        <WorkoutSetsChecklist
+          v-model:weight="actualWeight"
+          v-model:reps="actualReps"
+          :rows="setsChecklist"
+          :form-error="formError"
+        />
       </div>
 
       <div class="player-footer">
@@ -337,43 +364,30 @@ onMounted(() => {
     </main>
 
     <main v-else-if="phase === 'resting'" class="player-main player-main--rest">
-      <p class="player-step">Descanso</p>
-      <h1 class="player-rest-clock" aria-live="polite">{{ restFormattedTime }}</h1>
-      <p class="player-rest-copy">
-        Respira. La siguiente serie empieza en breve
-        <span class="text-muted">({{ restDuration }}s)</span>.
-      </p>
-      <button type="button" class="player-cta player-cta--ghost" @click="skipRest">
-        Omitir descanso
-      </button>
+      <WorkoutRestRing
+        :formatted-time="restFormattedTime"
+        :progress="restProgress"
+        :rest-duration="restDuration"
+        :next-preview="nextExercisePreview"
+        @adjust="adjustRest"
+        @skip="skipRest"
+      />
     </main>
 
     <main v-else-if="phase === 'finished'" class="player-main player-main--done">
-      <v-icon icon="mdi-check-circle-outline" size="56" color="primary" class="mb-3" />
-      <h1 class="player-title">¡Rutina terminada!</h1>
-      <p class="player-rest-copy mb-4">
-        Registraste {{ logs.length }} serie(s). Tu entrenador podrá ver el peso y las reps.
-      </p>
-      <v-progress-linear v-if="saving" indeterminate color="primary" class="mb-4" />
-      <v-alert v-if="saveError" type="error" variant="tonal" class="mb-4 text-left">
-        {{ saveError }}
-        <v-btn
-          size="small"
-          color="primary"
-          class="font-weight-bold mt-2"
-          :loading="saving"
-          @click="persistSession"
-        >
-          Reintentar guardar
-        </v-btn>
-      </v-alert>
-      <v-alert v-else-if="saved" type="success" variant="tonal" class="mb-4">
-        Entrenamiento guardado.
-        <span v-if="streakMessage" class="d-block mt-1">{{ streakMessage }}</span>
-      </v-alert>
-      <button type="button" class="player-cta" @click="goBack">
-        Volver al inicio
-      </button>
+      <WorkoutFinishedSummary
+        :routine-name="sessionRoutineName"
+        :duration-label="sessionElapsedFormatted"
+        :sets-count="logs.length"
+        :exercises-count="finishedExercisesCount"
+        :volume-kg="finishedVolumeKg"
+        :saving="saving"
+        :saved="saved"
+        :save-error="saveError"
+        :streak-message="streakMessage"
+        @retry="persistSession"
+        @done="goBack"
+      />
     </main>
 
     <PrCelebrationOverlay v-model="showPrCelebration" :prs="newPrs" />
@@ -444,6 +458,19 @@ onMounted(() => {
   text-overflow: ellipsis;
 }
 
+.player-elapsed {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #00E5FF;
+  letter-spacing: 0.02em;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+}
+
 .player-main {
   flex: 1;
   min-height: 0;
@@ -472,10 +499,42 @@ onMounted(() => {
   padding: 16px;
 }
 
+.player-main--done {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  justify-content: flex-start;
+  padding-top: 24px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+.player-main--rest {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.player-cta--ready {
+  margin-top: 28px;
+}
+
 .player-step {
   margin: 0 0 4px;
   color: #8B929E;
   font-size: 0.85rem;
+}
+
+.player-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0 0 12px;
+  overflow: hidden;
+}
+
+.player-progress__bar {
+  height: 100%;
+  border-radius: inherit;
+  background: #00E5FF;
+  transition: width 0.25s ease;
 }
 
 .player-title {
@@ -567,99 +626,6 @@ onMounted(() => {
   border-radius: 0;
 }
 
-.player-hint {
-  margin: 0 0 12px;
-  color: #8B929E;
-  font-size: 0.9rem;
-  line-height: 1.45;
-  max-width: 100%;
-}
-
-.player-hint + .player-last-log {
-  margin-top: -4px;
-}
-
-.player-last-log {
-  margin: 0 0 12px;
-  color: #8B929E;
-  font-size: 0.8rem;
-  line-height: 1.35;
-  letter-spacing: 0.01em;
-  max-width: 100%;
-}
-
-.player-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 8px;
-  width: 100%;
-}
-
-.player-field {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-  padding: 12px 12px 10px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.player-field__label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: #8B929E;
-  line-height: 1.2;
-}
-
-.player-field__unit {
-  position: absolute;
-  right: 14px;
-  bottom: 18px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #5E6673;
-  pointer-events: none;
-}
-
-.player-field__input {
-  width: 100%;
-  height: 48px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: #fff;
-  font-size: 1.75rem;
-  font-weight: 700;
-  line-height: 1;
-  padding: 0 40px 0 0;
-  outline: none;
-  appearance: textfield;
-  -moz-appearance: textfield;
-}
-
-.player-field__input::-webkit-outer-spin-button,
-.player-field__input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.player-field:focus-within {
-  border-color: rgba(0, 229, 255, 0.55);
-  background: rgba(0, 229, 255, 0.06);
-}
-
-.player-error {
-  color: #ff8a80;
-  font-size: 0.85rem;
-  margin: 0 0 8px;
-}
-
 .player-footer {
   flex-shrink: 0;
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
@@ -684,36 +650,6 @@ onMounted(() => {
   box-shadow: 0 8px 24px rgba(0, 229, 255, 0.22);
 }
 
-.player-cta--ghost {
-  background: transparent;
-  color: rgb(var(--v-theme-primary));
-  border: 1px solid rgba(0, 229, 255, 0.45);
-  margin-top: 24px;
-  box-shadow: none;
-  text-transform: none;
-  letter-spacing: 0.02em;
-}
-
-.player-rest-clock {
-  margin: 8px 0 12px;
-  font-size: clamp(3.5rem, 18vw, 5rem);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #00E5FF;
-}
-
-.player-rest-copy {
-  margin: 0;
-  color: #C5CAD3;
-  max-width: 20rem;
-  line-height: 1.45;
-  width: 100%;
-}
-
-.text-muted {
-  color: #8B929E;
-}
-
 @media (min-width: 480px) {
   .player-scroll {
     padding: 8px 20px 16px;
@@ -728,33 +664,6 @@ onMounted(() => {
   .player-footer {
     padding-left: 20px;
     padding-right: 20px;
-  }
-
-  .player-field__input {
-    font-size: 1.85rem;
-    height: 52px;
-  }
-}
-
-@media (max-width: 360px) {
-  .player-inputs {
-    gap: 8px;
-  }
-
-  .player-field {
-    padding: 10px;
-  }
-
-  .player-field__input {
-    font-size: 1.5rem;
-    height: 44px;
-    padding-right: 36px;
-  }
-
-  .player-field__unit {
-    right: 10px;
-    bottom: 14px;
-    font-size: 0.72rem;
   }
 }
 </style>

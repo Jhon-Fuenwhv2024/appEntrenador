@@ -147,6 +147,33 @@ export function useTimer(options = {}) {
     completedFired = false;
   }
 
+  /**
+   * Shift the wall-clock deadline by deltaSeconds (±15). If remaining ≤ 0, complete.
+   * @param {number} deltaSeconds
+   * @returns {number} New seconds left (0 if completed / not running)
+   */
+  function adjust(deltaSeconds) {
+    if (!isRunning.value || targetEndTime.value == null) {
+      return secondsLeft.value;
+    }
+
+    const deltaMs = Math.round(Number(deltaSeconds) || 0) * 1000;
+    targetEndTime.value += deltaMs;
+    const remainingMs = targetEndTime.value - Date.now();
+
+    if (remainingMs <= 0) {
+      secondsLeft.value = 0;
+      clearTick();
+      isRunning.value = false;
+      targetEndTime.value = null;
+      fireComplete();
+      return 0;
+    }
+
+    secondsLeft.value = Math.ceil(remainingMs / 1000);
+    return secondsLeft.value;
+  }
+
   onMounted(() => {
     document.addEventListener('visibilitychange', onVisibilityChange);
   });
@@ -163,6 +190,7 @@ export function useTimer(options = {}) {
     formattedTime,
     start,
     cancel,
+    adjust,
     unlockAudio,
     playAlert,
     syncFromTimestamp,
