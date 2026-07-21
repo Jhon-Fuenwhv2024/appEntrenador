@@ -9,6 +9,7 @@ import ClientsListView from './features/trainer/ClientsListView.vue';
 import LibraryView from './features/trainer/LibraryView.vue';
 import TrainerSettingsView from './features/trainer/TrainerSettingsView.vue';
 import WorkoutPlayerView from './features/client/WorkoutPlayerView.vue';
+import ClientRoutinePreviewView from './features/client/ClientRoutinePreviewView.vue';
 import ClientProfileView from './features/client/ClientProfileView.vue';
 import ClientProgressView from './features/client/ClientProgressView.vue';
 import TrainerInboxView from './features/messaging/TrainerInboxView.vue';
@@ -63,6 +64,12 @@ const routes = [
     path: '/client/workout/:routineId',
     name: 'WorkoutPlayer',
     component: WorkoutPlayerView,
+    meta: { requiresAuth: true, role: 'client' },
+  },
+  {
+    path: '/client/routine/:routineId',
+    name: 'ClientRoutinePreview',
+    component: ClientRoutinePreviewView,
     meta: { requiresAuth: true, role: 'client' },
   },
   {

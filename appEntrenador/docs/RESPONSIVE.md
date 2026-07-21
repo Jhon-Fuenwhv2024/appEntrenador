@@ -11,6 +11,7 @@
   **Requisitos Técnicos (Agente):**
   - **Layout:** `src/shared/layout/AppShell.vue` + `AppBottomNav.vue` + `src/assets/appShell.css`.
   - **Breakpoints:** sidebar desktop; bottom nav + safe-area en ≤960px; stats 2×2; profile solo avatar ≤600px.
+  - **Clearance:** `--tf-bottom-nav-clearance` en `theme-base.css`; `padding-bottom` en `.shell-body` (no depender solo del padding de cada vista). Regla: `.cursor/rules/ui-bottom-nav-clearance.mdc`.
   - **Restricción:** Sin cambios API/DB. Workout Player sin bottom nav.
   - **Detalle:** ver `spec/features/014-mobile-shell-bottom-nav/`.
 

@@ -1,0 +1,31 @@
+---
+description: Clearance móvil — contenido no debe quedar oculto bajo la bottom nav
+globs: src/**/*.{vue,css}
+alwaysApply: true
+---
+
+# Bottom nav clearance (móvil ≤960px)
+
+## Problema
+
+`AppBottomNav` es `position: fixed`. Si el área scrollable no deja espacio inferior, el **último contenido queda tapado** (p. ej. última comida del plan de dieta, últimas filas de listas).
+
+## Fuente de verdad
+
+- Variable CSS: `--tf-bottom-nav-clearance` en [`src/assets/theme-base.css`](src/assets/theme-base.css)
+- Aplicación estructural: `padding-bottom: var(--tf-bottom-nav-clearance)` en `.shell-body` ([`src/assets/appShell.css`](src/assets/appShell.css))
+- Shell: [`src/shared/layout/AppShell.vue`](src/shared/layout/AppShell.vue)
+
+## Reglas obligatorias
+
+1. **Nunca** anular el clearance del shell con `padding` / `padding-bottom: 0` / `16px` en `.main-content` sin sumar `var(--tf-bottom-nav-clearance)` **o** confiar en el padding de `.shell-body` (preferido).
+2. Vistas dentro de `AppShell`: el scroll va en `.main-content` (o hijo directo del slot). No usar `height: 100vh` que ignore el shell.
+3. Si una vista fija un footer propio (player, preview), usar `env(safe-area-inset-bottom)` + altura del footer; **no** mezclar con bottom nav (esas rutas no montan `AppBottomNav`).
+4. Al tocar CSS de dashboards (`clientDashboard.css`, `trainerDashboard.css`, etc.), revisar media queries `≤960px`: no pisar el espacio inferior.
+5. Preferir la variable `--tf-bottom-nav-clearance` a números mágicos (`56px`, `72px`).
+
+## Checklist al tocar UI móvil
+
+- [ ] En ~390px de ancho, scrollear hasta el final: el último bloque es totalmente visible encima de Inicio/Progreso/Chat/Perfil (o nav trainer)
+- [ ] No hay doble scroll raro (body + main) ni contenido bajo la barra
+- [ ] Safe-area iOS respetada (`env(safe-area-inset-bottom)` vía la variable)

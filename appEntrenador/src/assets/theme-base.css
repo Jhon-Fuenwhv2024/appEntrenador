@@ -22,6 +22,18 @@
   --tf-on-error: #ffffff;
   --tf-border: rgba(255, 255, 255, 0.08);
   --tf-menu-hover: rgba(0, 229, 255, 0.16);
+  /* Bottom nav clearance (mobile shell ≤960px). Desktop = 0. */
+  --tf-bottom-nav-clearance: 0px;
+}
+
+@media (max-width: 960px) {
+  :root {
+    /*
+     * Altura aprox. nav (icono+label+paddings) + buffer + safe-area iOS.
+     * Usar SIEMPRE esta variable; no hardcodear 56/72 en vistas.
+     */
+    --tf-bottom-nav-clearance: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* ---- Overlays de estado: NUNCA opacos / NUNCA blanco sólido ---- */

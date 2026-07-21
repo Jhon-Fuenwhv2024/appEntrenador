@@ -10,11 +10,11 @@ Trainfit usa una migración modular gradual. La estructura actual mantiene compa
 - `src/shared/layout/AppShell.vue` + `AppBottomNav.vue`: shell autenticado (sidebar desktop / bottom nav móvil ≤960px). Estilos en `src/assets/appShell.css`.
   - **Trainer (4 slots):** Inicio (`/dashboard`), Alumnos (`/trainer/clients`), Biblioteca (`/trainer/library`), Ajustes (`/trainer/settings`). Logout fuera de los slots (header móvil / pie sidebar).
   - **Contexto (no ítem de barra):** ficha `/trainer/clients/:clientId` marca Alumnos; catálogo `/trainer/exercises` es herramienta de Biblioteca (sin slot propio).
-  - **Client (3 slots):** Inicio (`/dashboard`), Progreso (`/client/progress`, Feature 021), Perfil (`/client/profile`). Workout Player sin bottom nav.
+  - **Client (3 slots):** Inicio (`/dashboard`), Progreso (`/client/progress`, Feature 021), Perfil (`/client/profile`). Workout Player y preview de rutina (`/client/routine/:id`, Feature 058) sin bottom nav.
 - `src/features/auth/`: vistas de login/registro y llamadas de auth.
 - `src/features/trainer/`: portal del entrenador, clientes, invitaciones (`InvitesManager` en Alumnos + `InviteClientAction` en Inicio), ficha 360 (`client-360/Client360View` en `/trainer/clients/:clientId`), lista de alumnos (`ClientsListView`), biblioteca de plantillas (`LibraryView` en `/trainer/library`), placeholder `TrainerSettingsView` (024). Inicio (`TrainerDashboardView`) es hub de métricas + invitación + CTA a Alumnos. Paywall 402 (Feature 037) en create-invite.
 - `src/features/saas/`: panel SuperAdmin `/backoffice` (`SuperAdminDashboardView`) — visible solo si `is_superadmin` (Feature 037).
-- `src/features/client/`: portal del cliente — rutinas (`ClientDashboardView`), progreso (`ClientProgressView`), perfil (`ClientProfileView`), player (`WorkoutPlayerView`).
+- `src/features/client/`: portal del cliente — rutinas (`ClientDashboardView`), preview de rutina (`ClientRoutinePreviewView`, Feature 058), progreso (`ClientProgressView`), perfil (`ClientProfileView`), player (`WorkoutPlayerView`), dieta (`ClientDietView`, Feature 057).
   - Descanso resiliente (Feature 028): `composables/useTimer.js` (timestamp + Page Visibility + beep `assets/sounds/rest-complete.wav`) integrado en `useWorkoutSession`.
 - `src/shared/components/WorkoutSessionHistoryList.vue`: historial expandible de sesiones (cliente + ficha trainer).
 - `src/components/Dashboard.vue`: composición por rol; enruta a trainer o client sin contener lógica de feature.

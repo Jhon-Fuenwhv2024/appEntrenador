@@ -275,6 +275,28 @@ FEATURE 038 — Home cliente compacto
   display: flex;
   flex-direction: column;
   gap: 10px;
+  /* Extra air so the last card clears residual overlap on short viewports */
+  padding-bottom: 8px;
+}
+
+.client-home__duo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.client-home__duo > * {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  margin-bottom: 0 !important;
+}
+
+@media (max-width: 360px) {
+  .client-home__duo {
+    grid-template-columns: 1fr;
+  }
 }
 
 .today-hero {
@@ -304,6 +326,14 @@ FEATURE 038 — Home cliente compacto
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.today-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .today-hero__copy {
@@ -341,12 +371,16 @@ FEATURE 038 — Home cliente compacto
 }
 
 .today-hero__cta {
-  flex-shrink: 0;
+  flex: 1 1 auto;
   min-height: 44px !important;
   min-width: 7.5rem;
-  font-size: 0.9rem !important;
+  font-size: 0.85rem !important;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.today-hero__cta--secondary {
+  flex: 1 1 auto;
 }
 
 .today-hero__done-badge {
@@ -372,15 +406,6 @@ FEATURE 038 — Home cliente compacto
   margin-bottom: 2px;
 }
 
-.today-hero__repeat {
-  align-self: flex-start;
-  min-height: 28px !important;
-  padding-inline: 0 !important;
-  font-size: 0.78rem !important;
-  letter-spacing: 0.01em;
-  text-transform: none;
-}
-
 .today-hero__rest {
   display: flex;
   align-items: center;
@@ -396,6 +421,10 @@ FEATURE 038 — Home cliente compacto
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
+  }
+
+  .today-hero__actions {
+    flex-direction: column;
   }
 
   .today-hero__cta,
@@ -797,7 +826,8 @@ RESPONSIVE
 
 @media (max-width: 960px) {
   .main-content {
-    padding: 16px;
+    /* No anular el clearance del shell: solo padding de contenido */
+    padding: 16px 16px 20px;
   }
 
   .stats-grid {

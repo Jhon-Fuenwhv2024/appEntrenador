@@ -172,13 +172,20 @@ onMounted(() => {
 
 <style scoped>
 .dhc {
+  display: flex;
+  flex-direction: column;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .dhc--compact {
   border-radius: 12px;
+  min-height: 108px;
+  max-height: 108px;
 }
 
 .dhc__head {
@@ -187,6 +194,7 @@ onMounted(() => {
   justify-content: space-between;
   gap: 8px;
   padding: 10px 12px 4px;
+  flex-shrink: 0;
 }
 
 .dhc--compact .dhc__head {
@@ -217,6 +225,10 @@ onMounted(() => {
 
 .dhc__list {
   background: transparent;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .dhc__item {

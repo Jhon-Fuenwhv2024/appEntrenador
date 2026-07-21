@@ -10,6 +10,8 @@ const props = defineProps({
   /** Si se pasa desde el padre (p.ej. post-sesión), evita fetch. */
   initial: { type: Object, default: null },
   skipFetch: { type: Boolean, default: false },
+  /** Densidad reducida para fila lado a lado con Hábitos. */
+  compact: { type: Boolean, default: false },
 });
 
 const loading = shallowRef(!props.initial);
@@ -59,7 +61,11 @@ defineExpose({ reload: load });
 </script>
 
 <template>
-  <section class="consistency-ring" aria-label="Racha y meta semanal">
+  <section
+    class="consistency-ring"
+    :class="{ 'consistency-ring--compact': compact }"
+    aria-label="Racha y meta semanal"
+  >
     <v-progress-linear v-if="loading" indeterminate color="primary" height="2" class="mb-2" />
 
     <v-alert
@@ -75,17 +81,19 @@ defineExpose({ reload: load });
     <div v-else class="consistency-ring__row">
       <div class="consistency-ring__dial" :style="ringStyle" :aria-valuenow="progressPct">
         <div class="consistency-ring__dial-inner">
-          <v-icon icon="mdi-fire" size="22" color="primary" />
+          <v-icon icon="mdi-fire" :size="compact ? 20 : 22" color="primary" />
           <strong>{{ streak }}</strong>
         </div>
       </div>
 
       <div class="consistency-ring__copy">
         <p class="consistency-ring__title">
-          Racha: <span class="text-cyan">{{ streak }}</span> día{{ streak === 1 ? '' : 's' }}
+          Racha:
+          <span class="text-cyan">{{ streak }}</span>
+          día{{ streak === 1 ? '' : 's' }}
         </p>
         <p class="consistency-ring__meta">
-          Meta semanal {{ workouts }}/{{ weekGoal }} entrenos · Score {{ score }}
+          Meta {{ workouts }}/{{ weekGoal }} · Score {{ score }}
         </p>
         <p v-if="best > 0" class="consistency-ring__best">
           Mejor racha: {{ best }} días
@@ -97,16 +105,31 @@ defineExpose({ reload: load });
 
 <style scoped>
 .consistency-ring {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   padding: 12px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
+  height: 100%;
+  min-height: 108px;
+  box-sizing: border-box;
+}
+
+.consistency-ring--compact {
+  padding: 10px 12px;
+  border-radius: 12px;
 }
 
 .consistency-ring__row {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.75rem;
+}
+
+.consistency-ring--compact .consistency-ring__row {
+  gap: 0.65rem;
 }
 
 .consistency-ring__dial {
@@ -116,6 +139,11 @@ defineExpose({ reload: load });
   border-radius: 50%;
   display: grid;
   place-items: center;
+}
+
+.consistency-ring--compact .consistency-ring__dial {
+  width: 58px;
+  height: 58px;
 }
 
 .consistency-ring__dial-inner {
@@ -133,17 +161,40 @@ defineExpose({ reload: load });
   line-height: 1;
 }
 
+.consistency-ring--compact .consistency-ring__dial-inner {
+  width: 44px;
+  height: 44px;
+  font-size: 0.9rem;
+}
+
+.consistency-ring__copy {
+  min-width: 0;
+  flex: 1;
+}
+
 .consistency-ring__title {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 800;
+  line-height: 1.25;
+}
+
+.consistency-ring--compact .consistency-ring__title {
+  font-size: 0.9rem;
 }
 
 .consistency-ring__meta,
 .consistency-ring__best {
-  margin: 0.2rem 0 0;
-  font-size: 0.72rem;
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
   color: #8b929e;
+  line-height: 1.3;
+}
+
+.consistency-ring--compact .consistency-ring__meta,
+.consistency-ring--compact .consistency-ring__best {
+  font-size: 0.72rem;
+  margin-top: 0.2rem;
 }
 
 .text-cyan {

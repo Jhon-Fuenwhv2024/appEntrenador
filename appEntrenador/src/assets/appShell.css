@@ -219,18 +219,21 @@ MOBILE ≤960px
     height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
-    /* Space so last content clears the fixed bottom nav */
-    padding-bottom: 0;
   }
 
   .sidebar-pill {
     display: none;
   }
 
+  /*
+   * Clearance estructural: el área scrollable termina ENCIMA de la bottom nav fija.
+   * Así las vistas no pueden “pisar” el padding con overrides de .main-content.
+   */
   .shell-body {
     flex: 1;
     min-height: 0;
     overflow: hidden;
+    padding-bottom: var(--tf-bottom-nav-clearance);
   }
 
   .shell-body > .main-content,
@@ -239,7 +242,8 @@ MOBILE ≤960px
     min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 12px 14px calc(72px + env(safe-area-inset-bottom, 0px));
+    /* Padding de contenido; el clearance de nav lo aporta .shell-body */
+    padding: 12px 14px 20px;
   }
 
   .app-bottom-nav {

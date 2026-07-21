@@ -172,8 +172,21 @@ onMounted(async () => {
                   <v-icon icon="mdi-check-circle" size="20" />
                   Completado
                 </div>
+              </div>
+
+              <div class="today-hero__actions">
                 <v-btn
-                  v-else-if="workoutLocked"
+                  color="primary"
+                  variant="outlined"
+                  class="today-hero__cta today-hero__cta--secondary font-weight-bold"
+                  rounded="lg"
+                  prepend-icon="mdi-eye-outline"
+                  :to="{ name: 'ClientRoutinePreview', params: { routineId: todayRoutine.id } }"
+                >
+                  Ver rutina
+                </v-btn>
+                <v-btn
+                  v-if="workoutLocked"
                   color="error"
                   variant="tonal"
                   class="today-hero__cta font-weight-bold"
@@ -184,7 +197,7 @@ onMounted(async () => {
                   Bloqueado
                 </v-btn>
                 <v-btn
-                  v-else
+                  v-else-if="!todayCompleted"
                   color="primary"
                   class="today-hero__cta font-weight-bold"
                   rounded="lg"
@@ -194,17 +207,18 @@ onMounted(async () => {
                 >
                   Empezar
                 </v-btn>
+                <v-btn
+                  v-else
+                  color="primary"
+                  class="today-hero__cta font-weight-bold"
+                  rounded="lg"
+                  elevation="6"
+                  prepend-icon="mdi-play"
+                  :to="{ name: 'WorkoutPlayer', params: { routineId: todayRoutine.id } }"
+                >
+                  Repetir
+                </v-btn>
               </div>
-              <v-btn
-                v-if="todayCompleted && !workoutLocked"
-                variant="text"
-                color="primary"
-                size="small"
-                class="today-hero__repeat"
-                :to="{ name: 'WorkoutPlayer', params: { routineId: todayRoutine.id } }"
-              >
-                Repetir entrenamiento
-              </v-btn>
             </template>
 
             <template v-else>
@@ -220,14 +234,16 @@ onMounted(async () => {
         </v-slide-y-transition>
 
         <div class="client-home__secondary">
-          <ConsistencyRing v-if="!loading" class="mb-3" />
+          <div class="client-home__duo">
+            <ConsistencyRing v-if="!loading" compact />
 
-          <DailyHabitsChecklist
-            v-if="!loading"
-            compact
-            :initial-habits="habits"
-            :skip-fetch="true"
-          />
+            <DailyHabitsChecklist
+              v-if="!loading"
+              compact
+              :initial-habits="habits"
+              :skip-fetch="true"
+            />
+          </div>
 
           <MacroSummaryCard
             v-if="!loading && userId && macros"

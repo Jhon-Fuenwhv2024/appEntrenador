@@ -796,7 +796,8 @@ RESPONSIVE
 
 @media (max-width: 960px) {
   .main-content {
-    padding: 16px;
+    /* No anular el clearance del shell: solo padding de contenido */
+    padding: 16px 16px 20px;
   }
 
   .stats-grid {

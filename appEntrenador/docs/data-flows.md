@@ -73,6 +73,7 @@
 4. Activar (o guardar con `is_active`): desactiva otros planes del mismo cliente y **sincroniza totales → `nutrition_targets`** (031).
 5. Objetivos diarios (031) siguen siendo independientes: se pueden asignar/editar sin crear un plan de comidas.
 6. Cliente ve el plan activo en el dashboard vía `GET /me/diet-plan` (`req.user.id`); los macros del home siguen viniendo de `nutrition_targets` / `/me/today`.
+7. Feature **057**: `ClientDietView` presenta cada comida como bloque (icono/acento + nombre + hora + kcal) y los alimentos como filas anidadas colapsables (acordeón).
 
 ## Plantillas → deep copy al alumno (Feature 018)
 
@@ -86,6 +87,7 @@
 ## Ejecución de rutina (Workout Player)
 
 1. Cliente pulsa **Empezar** en el hero del dashboard → `/client/workout/:routineId`.
+   - Feature **058**: también puede pulsar **Ver rutina** → `/client/routine/:routineId` (preview solo lectura con lista completa + GIF/video vía `WorkoutExerciseMedia`); desde ahí **Empezar rutina** entra al Player.
 2. Frontend carga `GET /me/routines` (incluye `last_log` por ejercicio si hay historial) y muestra **Comenzar entrenamiento**.
 3. En ese tap se desbloquea el audio HTML5 (`useTimer.unlockAudio`) y arranca `useWorkoutSession` (serie, descanso, auto-avance).
 4. El descanso usa `targetEndTime` (wall clock) + `visibilitychange`: al volver del background se recalcula `targetEndTime - Date.now()`; si ya expiró, contador a 0, beep y avance de serie. No se confía en ticks que resten `1` cada segundo.

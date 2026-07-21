@@ -1108,7 +1108,7 @@ Marca el plan como activo y desactiva otros planes activos del mismo `client_id`
 
 Plan activo del alumno autenticado (`client_id = req.user.id` y `is_active = 1`), con meals e items. Si no hay plan: `"data": null`.
 
-UI trainer: ficha 360 → pestaña Nutrición (`DietPlanPanel`). UI cliente: dashboard (`ClientDietView`).
+UI trainer: ficha 360 → pestaña Nutrición (`DietPlanPanel`). UI cliente: dashboard (`ClientDietView`, Feature 057 — jerarquía comida/productos). Preview de rutina: `/client/routine/:id` (`ClientRoutinePreviewView`, Feature 058).
 
 ## Hábitos diarios (Feature 032)
 
