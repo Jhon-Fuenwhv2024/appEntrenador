@@ -504,6 +504,10 @@ Crea rutina con ejercicios (transacción).
 
 Reemplaza día, nombre y ejercicios de una rutina propia.
 
+### `POST /routines/:routineId/exercises` (trainer)
+
+Añade una sola línea a una rutina propia sin reemplazar sus ejercicios actuales. Acepta el mismo shape de ejercicio usado dentro de `ejercicios[]` al crear una rutina. La inserción vuelve a comprobar ownership y visibilidad de `exercise_id` en el servidor.
+
 ### `DELETE /routines/:routineId` (trainer)
 
 Elimina la rutina (cascade de `ejercicios`).
@@ -547,6 +551,10 @@ Detalle de una plantilla propia.
 ### `PATCH /templates/:id`
 
 Actualiza nombre/notes y reemplaza ejercicios (transacción).
+
+### `POST /templates/:id/exercises`
+
+Añade una sola línea al final de una plantilla propia sin reemplazar sus ejercicios actuales. Acepta el mismo shape de ejercicio usado dentro de `exercises[]` al crear una plantilla.
 
 ### `DELETE /templates/:id`
 

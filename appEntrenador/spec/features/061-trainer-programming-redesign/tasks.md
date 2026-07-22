@@ -8,3 +8,4 @@
 - [x] Duplicar rutina a otro día
 - [x] `docs/data-flows.md` + `docs/architecture.md`
 - [x] `npm run build` + smoke Programación
+- [x] Corregir “Añadir ejercicio” para insertar sin sobrescribir cambios concurrentes

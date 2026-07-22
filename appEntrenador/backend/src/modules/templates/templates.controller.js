@@ -75,6 +75,25 @@ async function update(req, res) {
   }
 }
 
+async function appendExercise(req, res) {
+  try {
+    const templateId = Number(req.params.id);
+    const exercise = await templatesService.appendExerciseToTemplate(
+      req.user.id,
+      templateId,
+      req.body,
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Ejercicio añadido a la plantilla',
+      data: exercise,
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error añadiendo ejercicio a plantilla:');
+  }
+}
+
 async function remove(req, res) {
   try {
     const templateId = Number(req.params.id);
@@ -124,6 +143,7 @@ module.exports = {
   getById,
   create,
   update,
+  appendExercise,
   remove,
   assign,
 };

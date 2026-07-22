@@ -317,6 +317,46 @@ async function updateTemplate(trainerId, templateId, payload) {
   return getTemplateOwnedByTrainer(templateId, trainerId);
 }
 
+async function appendExerciseToTemplate(trainerId, templateId, payload) {
+  const [exercise] = normalizeExercises([payload]);
+  await exercisesService.assertCatalogExerciseIdsVisible(
+    [exercise.exercise_id],
+    trainerId,
+  );
+
+  const [result] = await db.query(
+    `INSERT INTO template_exercises
+       (template_id, nombre, exercise_id, series, repeticiones, peso, rest_time_seconds, superset_letter, indicaciones, sort_order)
+     SELECT t.id, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(MAX(te.sort_order), -1) + 1
+     FROM routine_templates t
+     LEFT JOIN template_exercises te ON te.template_id = t.id
+     WHERE t.id = ? AND t.trainer_id = ?
+     GROUP BY t.id`,
+    [
+      exercise.nombre,
+      exercise.exercise_id,
+      exercise.series,
+      exercise.repeticiones,
+      exercise.peso,
+      exercise.rest_time_seconds,
+      exercise.superset_letter,
+      exercise.indicaciones || null,
+      templateId,
+      trainerId,
+    ],
+  );
+
+  if (result.affectedRows !== 1) {
+    throw createHttpError('Plantilla no encontrada o no pertenece a tu cuenta.', 404);
+  }
+
+  return {
+    id: result.insertId,
+    template_id: templateId,
+    ...exercise,
+  };
+}
+
 async function deleteTemplate(trainerId, templateId) {
   await getTemplateOwnedByTrainer(templateId, trainerId);
   await db.query(
@@ -427,6 +467,7 @@ module.exports = {
   getTemplateById,
   createTemplate,
   updateTemplate,
+  appendExerciseToTemplate,
   deleteTemplate,
   assignTemplate,
 };

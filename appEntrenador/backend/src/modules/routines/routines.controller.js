@@ -139,6 +139,36 @@ async function update(req, res) {
   }
 }
 
+async function appendExercise(req, res) {
+  try {
+    const routineId = Number(req.params.routineId);
+    const exercise = await routinesService.appendExerciseToRoutine(
+      req.user.id,
+      routineId,
+      req.body,
+    );
+
+    try {
+      await notificationService.createNotification(
+        exercise.alumno_id,
+        'Rutina actualizada',
+        `Tu entrenador ha actualizado la rutina: ${exercise.routine_name}`,
+        'routine_assigned',
+      );
+    } catch (notifError) {
+      console.error('Error enviando notificación (append routine exercise):', notifError);
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: 'Ejercicio añadido a la rutina',
+      data: exercise,
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error añadiendo ejercicio a rutina:');
+  }
+}
+
 async function remove(req, res) {
   try {
     const routineId = Number(req.params.routineId);
@@ -159,5 +189,6 @@ module.exports = {
   getToday,
   create,
   update,
+  appendExercise,
   remove,
 };

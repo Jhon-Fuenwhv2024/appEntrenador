@@ -40,6 +40,13 @@ router.put(
   routinesController.update,
 );
 
+router.post(
+  '/routines/:routineId/exercises',
+  authenticate,
+  requireRole('trainer'),
+  routinesController.appendExercise,
+);
+
 router.delete(
   '/routines/:routineId',
   authenticate,

@@ -32,6 +32,13 @@ router.patch(
   templatesController.update,
 );
 
+router.post(
+  '/templates/:id/exercises',
+  authenticate,
+  requireRole('trainer'),
+  templatesController.appendExercise,
+);
+
 router.delete(
   '/templates/:id',
   authenticate,
