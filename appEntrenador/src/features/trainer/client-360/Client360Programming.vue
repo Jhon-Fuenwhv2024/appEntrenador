@@ -1,16 +1,12 @@
 <script setup>
 /**
- * Programación section: routine editor + assigned routines list.
+ * Programación section (Feature 061): week board + day builder + assign template.
  * Props: clientId. Emits: notify({ text, color }).
  */
 import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue';
-import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../../shared/api/http.js';
-import ExerciseMuscleFilter from '../../../shared/components/ExerciseMuscleFilter.vue';
-import { exerciseMatchesMuscleFilter } from '../../../shared/constants/muscles.js';
 import {
   displayExerciseDescription,
-  displayExerciseMuscle,
   displayExerciseName,
 } from '../../../shared/utils/exerciseDisplay.js';
 import { createExercise, getAllExercises } from '../api/exercisesApi.js';
@@ -20,12 +16,14 @@ import {
   getClientRoutines,
   updateRoutine,
 } from '../api/routinesApi.js';
-import { createTemplate } from '../api/templatesApi.js';
+import { assignTemplate, createTemplate } from '../api/templatesApi.js';
+import ProgrammingAssignTemplateDialog from './ProgrammingAssignTemplateDialog.vue';
+import ProgrammingWeekBoard from './ProgrammingWeekBoard.vue';
+import RoutineDayBuilder from './RoutineDayBuilder.vue';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const DEFAULT_TARGET_MUSCLE = 'Full Body';
 const DEFAULT_REST_SECONDS = 90;
-const SUPERSET_LETTER_OPTIONS = ['A', 'B', 'C', 'D', 'E'];
 
 const props = defineProps({
   clientId: {
@@ -36,17 +34,23 @@ const props = defineProps({
 
 const emit = defineEmits(['notify']);
 
-const router = useRouter();
-
 const routines = ref([]);
 const catalogExercises = ref([]);
-const muscleFilter = shallowRef(null);
-const onlyWarmup = shallowRef(false);
 const loading = shallowRef(true);
 const saving = shallowRef(false);
 const savingCatalogIndex = shallowRef(null);
 const savingTemplateId = shallowRef(null);
+const duplicatingId = shallowRef(null);
 const editingId = shallowRef(null);
+const builderOpen = shallowRef(false);
+
+const assignOpen = shallowRef(false);
+const assignDefaultDay = shallowRef('Lunes');
+const assignSaving = shallowRef(false);
+
+const duplicateOpen = shallowRef(false);
+const duplicateSource = shallowRef(null);
+const duplicateDay = shallowRef('Lunes');
 
 const emptyExerciseRow = () => ({
   nombre: '',
@@ -88,38 +92,20 @@ const catalogByName = computed(() => {
   return map;
 });
 
-/** Autocomplete filtrado por músculo / calentamiento (estilo Hevy). */
-const filteredCatalogExercises = computed(() => (
-  catalogExercises.value.filter((item) => (
-    exerciseMatchesMuscleFilter(item, muscleFilter.value, onlyWarmup.value)
-  ))
-));
+const duplicateDayOptions = computed(() => {
+  const sourceDay = duplicateSource.value?.dia_semana;
+  return DAYS.filter((day) => day !== sourceDay);
+});
 
 const showNotification = (text, color = 'success') => {
   emit('notify', { text, color });
 };
-
-function catalogItemSubtitle(item) {
-  const muscle = displayExerciseMuscle(item) || 'Sin etiquetar';
-  return item?.is_warmup ? `${muscle} · Calentamiento` : muscle;
-}
 
 const toRestSeconds = (value) => {
   const n = Math.round(Number(value));
   if (!Number.isFinite(n) || n < 0) return DEFAULT_REST_SECONDS;
   if (n > 900) return 900;
   return n;
-};
-
-const setRestSeconds = (index, value) => {
-  const ex = form.ejercicios[index];
-  if (!ex) return;
-  ex.rest_time_seconds = toRestSeconds(value);
-};
-
-const isNameInCatalog = (nombre) => {
-  const key = (nombre || '').trim().toLowerCase();
-  return key ? catalogByName.value.has(key) : false;
 };
 
 const resolveExerciseName = (value) => {
@@ -131,7 +117,63 @@ const resolveExerciseName = (value) => {
   return String(value);
 };
 
-const onExerciseNameUpdate = (index, value) => {
+const resetForm = () => {
+  editingId.value = null;
+  form.dia_semana = 'Lunes';
+  form.nombre_rutina = '';
+  form.ejercicios = [emptyExerciseRow()];
+};
+
+const closeBuilder = () => {
+  builderOpen.value = false;
+  resetForm();
+};
+
+const openCreate = (day = 'Lunes') => {
+  resetForm();
+  form.dia_semana = DAYS.includes(day) ? day : 'Lunes';
+  builderOpen.value = true;
+};
+
+const startEdit = (routine) => {
+  editingId.value = routine.id;
+  form.dia_semana = routine.dia_semana;
+  form.nombre_rutina = routine.nombre_rutina;
+  form.ejercicios = (routine.ejercicios || []).map((ex) => ({
+    nombre: ex.nombre,
+    exercise_id: ex.exercise_id ?? null,
+    series: ex.series,
+    repeticiones: ex.repeticiones,
+    peso: Number(ex.peso) || 0,
+    rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
+    superset_letter: toSupersetLetter(ex.superset_letter),
+    indicaciones: ex.indicaciones || '',
+  }));
+
+  if (form.ejercicios.length === 0) {
+    form.ejercicios.push(emptyExerciseRow());
+  }
+  builderOpen.value = true;
+};
+
+const addExerciseRow = () => {
+  form.ejercicios.push(emptyExerciseRow());
+};
+
+const removeExerciseRow = (index) => {
+  if (form.ejercicios.length <= 1) return;
+  form.ejercicios.splice(index, 1);
+};
+
+const reorderExercise = ({ from, to }) => {
+  if (from === to) return;
+  if (from < 0 || to < 0) return;
+  if (from >= form.ejercicios.length || to >= form.ejercicios.length) return;
+  const [row] = form.ejercicios.splice(from, 1);
+  form.ejercicios.splice(to, 0, row);
+};
+
+const onExerciseNameUpdate = ({ index, value }) => {
   const ex = form.ejercicios[index];
   if (!ex) return;
 
@@ -146,28 +188,10 @@ const onExerciseNameUpdate = (index, value) => {
   }
 };
 
-const resetForm = () => {
-  editingId.value = null;
-  form.dia_semana = 'Lunes';
-  form.nombre_rutina = '';
-  form.ejercicios = [emptyExerciseRow()];
-};
-
-const addExerciseRow = () => {
-  form.ejercicios.push(emptyExerciseRow());
-};
-
-const isSupersetGrouped = (index) => {
-  const letter = form.ejercicios[index]?.superset_letter;
-  if (!letter) return false;
-  const prev = form.ejercicios[index - 1]?.superset_letter;
-  const next = form.ejercicios[index + 1]?.superset_letter;
-  return prev === letter || next === letter;
-};
-
-const removeExerciseRow = (index) => {
-  if (form.ejercicios.length <= 1) return;
-  form.ejercicios.splice(index, 1);
+const setRestSeconds = ({ index, value }) => {
+  const ex = form.ejercicios[index];
+  if (!ex) return;
+  ex.rest_time_seconds = toRestSeconds(value);
 };
 
 const loadCatalog = async () => {
@@ -205,7 +229,9 @@ const loadData = async () => {
 const saveExerciseToCatalog = async (index) => {
   const ex = form.ejercicios[index];
   const name = ex?.nombre?.trim();
-  if (!name || isNameInCatalog(name)) return;
+  if (!name) return;
+  const key = name.toLowerCase();
+  if (catalogByName.value.has(key)) return;
 
   try {
     savingCatalogIndex.value = index;
@@ -221,7 +247,7 @@ const saveExerciseToCatalog = async (index) => {
     if (created?.id) {
       ex.exercise_id = created.id;
     } else {
-      const match = catalogByName.value.get(name.toLowerCase());
+      const match = catalogByName.value.get(key);
       ex.exercise_id = match?.id ?? null;
     }
     showNotification(`"${name}" guardado en el catálogo`);
@@ -230,26 +256,6 @@ const saveExerciseToCatalog = async (index) => {
     showNotification(getApiErrorMessage(error, 'No se pudo guardar en el catálogo'), 'error');
   } finally {
     savingCatalogIndex.value = null;
-  }
-};
-
-const startEdit = (routine) => {
-  editingId.value = routine.id;
-  form.dia_semana = routine.dia_semana;
-  form.nombre_rutina = routine.nombre_rutina;
-  form.ejercicios = (routine.ejercicios || []).map((ex) => ({
-    nombre: ex.nombre,
-    exercise_id: ex.exercise_id ?? null,
-    series: ex.series,
-    repeticiones: ex.repeticiones,
-    peso: Number(ex.peso) || 0,
-    rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
-    superset_letter: toSupersetLetter(ex.superset_letter),
-    indicaciones: ex.indicaciones || '',
-  }));
-
-  if (form.ejercicios.length === 0) {
-    addExerciseRow();
   }
 };
 
@@ -281,7 +287,7 @@ const handleSave = async () => {
       showNotification('Rutina creada');
     }
 
-    resetForm();
+    closeBuilder();
     await loadData();
   } catch (error) {
     console.error('Error guardando rutina:', error);
@@ -297,7 +303,7 @@ const handleDelete = async (routineId) => {
   try {
     await deleteRoutine(routineId);
     showNotification('Rutina eliminada');
-    if (editingId.value === routineId) resetForm();
+    if (editingId.value === routineId) closeBuilder();
     await loadData();
   } catch (error) {
     console.error('Error eliminando rutina:', error);
@@ -333,8 +339,67 @@ const handleSaveAsTemplate = async (routine) => {
   }
 };
 
+const openAssign = (day = 'Lunes') => {
+  assignDefaultDay.value = DAYS.includes(day) ? day : 'Lunes';
+  assignOpen.value = true;
+};
+
+const handleAssignSubmit = async ({ templateId, clientId, dia_semana }) => {
+  try {
+    assignSaving.value = true;
+    await assignTemplate(templateId, { clientId, dia_semana });
+    showNotification('Plantilla asignada');
+    assignOpen.value = false;
+    await loadData();
+  } catch (error) {
+    console.error('Error asignando plantilla:', error);
+    showNotification(getApiErrorMessage(error, 'No se pudo asignar la plantilla'), 'error');
+  } finally {
+    assignSaving.value = false;
+  }
+};
+
+const openDuplicate = (routine) => {
+  duplicateSource.value = routine;
+  const otherDays = DAYS.filter((d) => d !== routine.dia_semana);
+  duplicateDay.value = otherDays[0] || 'Lunes';
+  duplicateOpen.value = true;
+};
+
+const handleDuplicateConfirm = async () => {
+  const routine = duplicateSource.value;
+  if (!routine?.id) return;
+
+  try {
+    duplicatingId.value = routine.id;
+    await createClientRoutine(props.clientId, {
+      dia_semana: duplicateDay.value,
+      nombre_rutina: routine.nombre_rutina,
+      ejercicios: (routine.ejercicios || []).map((ex) => ({
+        nombre: ex.nombre,
+        exercise_id: ex.exercise_id ?? null,
+        series: Number(ex.series),
+        repeticiones: Number(ex.repeticiones),
+        peso: Number(ex.peso),
+        rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
+        superset_letter: toSupersetLetter(ex.superset_letter),
+        indicaciones: ex.indicaciones || '',
+      })),
+    });
+    showNotification(`Copia en ${duplicateDay.value}`);
+    duplicateOpen.value = false;
+    duplicateSource.value = null;
+    await loadData();
+  } catch (error) {
+    console.error('Error duplicando rutina:', error);
+    showNotification(getApiErrorMessage(error, 'No se pudo duplicar la rutina'), 'error');
+  } finally {
+    duplicatingId.value = null;
+  }
+};
+
 watch(() => props.clientId, () => {
-  resetForm();
+  closeBuilder();
   loadData();
 });
 
@@ -353,313 +418,122 @@ onMounted(() => {
       height="2"
     />
 
-    <section class="ficha-panel routine-editor">
-      <div class="ficha-panel__head routine-editor__head">
-        <h2 class="ficha-panel__title">
-          {{ editingId ? 'Editar rutina' : 'Nueva rutina' }}
-        </h2>
-        <v-btn
-          variant="text"
-          color="primary"
-          size="x-small"
-          class="px-1"
-          prepend-icon="mdi-dumbbell"
-          @click="router.push('/trainer/library/exercises')"
-        >
-          Catálogo
-        </v-btn>
-      </div>
-
-      <div class="routine-meta-row">
-        <label class="field-block field-block--day">
-          <span class="field-cap">Día</span>
-          <v-select
-            v-model="form.dia_semana"
-            :items="DAYS"
-            density="compact"
-            variant="outlined"
-            hide-details
-            color="primary"
-            :menu-props="{ contentClass: 'tf-overlay-menu', maxHeight: 280 }"
-            :list-props="{ bgColor: 'surface', color: undefined }"
-          />
-        </label>
-        <label class="field-block field-block--name">
-          <span class="field-cap">Nombre</span>
-          <v-text-field
-            v-model="form.nombre_rutina"
-            placeholder="Ej. Empuje, Piernas…"
-            density="compact"
-            variant="outlined"
-            hide-details
-            color="primary"
-          />
-        </label>
-      </div>
-
-      <div class="routine-filter-row">
-        <span class="field-cap">Filtrar ejercicios</span>
-        <ExerciseMuscleFilter
-          v-model="muscleFilter"
-          v-model:only-warmup="onlyWarmup"
-          show-warmup
-          label="Grupo muscular"
-        />
-      </div>
-
-      <div
-        v-for="(ex, index) in form.ejercicios"
-        :key="index"
-        class="exercise-form-block"
-        :class="{ 'exercise-form-block--superset': isSupersetGrouped(index) }"
-      >
-        <div class="exercise-form-block__head">
-          <span class="exercise-form-label">Ejercicio {{ index + 1 }}</span>
-          <v-btn
-            v-if="form.ejercicios.length > 1"
-            icon="mdi-close"
-            size="x-small"
-            variant="text"
-            aria-label="Quitar ejercicio"
-            @click="removeExerciseRow(index)"
-          />
+    <section class="ficha-panel programming-toolbar">
+      <div class="ficha-panel__head programming-toolbar__head">
+        <div class="min-w-0">
+          <h2 class="ficha-panel__title">Programación</h2>
+          <p class="ficha-panel__hint">
+            Plan semanal del alumno
+          </p>
         </div>
-
-        <label class="field-block">
-          <span class="field-cap">Ejercicio</span>
-          <v-autocomplete
-            :model-value="ex.nombre"
-            :items="filteredCatalogExercises"
-            item-title="display_name"
-            item-value="name"
-            placeholder="Catálogo o texto libre"
-            density="compact"
-            variant="outlined"
-            hide-details="auto"
-            clearable
-            hide-no-data
-            auto-select-first
-            free-solo
-            color="primary"
-            :menu-props="{ contentClass: 'tf-overlay-menu', maxHeight: 280 }"
-            :list-props="{ bgColor: 'surface', color: undefined }"
-            @update:model-value="(value) => onExerciseNameUpdate(index, value)"
-          >
-            <template #item="{ props: itemProps, item }">
-              <v-list-item
-                v-bind="itemProps"
-                :subtitle="catalogItemSubtitle(item.raw || {})"
-              />
-            </template>
-          </v-autocomplete>
-        </label>
-
-        <v-btn
-          v-if="ex.nombre?.trim() && !isNameInCatalog(ex.nombre)"
-          size="x-small"
-          variant="text"
-          color="primary"
-          class="exercise-form-block__catalog-btn"
-          :loading="savingCatalogIndex === index"
-          @click="saveExerciseToCatalog(index)"
-        >
-          Guardar en catálogo
-        </v-btn>
-
-        <div class="exercise-metrics" role="group" aria-label="Carga">
-          <label class="metric">
-            <span class="field-cap">Series</span>
-            <v-text-field
-              v-model.number="ex.series"
-              type="number"
-              density="compact"
-              variant="outlined"
-              hide-details
-              min="1"
-              color="primary"
-            />
-          </label>
-          <label class="metric">
-            <span class="field-cap">Reps</span>
-            <v-text-field
-              v-model.number="ex.repeticiones"
-              type="number"
-              density="compact"
-              variant="outlined"
-              hide-details
-              min="1"
-              color="primary"
-            />
-          </label>
-          <label class="metric metric--peso">
-            <span class="field-cap">Kg</span>
-            <v-text-field
-              v-model.number="ex.peso"
-              type="number"
-              density="compact"
-              variant="outlined"
-              hide-details
-              min="0"
-              step="0.5"
-              color="primary"
-            />
-          </label>
-          <label class="metric metric--rest">
-            <span class="field-cap">Descanso (s)</span>
-            <v-text-field
-              :model-value="ex.rest_time_seconds"
-              type="number"
-              density="compact"
-              variant="outlined"
-              hide-details
-              min="0"
-              max="900"
-              step="5"
-              color="primary"
-              aria-label="Descanso entre series en segundos"
-              @update:model-value="(value) => setRestSeconds(index, value)"
-            />
-          </label>
-          <label class="metric metric--group">
-            <span class="field-cap">Grupo</span>
-            <v-select
-              v-model="ex.superset_letter"
-              :items="SUPERSET_LETTER_OPTIONS"
-              placeholder="—"
-              density="compact"
-              variant="outlined"
-              hide-details
-              clearable
-              color="primary"
-              :menu-props="{ contentClass: 'tf-overlay-menu' }"
-              :list-props="{ bgColor: 'surface', color: undefined }"
-              aria-label="Grupo superserie — misma letra en ejercicios consecutivos"
-            />
-          </label>
-        </div>
-        <p v-if="index === 0" class="superset-hint">
-          Misma letra en filas seguidas = superserie (ej. Press y Remo en A).
-        </p>
-
-        <label class="field-block">
-          <span class="field-cap">Indicaciones <em>(opcional)</em></span>
-          <v-textarea
-            v-model="ex.indicaciones"
-            placeholder="Notas técnicas breves"
-            density="compact"
-            variant="outlined"
-            rows="1"
-            auto-grow
-            hide-details
-            color="primary"
-            class="exercise-notes"
-          />
-        </label>
+        <span class="ficha-panel__count">{{ routinesCount }}</span>
       </div>
-
-      <div class="ficha-form-actions">
+      <div class="programming-toolbar__actions">
         <v-btn
           variant="outlined"
           size="small"
           class="tf-btn-muted"
-          @click="addExerciseRow"
+          prepend-icon="mdi-bookshelf"
+          @click="openAssign('Lunes')"
         >
-          + Ejercicio
+          Desde biblioteca
         </v-btn>
-        <div class="ficha-form-actions__primary">
+        <v-btn
+          color="primary"
+          size="small"
+          class="font-weight-bold"
+          prepend-icon="mdi-plus"
+          @click="openCreate('Lunes')"
+        >
+          Nueva rutina
+        </v-btn>
+      </div>
+    </section>
+
+    <ProgrammingWeekBoard
+      :routines="routines"
+      :saving-template-id="savingTemplateId"
+      :duplicating-id="duplicatingId"
+      @create="openCreate"
+      @edit="startEdit"
+      @assign="openAssign"
+      @duplicate="openDuplicate"
+      @delete="handleDelete"
+      @save-template="handleSaveAsTemplate"
+    />
+
+    <p v-if="!loading && routines.length === 0 && !builderOpen" class="ficha-empty programming-empty">
+      Sin rutinas aún. Asigna una plantilla o crea la primera sesión.
+    </p>
+
+    <RoutineDayBuilder
+      v-if="builderOpen"
+      :form="form"
+      :editing-id="editingId"
+      :catalog-exercises="catalogExercises"
+      :saving="saving"
+      :saving-catalog-index="savingCatalogIndex"
+      @save="handleSave"
+      @cancel="closeBuilder"
+      @add-exercise="addExerciseRow"
+      @remove-exercise="removeExerciseRow"
+      @reorder-exercise="reorderExercise"
+      @exercise-name-update="onExerciseNameUpdate"
+      @save-to-catalog="saveExerciseToCatalog"
+      @set-rest="setRestSeconds"
+    />
+
+    <ProgrammingAssignTemplateDialog
+      v-model="assignOpen"
+      :client-id="clientId"
+      :default-day="assignDefaultDay"
+      :saving="assignSaving"
+      @submit="handleAssignSubmit"
+    />
+
+    <v-dialog
+      v-model="duplicateOpen"
+      max-width="400"
+    >
+      <v-card bg-color="surface">
+        <v-card-title class="d-flex align-center justify-space-between">
+          <span>Duplicar rutina</span>
           <v-btn
-            v-if="editingId"
+            icon="mdi-close"
             variant="text"
             size="small"
-            @click="resetForm"
-          >
-            Cancelar
-          </v-btn>
+            @click="duplicateOpen = false"
+          />
+        </v-card-title>
+        <v-card-text>
+          <p class="text-medium-emphasis mb-4">
+            Copia “{{ duplicateSource?.nombre_rutina }}” a otro día.
+          </p>
+          <v-select
+            v-model="duplicateDay"
+            :items="duplicateDayOptions"
+            label="Día destino"
+            density="compact"
+            color="primary"
+            bg-color="surface"
+            :menu-props="{ contentClass: 'tf-overlay-menu', maxHeight: 280 }"
+            :list-props="{ bgColor: 'surface', color: undefined }"
+          />
+        </v-card-text>
+        <v-card-actions class="pa-4 pt-0">
+          <v-spacer />
+          <v-btn variant="text" @click="duplicateOpen = false">Cancelar</v-btn>
           <v-btn
             color="primary"
-            class="font-weight-bold"
-            size="small"
-            :loading="saving"
-            @click="handleSave"
+            :loading="duplicatingId != null"
+            :disabled="!duplicateDay"
+            @click="handleDuplicateConfirm"
           >
-            {{ editingId ? 'Guardar' : 'Crear rutina' }}
+            Duplicar
           </v-btn>
-        </div>
-      </div>
-    </section>
-
-    <section class="ficha-panel">
-      <div class="ficha-panel__head">
-        <h2 class="ficha-panel__title">Rutinas asignadas</h2>
-        <span class="ficha-panel__count">{{ routinesCount }}</span>
-      </div>
-
-      <p v-if="routines.length === 0" class="ficha-empty">
-        Sin rutinas aún. Crea la primera arriba.
-      </p>
-
-      <div
-        v-for="routine in routines"
-        :key="routine.id"
-        class="routine-card"
-      >
-        <div class="routine-card__head">
-          <div class="min-w-0">
-            <span class="routine-card__day">{{ routine.dia_semana }}</span>
-            <h3 class="routine-card__name">{{ routine.nombre_rutina }}</h3>
-          </div>
-          <div class="routine-card__actions">
-            <v-btn
-              icon="mdi-bookshelf"
-              size="x-small"
-              variant="text"
-              color="primary"
-              :loading="savingTemplateId === routine.id"
-              title="Guardar en Biblioteca"
-              @click="handleSaveAsTemplate(routine)"
-            />
-            <v-btn
-              icon="mdi-pencil"
-              size="x-small"
-              variant="text"
-              color="primary"
-              title="Editar"
-              @click="startEdit(routine)"
-            />
-            <v-btn
-              icon="mdi-delete-outline"
-              size="x-small"
-              variant="text"
-              color="error"
-              title="Eliminar"
-              @click="handleDelete(routine.id)"
-            />
-          </div>
-        </div>
-        <div class="exercise-list">
-          <div
-            v-for="(ejercicio, i) in routine.ejercicios"
-            :key="ejercicio.id || i"
-            class="exercise-item"
-          >
-            <div class="exercise-num">{{ i + 1 }}</div>
-            <div class="exercise-details min-w-0">
-              <div class="exercise-name">
-                <span
-                  v-if="ejercicio.superset_letter"
-                  class="exercise-group-badge"
-                >{{ ejercicio.superset_letter }}</span>
-                {{ ejercicio.nombre }}
-              </div>
-              <div class="exercise-meta">
-                {{ ejercicio.series }}×{{ ejercicio.repeticiones }} · {{ ejercicio.peso }} kg
-                · descanso {{ ejercicio.rest_time_seconds ?? 90 }}s
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -686,16 +560,8 @@ onMounted(() => {
   margin-bottom: 0.6rem;
 }
 
-.routine-editor__head {
-  margin-bottom: 0.4rem;
-}
-
-.routine-filter-row {
-  margin: 0.15rem 0 0.45rem;
-}
-
-.routine-filter-row > .field-cap {
-  margin-bottom: 0.25rem;
+.programming-toolbar__head {
+  margin-bottom: 0.55rem;
 }
 
 .ficha-panel__title {
@@ -716,252 +582,22 @@ onMounted(() => {
 
 .ficha-panel__hint,
 .ficha-empty {
-  margin: 0;
+  margin: 0.15rem 0 0;
   font-size: 0.72rem;
   color: #8b929e;
 }
 
-.exercise-form-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.5rem 0.55rem;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.28);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  margin-bottom: 0.45rem;
-}
-
-.exercise-form-block--superset {
-  border-left: 3px solid rgb(var(--v-theme-primary));
-  background: rgba(0, 229, 255, 0.06);
-}
-
-.exercise-form-block__head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-height: 22px;
-}
-
-.exercise-form-label {
-  font-size: 0.68rem;
-  color: #00e5ff;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.exercise-form-block__catalog-btn {
-  align-self: flex-start;
-  min-height: 22px !important;
-  padding-inline: 0 !important;
-}
-
-.field-cap {
-  display: block;
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: #8b929e;
-  margin-bottom: 0.2rem;
-  line-height: 1.2;
-}
-
-.field-cap em {
-  font-style: normal;
-  font-weight: 500;
-  opacity: 0.75;
-}
-
-.field-block {
-  display: block;
-  width: 100%;
-  min-width: 0;
-}
-
-.routine-meta-row {
-  display: grid;
-  grid-template-columns: 8.5rem minmax(0, 1fr);
-  gap: 0.45rem;
-  margin-bottom: 0.5rem;
-  align-items: end;
-}
-
-@media (max-width: 520px) {
-  .routine-meta-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-.exercise-metrics {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.4rem;
-}
-
-.metric {
-  display: block;
-  width: 4.5rem;
-  flex: 0 0 4.5rem;
-}
-
-.metric--peso {
-  width: 5rem;
-  flex-basis: 5rem;
-}
-
-.metric--rest {
-  width: 6.25rem;
-  flex-basis: 6.25rem;
-}
-
-.metric--group {
-  width: 5.5rem;
-  flex-basis: 5.5rem;
-}
-
-.superset-hint {
+.programming-empty {
   margin: 0;
-  font-size: 0.68rem;
-  color: #8b929e;
-  line-height: 1.35;
-}
-
-.exercise-group-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.15rem;
-  height: 1.15rem;
-  padding: 0 0.25rem;
-  margin-right: 0.35rem;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: #0b0d12;
-  background: rgb(var(--v-theme-primary));
-  vertical-align: middle;
-}
-
-.exercise-notes {
-  margin-top: 0;
-}
-
-.routine-editor :deep(.v-field) {
-  border-radius: 8px;
-  font-size: 0.85rem;
-}
-
-.routine-editor :deep(.v-input) {
-  margin-bottom: 0;
-}
-
-.routine-editor :deep(.metric .v-field__input) {
   text-align: center;
-  font-variant-numeric: tabular-nums;
-  padding-inline: 0.35rem !important;
-  min-width: 0;
+  padding: 0.25rem 0;
 }
 
-.routine-editor :deep(.metric input) {
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.ficha-form-actions {
+.programming-toolbar__actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-top: 0.55rem;
-}
-
-.ficha-form-actions__primary {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-left: auto;
-}
-
-.routine-card {
-  padding: 0.6rem 0.65rem;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(0, 0, 0, 0.16);
-  margin-bottom: 0.45rem;
-}
-
-.routine-card:last-child {
-  margin-bottom: 0;
-}
-
-.routine-card__head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 0.4rem;
-  margin-bottom: 0.45rem;
-}
-
-.routine-card__day {
-  display: block;
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: #00e5ff;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.routine-card__name {
-  margin: 0.1rem 0 0;
-  font-size: 0.9rem;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.routine-card__actions {
-  display: flex;
-  flex-shrink: 0;
-}
-
-.exercise-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.exercise-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-
-.exercise-num {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  background: rgba(0, 229, 255, 0.12);
-  color: #00e5ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.65rem;
-  font-weight: 700;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.exercise-name {
-  font-weight: 600;
-  font-size: 0.8rem;
-  line-height: 1.25;
-}
-
-.exercise-meta {
-  font-size: 0.7rem;
-  color: #8b929e;
+  gap: 0.45rem;
+  justify-content: flex-end;
 }
 
 .min-w-0 {

@@ -13,7 +13,6 @@ defineProps({
   exercises: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   searchQuery: { type: String, default: '' },
-  onlyEnriched: { type: Boolean, default: false },
   muscleFilter: { type: String, default: null },
   onlyWarmup: { type: Boolean, default: false },
   totalCount: { type: Number, default: 0 },
@@ -29,10 +28,10 @@ defineProps({
 
 defineEmits([
   'update:searchQuery',
-  'update:onlyEnriched',
   'update:muscleFilter',
   'update:onlyWarmup',
   'edit',
+  'assign',
   'delete',
   'prevPage',
   'nextPage',
@@ -75,65 +74,67 @@ function hasLocalMedia(item) {
 
 <template>
   <div>
-    <div class="d-flex flex-wrap align-center justify-space-between ga-3 mb-4">
-      <div>
+    <header class="catalog-header mb-4">
+      <div class="min-w-0">
         <h3 class="card-section-title mb-1">Catálogo</h3>
-        <p class="text-caption text-medium-emphasis mb-0">
-          Mostrando {{ exercises.length }} de {{ totalCount }} ejercicios
+        <p class="catalog-header__meta mb-0">
+          {{ exercises.length }} de {{ totalCount }} ejercicios
           <span v-if="exercises.length">
-            · {{ globalCount }} globales · {{ privateCount }} tuyos (en esta página)
+            · {{ globalCount }} globales · {{ privateCount }} tuyos
           </span>
-        </p>
-        <p class="text-caption text-medium-emphasis mb-0 mt-1">
-          Página {{ currentPage }} de {{ totalPages }}
-          <span v-if="onlyEnriched"> · filtro ES / media local</span>
-          <span v-if="muscleFilter"> · {{ muscleFilter }}</span>
-          <span v-if="onlyWarmup"> · calentamiento</span>
+          · pág. {{ currentPage }}/{{ totalPages }}
         </p>
       </div>
-      <div class="catalog-toolbar">
-        <v-switch
-          :model-value="onlyEnriched"
-          color="primary"
-          density="compact"
-          hide-details
-          inset
-          label="Solo ES / media local"
-          class="enriched-switch"
-          @update:model-value="$emit('update:onlyEnriched', Boolean($event))"
-        />
-        <v-text-field
-          :model-value="searchQuery"
-          label="Buscar"
-          density="compact"
-          hide-details
-          clearable
-          prepend-inner-icon="mdi-magnify"
-          class="search-field"
-          @update:model-value="$emit('update:searchQuery', $event ?? '')"
-        />
-      </div>
-    </div>
+    </header>
 
-    <ExerciseMuscleFilter
-      class="mb-4"
-      :model-value="muscleFilter"
-      :only-warmup="onlyWarmup"
-      show-warmup
-      label="Músculo"
-      @update:model-value="$emit('update:muscleFilter', $event)"
-      @update:only-warmup="$emit('update:onlyWarmup', $event)"
-    />
+    <div class="catalog-filters mb-4" role="search" aria-label="Filtros del catálogo">
+      <v-text-field
+        :model-value="searchQuery"
+        placeholder="Buscar ejercicio…"
+        density="compact"
+        variant="outlined"
+        hide-details
+        clearable
+        prepend-inner-icon="mdi-magnify"
+        color="primary"
+        class="catalog-filters__search"
+        @update:model-value="$emit('update:searchQuery', $event ?? '')"
+      />
+
+      <div class="catalog-filters__chips" role="group" aria-label="Filtros rápidos">
+        <v-btn
+          size="small"
+          :variant="onlyWarmup ? 'flat' : 'outlined'"
+          :color="onlyWarmup ? 'warning' : undefined"
+          class="catalog-filter-chip"
+          prepend-icon="mdi-fire"
+          :aria-pressed="onlyWarmup"
+          @click="$emit('update:onlyWarmup', !onlyWarmup)"
+        >
+          Calentamiento
+        </v-btn>
+      </div>
+
+      <ExerciseMuscleFilter
+        class="catalog-filters__muscle"
+        :model-value="muscleFilter"
+        :only-warmup="false"
+        :show-warmup="false"
+        label="Músculo"
+        @update:model-value="$emit('update:muscleFilter', $event)"
+      />
+
+      <p v-if="muscleFilter || onlyWarmup" class="catalog-filters__hint">
+        <span v-if="muscleFilter">{{ muscleFilter }}</span>
+        <span v-if="muscleFilter && onlyWarmup"> · </span>
+        <span v-if="onlyWarmup">Calentamiento</span>
+      </p>
+    </div>
 
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
 
     <p v-else-if="exercises.length === 0" class="text-medium-emphasis mb-0">
-      <template v-if="onlyEnriched">
-        No hay ejercicios enriquecidos (name_es / media local). ¿Reiniciaste el backend tras el scrape?
-      </template>
-      <template v-else>
-        No hay ejercicios que coincidan. Crea uno a la izquierda o ajusta la búsqueda.
-      </template>
+      No hay ejercicios que coincidan. Crea uno a la izquierda o ajusta la búsqueda.
     </p>
 
     <template v-else>
@@ -161,7 +162,7 @@ function hasLocalMedia(item) {
                 color="primary"
                 variant="tonal"
               >
-                Local
+                Demo
               </v-chip>
               <v-chip
                 v-if="item.is_warmup"
@@ -235,7 +236,16 @@ function hasLocalMedia(item) {
             </a>
           </div>
 
-          <div class="d-flex ga-1 mt-3">
+          <div class="d-flex flex-wrap ga-1 mt-3">
+            <v-btn
+              size="small"
+              color="primary"
+              variant="tonal"
+              prepend-icon="mdi-plus"
+              @click="$emit('assign', item)"
+            >
+              Añadir a…
+            </v-btn>
             <v-btn
               size="small"
               variant="text"
@@ -292,23 +302,68 @@ function hasLocalMedia(item) {
   font-weight: 700;
 }
 
-.catalog-toolbar {
+.catalog-header__meta {
+  font-size: 0.75rem;
+  color: #8b929e;
+  line-height: 1.35;
+}
+
+.catalog-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.55rem 0.65rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.catalog-filters__search {
+  grid-column: 1 / -1;
+}
+
+.catalog-filters__chips {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  min-width: min(100%, 320px);
+  gap: 0.4rem;
 }
 
-.enriched-switch {
-  flex: 0 0 auto;
+.catalog-filter-chip {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+  border-radius: 999px;
 }
 
-.search-field {
-  max-width: 280px;
-  min-width: 200px;
-  width: 100%;
+.catalog-filters__muscle {
+  min-width: 0;
+}
+
+.catalog-filters__hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.68rem;
+  color: #8b929e;
+}
+
+.catalog-filters :deep(.v-field) {
+  border-radius: 10px;
+}
+
+@media (min-width: 720px) {
+  .catalog-filters {
+    grid-template-columns: minmax(180px, 1.2fr) auto minmax(160px, 1fr);
+    align-items: center;
+  }
+
+  .catalog-filters__search {
+    grid-column: auto;
+  }
+
+  .catalog-filters__hint {
+    grid-column: 1 / -1;
+  }
 }
 
 .exercise-grid {
@@ -318,14 +373,13 @@ function hasLocalMedia(item) {
 }
 
 @media (max-width: 600px) {
-  .search-field {
-    max-width: none;
-    min-width: 0;
-  }
-
   .exercise-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.min-w-0 {
+  min-width: 0;
 }
 
 .exercise-card {

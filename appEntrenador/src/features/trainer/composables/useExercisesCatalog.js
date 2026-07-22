@@ -24,7 +24,7 @@ export function useExercisesCatalog() {
   const loading = shallowRef(false);
   const saving = shallowRef(false);
   const searchQuery = shallowRef('');
-  /** Feature 044: solo ejercicios con name_es o media local. */
+  /** Feature 044 (API): enriched filter kept for callers; UI no longer exposes it. */
   const onlyEnriched = shallowRef(false);
   /** Filtro HITL por músculo (estilo Hevy). */
   const muscleFilter = shallowRef(null);

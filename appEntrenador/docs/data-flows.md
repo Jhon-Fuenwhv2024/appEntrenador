@@ -45,8 +45,15 @@
 2. Cabecera sticky muestra avatar/objetivo/última sesión y badge de membresía (días restantes / Pendiente / Vencida); navegación por `?tab=` (Resumen · Programación · Nutrición & Hábitos · Medidas · Check-ins · Gráficas · Chat).
 3. Resumen (Feature 060): `MembershipPanel` en **vista** por defecto (Editar abre formulario) + `ConsistencyPanel` strip compacto (meta bajo demanda) + widgets de decisión (incl. PRs del mes 041) + historial agrupado por día con `GET /clients/:id/workout-sessions?limit=&offset=` y «Ver más».
 4. Overview incluye `consistencyScore` y `prsThisMonth` calculados en server.
-5. Programación reutiliza CRUD de rutinas; paneles existentes (nutrición, hábitos, body-comp, check-ins, gráficas, perfil, chat) se montan por sección sin perder CRUD.
+5. Programación (Feature 061): vista semanal L–D + builder bajo demanda + **Desde biblioteca** (`POST /templates/:id/assign` con `clientId` fijo) + duplicar a otro día vía `POST /clients/:id/routines`. Paneles existentes (nutrición, hábitos, body-comp, check-ins, gráficas, perfil, chat) se montan por sección sin perder CRUD.
 6. Ownership: el overview y cada panel validan `trainer_id` del alumno.
+
+## Programación 360 (Feature 061)
+
+1. Trainer abre `?tab=programacion` → `Client360Programming` carga `GET /clients/:id/routines` y muestra strip semanal (`ProgrammingWeekBoard`).
+2. Día vacío → crear (abre `RoutineDayBuilder`) o asignar plantilla (`ProgrammingAssignTemplateDialog` → `POST /templates/:id/assign`).
+3. Día con rutina → editar en builder, duplicar a otro día (create con mismos ejercicios), guardar en Biblioteca (`POST /templates`), eliminar.
+4. El builder solo aparece al crear/editar (progressive disclosure: Grupo/indicaciones colapsables; reorder de ejercicios).
 
 ## Densidad Resumen 360 (Feature 060)
 
@@ -85,10 +92,13 @@
 
 1. Trainer crea/edita plantillas en `/trainer/library` (`POST/PATCH /templates`) o guarda una rutina existente con “Guardar en Biblioteca”.
 2. Al asignar (`POST /templates/:id/assign` con `clientId` + `dia_semana?`):
+   - Desde Biblioteca: dialog elige alumno + día (`AssignTemplateDialog`).
+   - Desde Programación 360 (Feature 061): dialog elige plantilla + día con alumno fijado (`ProgrammingAssignTemplateDialog`).
    - Valida plantilla propia (`trainer_id = req.user.id`) y ownership del alumno.
    - En una transacción inserta una **nueva** fila en `rutinas` y copia cada línea a `ejercicios`.
    - No se guarda FK hacia `routine_templates`: la copia es independiente.
 3. Editar o borrar la plantilla después **no** cambia las rutinas ya asignadas.
+4. Desde el Catálogo (Biblioteca), el trainer puede **añadir un ejercicio** a una plantilla existente o a una rutina de alumno (`AssignCatalogExerciseDialog` → `PATCH /templates/:id` o `PUT /routines/:id` con la línea al final).
 
 ## Ejecución de rutina (Workout Player)
 

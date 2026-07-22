@@ -1,14 +1,17 @@
 <script setup>
-import { onMounted, reactive, ref, shallowRef } from 'vue';
+import { onMounted, ref, shallowRef } from 'vue';
 import { displayExerciseName } from '../../../shared/utils/exerciseDisplay.js';
+import { useExercisesCatalog } from '../composables/useExercisesCatalog.js';
+import AssignCatalogExerciseDialog from './AssignCatalogExerciseDialog.vue';
 import ExerciseCatalogForm from './ExerciseCatalogForm.vue';
 import ExerciseCatalogList from './ExerciseCatalogList.vue';
-import { useExercisesCatalog } from '../composables/useExercisesCatalog.js';
 
 const emit = defineEmits(['notify']);
 
 const formRef = ref(null);
 const editingExercise = shallowRef(null);
+const assignOpen = shallowRef(false);
+const assigningExercise = shallowRef(null);
 
 const {
   exercises,
@@ -20,7 +23,6 @@ const {
   loading,
   saving,
   searchQuery,
-  onlyEnriched,
   muscleFilter,
   onlyWarmup,
   errorMessage,
@@ -48,6 +50,15 @@ const handleEdit = (exercise) => {
   if (typeof window !== 'undefined') {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+};
+
+const handleAssign = (exercise) => {
+  assigningExercise.value = exercise;
+  assignOpen.value = true;
+};
+
+const handleAssignDone = ({ text, color }) => {
+  notify(text, color || 'success');
 };
 
 const handleSubmit = async (payload) => {
@@ -115,7 +126,6 @@ onMounted(async () => {
         <div class="catalog-panel__card">
           <ExerciseCatalogList
             v-model:search-query="searchQuery"
-            v-model:only-enriched="onlyEnriched"
             v-model:muscle-filter="muscleFilter"
             v-model:only-warmup="onlyWarmup"
             :exercises="exercises"
@@ -130,6 +140,7 @@ onMounted(async () => {
             :private-count="privateCount"
             :editing-id="editingExercise?.id ?? null"
             @edit="handleEdit"
+            @assign="handleAssign"
             @delete="handleDelete"
             @prev-page="goPrevPage"
             @next-page="goNextPage"
@@ -137,6 +148,12 @@ onMounted(async () => {
         </div>
       </v-col>
     </v-row>
+
+    <AssignCatalogExerciseDialog
+      v-model="assignOpen"
+      :exercise="assigningExercise"
+      @done="handleAssignDone"
+    />
   </div>
 </template>
 
