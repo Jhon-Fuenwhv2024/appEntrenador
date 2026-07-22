@@ -11,14 +11,15 @@
         type="button"
         class="notification-btn"
         v-bind="menuProps"
-        aria-label="Notificaciones"
+        :aria-label="notificationAriaLabel"
       >
         <v-icon icon="mdi-bell-outline" size="20" color="var(--tf-on-surface-muted, #a8b0bc)" />
         <span
           v-if="unreadCount > 0"
-          class="notification-btn__dot"
-          aria-hidden="true"
-        />
+          class="notification-btn__badge"
+        >
+          {{ badgeLabel }}
+        </span>
       </button>
     </template>
 
@@ -92,7 +93,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useNotifications } from '../../composables/useNotifications.js';
 
 const menu = ref(false);
@@ -104,6 +105,19 @@ const {
   markAsRead,
   markAllAsRead,
 } = useNotifications();
+
+const badgeLabel = computed(() => {
+  const count = Number(unreadCount.value) || 0;
+  if (count > 99) return '99+';
+  return String(count);
+});
+
+const notificationAriaLabel = computed(() => {
+  const count = Number(unreadCount.value) || 0;
+  if (count <= 0) return 'Notificaciones';
+  if (count === 1) return 'Notificaciones, 1 sin leer';
+  return `Notificaciones, ${count > 99 ? 'más de 99' : count} sin leer`;
+});
 
 onMounted(() => {
   fetchNotifications();
@@ -161,15 +175,27 @@ const handleNotificationClick = async (notif) => {
   background: #171B23;
 }
 
-.notification-btn__dot {
+.notification-btn:focus-visible {
+  outline: 2px solid #00e5ff;
+  outline-offset: 2px;
+}
+
+.notification-btn__badge {
   position: absolute;
-  top: 9px;
-  right: 9px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  top: 4px;
+  right: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
   background: #ef5350;
-  border: 1.5px solid #13161D;
+  border: 1.5px solid #13161d;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+  letter-spacing: 0;
 }
 </style>
 

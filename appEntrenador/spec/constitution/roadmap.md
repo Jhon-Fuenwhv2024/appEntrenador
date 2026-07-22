@@ -46,6 +46,7 @@
 42. **060 · Resumen Client 360 densidad** — Membresía vista/edición, consistencia compacta, historial agrupado + paginación. Spec: `060-client-360-resumen-density`.
 43. **061 · Rediseño Programación (trainer)** — Vista semanal L–D, builder bajo demanda, assign plantilla desde ficha 360, duplicar día. Spec: `061-trainer-programming-redesign`.
 44. **062 · Accesibilidad visual (baja visión)** — WCAG 2.2 AA visual: ADR-0002, regla Cursor, tokens muted/focus, auditoría + fixes P0/P1. Spec: `062-visual-accessibility-low-vision`.
+45. **063 · Session header actions** — Cluster compartido campana + menú de cuenta (logout con confirmación) cliente/trainer; badge numérico. Spec: `063-session-header-actions`.
 
 ## Siguiente (Epic Fitness)
 

@@ -2,8 +2,9 @@
 import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
-import { clearSession, getSessionUser } from '../../shared/auth/session.js';
+import { getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
+import SessionHeaderActions from '../../shared/layout/SessionHeaderActions.vue';
 import {
   assignTemplate,
   createTemplate,
@@ -68,11 +69,6 @@ const loadTemplates = async () => {
   } finally {
     loading.value = false;
   }
-};
-
-const handleLogout = () => {
-  clearSession();
-  router.push('/');
 };
 
 const openCreate = () => {
@@ -171,15 +167,7 @@ watch(libraryTab, (tab) => {
         </div>
 
         <div class="header-right">
-          <button
-            type="button"
-            class="header-logout-btn"
-            title="Cerrar sesión"
-            aria-label="Cerrar sesión"
-            @click="handleLogout"
-          >
-            <v-icon icon="mdi-logout-variant" size="20" />
-          </button>
+          <SessionHeaderActions role="trainer" />
         </div>
       </header>
 

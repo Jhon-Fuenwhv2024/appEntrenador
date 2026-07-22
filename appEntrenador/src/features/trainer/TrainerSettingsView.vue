@@ -11,8 +11,9 @@ import {
   updateMyAccount,
 } from '../../shared/api/accountApi.js';
 import { getApiErrorMessage } from '../../shared/api/http.js';
-import { clearSession, getSessionUser, setSession } from '../../shared/auth/session.js';
+import { getSessionUser, setSession } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
+import SessionHeaderActions from '../../shared/layout/SessionHeaderActions.vue';
 import ChangePasswordForm from '../../shared/components/ChangePasswordForm.vue';
 import TrainerAccountCard from '../../shared/components/TrainerAccountCard.vue';
 
@@ -93,11 +94,6 @@ async function onChangePassword({ current_password, new_password, done }) {
   }
 }
 
-function handleLogout() {
-  clearSession();
-  router.push('/');
-}
-
 onMounted(() => {
   const user = getSessionUser();
   if (!user || user.rol !== 'trainer') {
@@ -119,15 +115,7 @@ onMounted(() => {
           </p>
         </div>
         <div class="header-right">
-          <button
-            type="button"
-            class="header-logout-btn"
-            title="Cerrar sesión"
-            aria-label="Cerrar sesión"
-            @click="handleLogout"
-          >
-            <v-icon icon="mdi-logout-variant" size="20" />
-          </button>
+          <SessionHeaderActions role="trainer" />
         </div>
       </header>
 

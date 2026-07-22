@@ -30,6 +30,7 @@ WCAG **2.2 AA** (criterios visuales): 1.4.3, 1.4.11, 1.4.4/1.4.10, 2.4.7, 2.5.8.
 | **Sistema** tema + Vuetify | pass | Muted `#8b929e` borderline en elevated; border 0.08 &lt; 3:1; sin focus global | P0: muted `#A8B0BC`, border 0.28, `:focus-visible`, `medium-emphasis` ↑ |
 | **Auth** login / register / reset | pass* | `text-medium-emphasis` dependía de opacity baja | Cubierto por P0 tokens |
 | **Shell** sidebar + bottom nav | pass | Inactivo `#5E6673` bajo contraste; sin focus-visible en items | P1: muted token + focus ring en `appShell.css` |
+| **Shell** session actions (063) | pass | Badge solo color; logout suelto | Badge numérico + menú cuenta (`aria-label`); logout con confirmación |
 | **Cliente** Inicio / hábitos | pass | Peek usaba `outline: none` en focus-visible | P1: ring + borde primary |
 | **Cliente** Workout Player / sets | pass | Inputs `outline: none`; `×` `#5E6673` | P1: focus-visible + muted |
 | **Cliente** preview / dieta / progreso / chat / perfil | pass* | Captions hardcoded `#8b929e` | P0/P1: variable CSS |

@@ -196,26 +196,6 @@ BOTTOM NAV (mobile)
   white-space: nowrap;
 }
 
-/* Header logout — mobile only */
-.header-logout-btn {
-  display: none;
-  width: 40px;
-  height: 40px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #13161D;
-  color: var(--tf-on-surface-muted, #a8b0bc);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.header-logout-btn:hover {
-  color: #FFFFFF;
-  border-color: rgba(0, 229, 255, 0.25);
-}
-
 /* ===========================
 MOBILE ≤960px
 =========================== */
@@ -257,17 +237,9 @@ MOBILE ≤960px
   .app-bottom-nav {
     display: flex;
   }
-
-  .header-logout-btn {
-    display: inline-flex;
-  }
 }
 
 @media (max-width: 600px) {
-  .profile-info {
-    display: none;
-  }
-
   .dashboard-header {
     flex-direction: row;
     flex-wrap: wrap;

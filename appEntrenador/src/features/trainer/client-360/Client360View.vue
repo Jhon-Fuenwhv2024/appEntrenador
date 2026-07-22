@@ -11,8 +11,9 @@ import {
   getProfile,
   updateProfile,
 } from '../../../shared/api/profileApi.js';
-import { clearSession, getSessionUser } from '../../../shared/auth/session.js';
+import { getSessionUser } from '../../../shared/auth/session.js';
 import AppShell from '../../../shared/layout/AppShell.vue';
+import SessionHeaderActions from '../../../shared/layout/SessionHeaderActions.vue';
 import ProfileFormCard from '../../../shared/components/ProfileFormCard.vue';
 import ChatThread from '../../messaging/components/ChatThread.vue';
 import { getClientOverview } from '../api/clientsApi.js';
@@ -245,11 +246,6 @@ const onSaveProfile = async ({ fields, fotoFile, done }) => {
   }
 };
 
-const handleLogout = () => {
-  clearSession();
-  router.push('/');
-};
-
 watch(clientId, () => {
   overview.value = null;
   clientProfile.value = null;
@@ -294,15 +290,7 @@ onMounted(() => {
             @back="router.push('/trainer/clients')"
           >
             <template #actions>
-              <button
-                type="button"
-                class="header-logout-btn"
-                title="Cerrar sesión"
-                aria-label="Cerrar sesión"
-                @click="handleLogout"
-              >
-                <v-icon icon="mdi-logout-variant" size="20" />
-              </button>
+              <SessionHeaderActions role="trainer" />
             </template>
           </Client360Header>
 

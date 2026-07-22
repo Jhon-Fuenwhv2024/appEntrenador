@@ -7,8 +7,9 @@ import { computed, onMounted, reactive, ref, shallowRef } from 'vue';
 import { useDisplay } from 'vuetify';
 import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
-import { clearSession, getSessionUser } from '../../shared/auth/session.js';
+import { getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
+import SessionHeaderActions from '../../shared/layout/SessionHeaderActions.vue';
 import { getClients } from './api/clientsApi.js';
 import ClientsList from './components/ClientsList.vue';
 import InvitesManager from './components/InvitesManager.vue';
@@ -101,11 +102,6 @@ const loadClients = async () => {
   }
 };
 
-const handleLogout = () => {
-  clearSession();
-  router.push('/');
-};
-
 const openClient = (client) => {
   if (!client?.id) return;
   router.push(`/trainer/clients/${client.id}`);
@@ -151,15 +147,7 @@ onMounted(() => {
           >
             <span class="clients-page__invites-label">Gestionar invitaciones</span>
           </v-btn>
-          <button
-            type="button"
-            class="header-logout-btn"
-            title="Cerrar sesión"
-            aria-label="Cerrar sesión"
-            @click="handleLogout"
-          >
-            <v-icon icon="mdi-logout-variant" size="20" />
-          </button>
+          <SessionHeaderActions role="trainer" />
         </div>
       </header>
 

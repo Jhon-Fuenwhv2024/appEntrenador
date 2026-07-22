@@ -5,8 +5,9 @@
 import { computed, defineAsyncComponent, onMounted, ref, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
-import { clearSession, getSessionUser } from '../../shared/auth/session.js';
+import { getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
+import SessionHeaderActions from '../../shared/layout/SessionHeaderActions.vue';
 import { getMyWorkoutSessions } from './api/workoutSessionsApi.js';
 import BodyCompositionReadOnly from './components/BodyCompositionReadOnly.vue';
 import PersonalRecordsSection from './components/PersonalRecordsSection.vue';
@@ -92,11 +93,6 @@ async function loadConsistency() {
   }
 }
 
-function handleLogout() {
-  clearSession();
-  router.push('/');
-}
-
 onMounted(() => {
   const user = getSessionUser();
   if (!user || user.rol !== 'client') {
@@ -130,15 +126,7 @@ onMounted(() => {
             <v-icon icon="mdi-clipboard-check-outline" size="16" />
             <span>Check-in</span>
           </button>
-          <button
-            type="button"
-            class="header-logout-btn"
-            title="Cerrar sesión"
-            aria-label="Cerrar sesión"
-            @click="handleLogout"
-          >
-            <v-icon icon="mdi-logout-variant" size="20" />
-          </button>
+          <SessionHeaderActions role="client" />
         </div>
       </header>
 

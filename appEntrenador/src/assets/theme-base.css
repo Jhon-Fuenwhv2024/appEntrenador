@@ -137,10 +137,23 @@
 .v-chip:focus-visible,
 .v-checkbox:focus-visible .v-selection-control__input,
 .v-radio:focus-visible .v-selection-control__input,
-.v-switch:focus-visible .v-selection-control__input,
-.v-field--focused {
+.v-switch:focus-visible .v-selection-control__input {
   outline: var(--tf-focus-ring);
   outline-offset: var(--tf-focus-offset);
+}
+
+/*
+ * Campos Vuetify: el foco ya se ve con underline/label primary.
+ * No dibujar recuadro cian extra (login Usuario/Contraseña, etc.).
+ */
+.v-field,
+.v-field--focused,
+.v-field:focus-visible,
+.v-field input:focus,
+.v-field input:focus-visible,
+.v-field textarea:focus,
+.v-field textarea:focus-visible {
+  outline: none;
 }
 
 /* Targets: icon buttons x-small ≥24px (prefer 32px touch) */

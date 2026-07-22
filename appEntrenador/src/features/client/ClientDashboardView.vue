@@ -1,11 +1,9 @@
 <script setup>
 import { computed, onMounted, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
-import { getProfile } from '../../shared/api/profileApi.js';
-import { clearSession, getSessionUser } from '../../shared/auth/session.js';
+import { getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
-import { resolveAvatarSrc } from '../../shared/utils/avatar.js';
-import NotificationBadge from '../../components/notifications/NotificationBadge.vue';
+import SessionHeaderActions from '../../shared/layout/SessionHeaderActions.vue';
 import MacroSummaryCard from './components/MacroSummaryCard.vue';
 import ClientDietView from './components/ClientDietView.vue';
 import ConsistencyRing from './components/ConsistencyRing.vue';
@@ -15,8 +13,6 @@ import { useClientToday } from './composables/useClientToday.js';
 
 const router = useRouter();
 const userName = shallowRef('');
-const userId = shallowRef(null);
-const fotoUrl = shallowRef(null);
 const heroReady = shallowRef(false);
 
 const {
@@ -33,8 +29,6 @@ const {
   loadToday,
 } = useClientToday();
 
-const avatarSrc = computed(() => resolveAvatarSrc(fotoUrl.value));
-
 const fechaCorta = computed(() => {
   const raw = new Date().toLocaleDateString('es-ES', {
     weekday: 'short',
@@ -49,22 +43,6 @@ const firstName = computed(() => {
   return name.split(/\s+/)[0] || 'athlete';
 });
 
-const loadAvatar = async () => {
-  if (!userId.value) return;
-  try {
-    const response = await getProfile(userId.value);
-    fotoUrl.value = response.data.data?.foto_url ?? null;
-  } catch (error) {
-    console.error('Error cargando foto de perfil:', error);
-    fotoUrl.value = null;
-  }
-};
-
-const handleLogout = () => {
-  clearSession();
-  router.push('/');
-};
-
 onMounted(async () => {
   const user = getSessionUser();
 
@@ -74,8 +52,6 @@ onMounted(async () => {
   }
 
   userName.value = user.nombre || '';
-  userId.value = user.id;
-  loadAvatar();
   await loadToday();
   heroReady.value = true;
 });
@@ -99,19 +75,7 @@ onMounted(async () => {
         </div>
 
         <div class="client-home__actions">
-          <NotificationBadge />
-          <router-link to="/client/profile" class="client-home__avatar" title="Mi Perfil">
-            <img :src="avatarSrc" :alt="`Foto de ${userName}`">
-          </router-link>
-          <button
-            type="button"
-            class="header-logout-btn"
-            title="Cerrar sesión"
-            aria-label="Cerrar sesión"
-            @click="handleLogout"
-          >
-            <v-icon icon="mdi-logout-variant" size="18" />
-          </button>
+          <SessionHeaderActions role="client" />
         </div>
       </header>
 

@@ -3,16 +3,14 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, shallowRef } from
 import { useRoute, useRouter } from 'vue-router';
 import { getMyAccount } from '../../shared/api/accountApi.js';
 import { getApiErrorMessage, isPaymentRequiredError } from '../../shared/api/http.js';
-import { clearSession } from '../../shared/auth/session.js';
-import { resolveAvatarSrc } from '../../shared/utils/avatar.js';
 import AppShell from '../../shared/layout/AppShell.vue';
+import SessionHeaderActions from '../../shared/layout/SessionHeaderActions.vue';
 import { getTrainerDashboard } from './api/clientsApi.js';
 import { generateInvitationLink } from './api/invitationsApi.js';
 import InviteClientAction from './components/InviteClientAction.vue';
 import TrainerMonthlyActivityChart from './components/TrainerMonthlyActivityChart.vue';
 import TrainerPaymentsChart from './components/TrainerPaymentsChart.vue';
 import TrainerStatsSummary from './components/TrainerStatsSummary.vue';
-import NotificationBadge from '../../components/notifications/NotificationBadge.vue';
 
 /** Tiempo que el link permanece visible antes de ocultarse solo. */
 const INVITE_LINK_VISIBLE_MS = 60_000;
@@ -23,8 +21,6 @@ const router = useRouter();
 const route = useRoute();
 
 const userName = shallowRef('');
-const saasPlan = shallowRef('FREE');
-const fotoUrl = shallowRef(null);
 const invitationLink = shallowRef('');
 const isGeneratingInvitation = shallowRef(false);
 const paywallOpen = shallowRef(false);
@@ -68,10 +64,6 @@ const snackbar = reactive({
   color: 'success',
 });
 
-const avatarSrc = computed(() => resolveAvatarSrc(fotoUrl.value));
-
-const planLabel = computed(() => (saasPlan.value === 'PRO' ? 'PRO' : 'FREE'));
-
 const currentDateLabel = computed(() => {
   const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
   const date = new Date().toLocaleDateString('es-ES', options);
@@ -91,17 +83,13 @@ const showNotification = (text, color = 'success') => {
   snackbar.color = color;
 };
 
-const loadAvatar = async () => {
+const loadAccountMeta = async () => {
   try {
     const response = await getMyAccount();
     const data = response.data?.data;
     if (data?.nombre) userName.value = data.nombre;
-    fotoUrl.value = data?.foto_url ?? null;
-    saasPlan.value = data?.saas_plan === 'PRO' ? 'PRO' : 'FREE';
   } catch (error) {
-    console.error('Error cargando foto de perfil del trainer:', error);
-    fotoUrl.value = null;
-    saasPlan.value = 'FREE';
+    console.error('Error cargando cuenta del trainer:', error);
   }
 };
 
@@ -219,11 +207,6 @@ const handleGenerateInvite = async () => {
   }
 };
 
-const handleLogout = () => {
-  clearSession();
-  router.push('/');
-};
-
 const goToClients = () => {
   router.push('/trainer/clients');
 };
@@ -250,7 +233,7 @@ onMounted(() => {
   }
 
   userName.value = storedName || '';
-  loadAvatar();
+  loadAccountMeta();
   loadDashboard().then(scrollToInviteIfNeeded);
 });
 
@@ -275,32 +258,7 @@ onUnmounted(() => {
         </div>
 
         <div class="header-right">
-          <NotificationBadge />
-
-          <router-link to="/trainer/settings" class="profile-pill" title="Ajustes">
-            <div class="profile-avatar">
-              <img :src="avatarSrc" :alt="`Foto de ${userName}`" class="profile-avatar__img">
-            </div>
-            <div class="profile-info">
-              <div class="profile-name">{{ userName }}</div>
-              <div
-                class="profile-role"
-                :class="saasPlan === 'PRO' ? 'profile-role--pro' : 'profile-role--free'"
-              >
-                {{ planLabel }}
-              </div>
-            </div>
-          </router-link>
-
-          <button
-            type="button"
-            class="header-logout-btn"
-            title="Cerrar sesión"
-            aria-label="Cerrar sesión"
-            @click="handleLogout"
-          >
-            <v-icon icon="mdi-logout-variant" size="20" />
-          </button>
+          <SessionHeaderActions role="trainer" />
         </div>
       </header>
 
@@ -421,15 +379,6 @@ onUnmounted(() => {
 .charts-duo > * {
   min-width: 0;
   height: 100%;
-}
-
-.profile-role--pro {
-  color: #00e5ff;
-  font-weight: 600;
-}
-
-.profile-role--free {
-  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 @media (min-width: 700px) {

@@ -11,9 +11,10 @@ import {
   getProfile,
   updateProfile,
 } from '../../shared/api/profileApi.js';
-import { clearSession, getSessionUser } from '../../shared/auth/session.js';
+import { getSessionUser } from '../../shared/auth/session.js';
 import { normalizeMembershipPeriod } from '../../shared/membership/period.js';
 import AppShell from '../../shared/layout/AppShell.vue';
+import SessionHeaderActions from '../../shared/layout/SessionHeaderActions.vue';
 import ChangePasswordForm from '../../shared/components/ChangePasswordForm.vue';
 import ProfileFormCard from '../../shared/components/ProfileFormCard.vue';
 import { getMyMembership } from './api/membershipApi.js';
@@ -102,11 +103,6 @@ async function onChangePassword({ current_password, new_password, done }) {
   }
 }
 
-function handleLogout() {
-  clearSession();
-  router.push('/');
-}
-
 onMounted(() => {
   const user = getSessionUser();
   if (!user || user.rol !== 'client') {
@@ -129,15 +125,7 @@ onMounted(() => {
           </p>
         </div>
         <div class="header-right">
-          <button
-            type="button"
-            class="header-logout-btn"
-            title="Cerrar sesión"
-            aria-label="Cerrar sesión"
-            @click="handleLogout"
-          >
-            <v-icon icon="mdi-logout-variant" size="20" />
-          </button>
+          <SessionHeaderActions role="client" />
         </div>
       </header>
 
