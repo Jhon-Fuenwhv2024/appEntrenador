@@ -10,8 +10,8 @@ import {
   displayExerciseName,
 } from '../../../shared/utils/exerciseDisplay.js';
 import { getClients } from '../api/clientsApi.js';
-import { getClientRoutines, updateRoutine } from '../api/routinesApi.js';
-import { getTemplates, updateTemplate } from '../api/templatesApi.js';
+import { appendExerciseToRoutine, getClientRoutines } from '../api/routinesApi.js';
+import { appendExerciseToTemplate, getTemplates } from '../api/templatesApi.js';
 
 const DEFAULT_REST = 90;
 const MENU_PROPS = { contentClass: 'tf-overlay-menu', maxHeight: 280 };
@@ -81,23 +81,6 @@ function buildLine() {
     superset_letter: null,
     indicaciones: displayExerciseDescription(item) || '',
   };
-}
-
-function mapTemplateExercises(list) {
-  return (list || []).map((ex) => ({
-    nombre: ex.nombre,
-    exercise_id: ex.exercise_id ?? null,
-    series: Number(ex.series),
-    repeticiones: Number(ex.repeticiones),
-    peso: Number(ex.peso) || 0,
-    rest_time_seconds: Number(ex.rest_time_seconds) || DEFAULT_REST,
-    superset_letter: ex.superset_letter ?? null,
-    indicaciones: ex.indicaciones || '',
-  }));
-}
-
-function mapRoutineExercises(list) {
-  return mapTemplateExercises(list);
 }
 
 async function loadOptions() {
@@ -181,11 +164,7 @@ const handleSubmit = async () => {
       const template = templates.value.find((t) => t.id === templateId.value);
       if (!template) throw new Error('Plantilla no encontrada');
 
-      await updateTemplate(template.id, {
-        name: template.name,
-        notes: template.notes || '',
-        exercises: [...mapTemplateExercises(template.exercises), line],
-      });
+      await appendExerciseToTemplate(template.id, line);
 
       emit('done', {
         text: `"${exerciseTitle.value}" añadido a la plantilla «${template.name}»`,
@@ -194,11 +173,7 @@ const handleSubmit = async () => {
       const routine = clientRoutines.value.find((r) => r.id === routineId.value);
       if (!routine) throw new Error('Rutina no encontrada');
 
-      await updateRoutine(routine.id, {
-        dia_semana: routine.dia_semana,
-        nombre_rutina: routine.nombre_rutina,
-        ejercicios: [...mapRoutineExercises(routine.ejercicios), line],
-      });
+      await appendExerciseToRoutine(routine.id, line);
 
       emit('done', {
         text: `"${exerciseTitle.value}" añadido a «${routine.nombre_rutina}» (${routine.dia_semana})`,

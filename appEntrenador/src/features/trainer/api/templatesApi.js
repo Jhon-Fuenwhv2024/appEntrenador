@@ -16,6 +16,10 @@ export function updateTemplate(id, payload) {
   return http.patch(`/templates/${id}`, payload);
 }
 
+export function appendExerciseToTemplate(id, payload) {
+  return http.post(`/templates/${id}/exercises`, payload);
+}
+
 export function deleteTemplate(id) {
   return http.delete(`/templates/${id}`);
 }

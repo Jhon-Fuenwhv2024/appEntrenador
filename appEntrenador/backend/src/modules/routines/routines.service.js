@@ -591,6 +591,48 @@ async function updateRoutine(trainerId, routineId, payload) {
   return routines.find((r) => r.id === routineId);
 }
 
+async function appendExerciseToRoutine(trainerId, routineId, payload) {
+  const routine = await getRoutineOwnedByTrainer(routineId, trainerId);
+  const [exercise] = normalizeExercises([payload]);
+  await exercisesService.assertCatalogExerciseIdsVisible(
+    [exercise.exercise_id],
+    trainerId,
+  );
+
+  const [result] = await db.query(
+    `INSERT INTO ejercicios
+       (rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, rest_time_seconds, superset_letter)
+     SELECT r.id, ?, ?, ?, ?, ?, ?, ?, ?
+     FROM rutinas r
+     INNER JOIN usuarios u ON u.id = r.alumno_id
+     WHERE r.id = ? AND u.rol = 'client' AND u.trainer_id = ?`,
+    [
+      exercise.nombre,
+      exercise.exercise_id,
+      exercise.series,
+      exercise.repeticiones,
+      exercise.indicaciones || null,
+      exercise.peso,
+      exercise.rest_time_seconds,
+      exercise.superset_letter,
+      routineId,
+      trainerId,
+    ],
+  );
+
+  if (result.affectedRows !== 1) {
+    throw createHttpError('Rutina no encontrada o no pertenece a tu cuenta.', 404);
+  }
+
+  return {
+    id: result.insertId,
+    rutina_id: routineId,
+    alumno_id: routine.alumno_id,
+    routine_name: routine.nombre_rutina,
+    ...exercise,
+  };
+}
+
 async function deleteRoutine(trainerId, routineId) {
   await getRoutineOwnedByTrainer(routineId, trainerId);
   await db.query('DELETE FROM rutinas WHERE id = ?', [routineId]);
@@ -602,6 +644,7 @@ module.exports = {
   getTodayBundle,
   createRoutine,
   updateRoutine,
+  appendExerciseToRoutine,
   deleteRoutine,
   DAYS,
 };

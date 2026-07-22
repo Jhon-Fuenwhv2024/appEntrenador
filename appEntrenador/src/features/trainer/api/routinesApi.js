@@ -12,6 +12,10 @@ export function updateRoutine(routineId, payload) {
   return http.put(`/routines/${routineId}`, payload);
 }
 
+export function appendExerciseToRoutine(routineId, payload) {
+  return http.post(`/routines/${routineId}/exercises`, payload);
+}
+
 export function deleteRoutine(routineId) {
   return http.delete(`/routines/${routineId}`);
 }
