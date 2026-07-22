@@ -399,7 +399,7 @@ onMounted(() => {
 .mp__ico {
   flex-shrink: 0;
   margin-top: 0.12rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .mp__mini-copy {
@@ -419,7 +419,7 @@ onMounted(() => {
   font-weight: 800;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .mp__dot {
@@ -474,7 +474,7 @@ onMounted(() => {
   margin: 0.1rem 0 0;
   font-size: 0.78rem;
   font-weight: 600;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .mp__err {
@@ -643,7 +643,7 @@ onMounted(() => {
   padding: 0;
   border: 0;
   background: transparent;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 0.68rem;
   font-weight: 700;
   cursor: pointer;

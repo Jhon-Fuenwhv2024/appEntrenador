@@ -102,13 +102,13 @@ onMounted(load);
 
 .pr-section__hint {
   font-size: 0.7rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .pr-section__empty {
   margin: 0;
   font-size: 0.8rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .pr-section__list {
@@ -146,7 +146,7 @@ onMounted(load);
 
 .pr-section__date {
   font-size: 0.65rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .pr-section__stats {

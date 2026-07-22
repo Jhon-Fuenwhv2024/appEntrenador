@@ -172,7 +172,7 @@ const exerciseCount = (routine) => (routine.ejercicios || []).length;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .week-board__day--filled .week-board__day-label {
@@ -230,7 +230,7 @@ const exerciseCount = (routine) => (routine.ejercicios || []).length;
 
 .week-board__card-meta {
   font-size: 0.65rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .week-board__card-actions {

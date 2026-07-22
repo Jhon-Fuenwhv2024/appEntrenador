@@ -429,7 +429,7 @@ onUnmounted(() => {
 }
 
 .profile-role--free {
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 @media (min-width: 700px) {

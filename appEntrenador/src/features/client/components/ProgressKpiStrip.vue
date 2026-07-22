@@ -53,7 +53,7 @@ defineProps({
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .kpi-card__value {
@@ -72,6 +72,6 @@ defineProps({
 .kpi-card__hint {
   margin: 4px 0 0;
   font-size: 0.62rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 </style>

@@ -526,7 +526,7 @@ const handleSubmit = async () => {
 .tf-assign-exercise__meta {
   margin: 0.15rem 0 0;
   font-size: 0.7rem;
-  color: var(--tf-on-surface-muted, #8b929e);
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .tf-assign-section {
@@ -543,7 +543,7 @@ const handleSubmit = async () => {
   display: block;
   font-size: 0.68rem;
   font-weight: 600;
-  color: var(--tf-on-surface-muted, #8b929e);
+  color: var(--tf-on-surface-muted, #a8b0bc);
   margin-bottom: 0.2rem;
   line-height: 1.2;
 }
@@ -574,7 +574,7 @@ const handleSubmit = async () => {
   border: 0;
   border-radius: 9px;
   background: transparent;
-  color: var(--tf-on-surface-muted, #8b929e);
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -594,7 +594,7 @@ const handleSubmit = async () => {
 .tf-assign-hint {
   margin: 0;
   font-size: 0.72rem;
-  color: var(--tf-on-surface-muted, #8b929e);
+  color: var(--tf-on-surface-muted, #a8b0bc);
   line-height: 1.35;
 }
 

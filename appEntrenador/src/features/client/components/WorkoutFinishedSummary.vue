@@ -182,7 +182,7 @@ function formatVolume(kg) {
 .finish__routine {
   margin: 0 0 20px;
   font-size: 0.95rem;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .finish__stats {
@@ -216,7 +216,7 @@ function formatVolume(kg) {
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .finish__saving {
@@ -272,7 +272,7 @@ function formatVolume(kg) {
 .finish__streak {
   margin: 4px 0 0;
   font-size: 0.8rem;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .finish__retry {
@@ -291,7 +291,7 @@ function formatVolume(kg) {
 .finish__pending {
   margin: 0 0 16px;
   font-size: 0.85rem;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .finish__cta {

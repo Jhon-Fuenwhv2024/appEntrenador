@@ -13,7 +13,7 @@
         v-bind="menuProps"
         aria-label="Notificaciones"
       >
-        <v-icon icon="mdi-bell-outline" size="20" color="#8B929E" />
+        <v-icon icon="mdi-bell-outline" size="20" color="var(--tf-on-surface-muted, #a8b0bc)" />
         <span
           v-if="unreadCount > 0"
           class="notification-btn__dot"
@@ -46,7 +46,7 @@
 
       <div v-else-if="notifications.length === 0" class="tf-notif-panel__empty">
         <div class="tf-notif-panel__empty-icon">
-          <v-icon icon="mdi-bell-check-outline" size="22" color="#8B929E" />
+          <v-icon icon="mdi-bell-check-outline" size="22" color="var(--tf-on-surface-muted, #a8b0bc)" />
         </div>
         <p class="tf-notif-panel__empty-title">Sin novedades</p>
         <p class="tf-notif-panel__empty-desc">
@@ -218,7 +218,7 @@ const handleNotificationClick = async (notif) => {
 .tf-notif-panel__subtitle {
   margin: 2px 0 0;
   font-size: 12px;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   line-height: 1.3;
 }
 
@@ -270,7 +270,7 @@ const handleNotificationClick = async (notif) => {
   margin: 0;
   font-size: 12px;
   line-height: 1.45;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   max-width: 220px;
 }
 
@@ -318,7 +318,7 @@ const handleNotificationClick = async (notif) => {
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.05);
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .tf-notif-panel__icon--routine_assigned {
@@ -354,14 +354,14 @@ const handleNotificationClick = async (notif) => {
 .tf-notif-panel__time {
   flex-shrink: 0;
   font-size: 11px;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .tf-notif-panel__message {
   margin: 0;
   font-size: 12px;
   line-height: 1.4;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;

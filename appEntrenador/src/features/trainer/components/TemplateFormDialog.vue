@@ -287,7 +287,7 @@ const handleSubmit = () => {
     <v-card bg-color="surface" class="template-form-dialog">
       <v-card-title class="d-flex align-center justify-space-between">
         <span>{{ template?.id ? 'Editar plantilla' : 'Nueva plantilla' }}</span>
-        <v-btn icon="mdi-close" variant="text" size="small" @click="close" />
+        <v-btn icon="mdi-close" variant="text" size="small" aria-label="Cerrar" @click="close" />
       </v-card-title>
 
       <v-card-text>
@@ -351,6 +351,7 @@ const handleSubmit = () => {
               icon="mdi-close"
               size="x-small"
               variant="text"
+              aria-label="Quitar ejercicio"
               @click="removeExercise(index)"
             />
           </div>

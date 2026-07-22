@@ -209,7 +209,7 @@ const sessionPoints = computed(() => series.value.map((m, i) => ({
 
 .chart-empty {
   padding: 12px 4px;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 13px;
 }
 
@@ -253,7 +253,7 @@ const sessionPoints = computed(() => series.value.map((m, i) => ({
   justify-content: space-between;
   margin-top: 6px;
   padding-left: 28px;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 10px;
 }
 </style>

@@ -92,7 +92,7 @@ const handleSubmit = () => {
     <v-card bg-color="surface">
       <v-card-title class="d-flex align-center justify-space-between">
         <span>Desde biblioteca</span>
-        <v-btn icon="mdi-close" variant="text" size="small" @click="close" />
+        <v-btn icon="mdi-close" variant="text" size="small" aria-label="Cerrar" @click="close" />
       </v-card-title>
 
       <v-card-text>

@@ -340,7 +340,7 @@ defineExpose({ reload: loadCheckins });
 .checkins-panel__empty {
   margin: 0.15rem 0 0;
   font-size: 0.75rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .checkins-panel__empty {
@@ -354,7 +354,7 @@ defineExpose({ reload: loadCheckins });
 
 .checkins-timeline__date {
   font-size: 0.75rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   text-transform: capitalize;
 }
 

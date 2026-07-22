@@ -195,7 +195,7 @@ button.kpi:hover {
 
 .kpi__meta {
   font-size: 10px;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;

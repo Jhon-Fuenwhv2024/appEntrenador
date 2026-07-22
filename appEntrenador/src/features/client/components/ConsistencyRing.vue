@@ -187,7 +187,7 @@ defineExpose({ reload: load });
 .consistency-ring__best {
   margin: 0.25rem 0 0;
   font-size: 0.75rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   line-height: 1.3;
 }
 

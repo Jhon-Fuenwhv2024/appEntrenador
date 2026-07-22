@@ -129,7 +129,7 @@ defineEmits(['generateInvite', 'copyInvite', 'goToClients']);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   background: rgba(255, 255, 255, 0.06);
   border-radius: 999px;
   padding: 4px 8px;
@@ -186,7 +186,7 @@ defineEmits(['generateInvite', 'copyInvite', 'goToClients']);
 
 .invite-generated-link-hint {
   margin: 0;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 11px;
   line-height: 1.35;
 }

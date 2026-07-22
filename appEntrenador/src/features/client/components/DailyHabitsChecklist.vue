@@ -334,7 +334,11 @@ onMounted(() => {
 .dhc--peek:focus-visible {
   border-color: rgba(0, 229, 255, 0.35);
   background: rgba(0, 229, 255, 0.06);
-  outline: none;
+}
+
+.dhc--peek:focus-visible {
+  outline: var(--tf-focus-ring, 2px solid #00e5ff);
+  outline-offset: var(--tf-focus-offset, 2px);
 }
 
 .dhc--peek:active {
@@ -363,7 +367,7 @@ onMounted(() => {
 
 .dhc__subtitle {
   margin: 2px 0 0;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 0.72rem;
 }
 
@@ -480,7 +484,7 @@ onMounted(() => {
 .dhc-sheet__sub {
   margin: 2px 0 0;
   font-size: 0.8rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .dhc-sheet__list {

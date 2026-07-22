@@ -90,7 +90,7 @@ function barHeight(count) {
 .activity-bars__hint {
   margin: 2px 0 0;
   font-size: 0.68rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .activity-bars__total {

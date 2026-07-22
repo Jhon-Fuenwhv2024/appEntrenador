@@ -92,7 +92,7 @@ const chartOptions = {
   scales: {
     x: {
       ticks: {
-        color: '#8B929E',
+        color: 'var(--tf-on-surface-muted, #a8b0bc)',
         maxRotation: 45,
         minRotation: 0,
         font: { size: 10 },
@@ -106,7 +106,7 @@ const chartOptions = {
     },
     y: {
       ticks: {
-        color: '#8B929E',
+        color: 'var(--tf-on-surface-muted, #a8b0bc)',
         font: { size: 10 },
       },
       grid: {

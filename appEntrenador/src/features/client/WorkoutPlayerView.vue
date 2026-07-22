@@ -518,7 +518,7 @@ onMounted(() => {
 
 .player-step {
   margin: 0 0 4px;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 0.85rem;
 }
 
@@ -582,7 +582,7 @@ onMounted(() => {
   padding: 8px 10px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.03);
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 0.9rem;
 }
 

@@ -196,7 +196,7 @@ function onEdit(log, event) {
 <style scoped>
 .bcl-empty {
   font-size: 0.8rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   padding: 0.25rem 0;
 }
 
@@ -225,7 +225,7 @@ function onEdit(log, event) {
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .bcl-snap__date {
@@ -267,13 +267,13 @@ function onEdit(log, event) {
 
 .bcl-pill__unit {
   font-size: 0.65rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   margin-top: -0.05rem;
 }
 
 .bcl-pill__label {
   font-size: 0.6rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-top: 0.15rem;
@@ -322,7 +322,7 @@ function onEdit(log, event) {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   margin-bottom: 0.35rem;
 }
 
@@ -374,7 +374,7 @@ function onEdit(log, event) {
 }
 
 .bcl-row__bmi {
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-variant-numeric: tabular-nums;
 }
 
@@ -387,10 +387,10 @@ function onEdit(log, event) {
 
 .delta--up { color: #ff8a80; }
 .delta--down { color: #69f0ae; }
-.delta--flat { color: #8b929e; }
+.delta--flat { color: var(--tf-on-surface-muted, #a8b0bc); }
 
 .bcl-row__chevron {
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   justify-self: end;
 }
 
@@ -405,7 +405,7 @@ function onEdit(log, event) {
   gap: 0.75rem;
   padding-top: 0.4rem;
   font-size: 0.72rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .bcl-detail-grid strong {
@@ -416,7 +416,7 @@ function onEdit(log, event) {
 .bcl-notes {
   margin: 0.35rem 0 0;
   font-size: 0.72rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 @media (max-width: 420px) {

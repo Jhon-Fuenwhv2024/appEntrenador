@@ -69,7 +69,7 @@ function toggle() {
 
 .hint-expand__body {
   margin: 0;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 0.9rem;
   line-height: 1.45;
 }

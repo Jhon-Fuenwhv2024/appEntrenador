@@ -100,7 +100,7 @@ function close() {
   position: relative;
   z-index: 1;
   margin: 0 0 1.25rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   max-width: 22rem;
 }
 
@@ -139,7 +139,7 @@ function close() {
 }
 
 .pr-overlay__prev {
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   margin-left: 0.25rem;
 }
 

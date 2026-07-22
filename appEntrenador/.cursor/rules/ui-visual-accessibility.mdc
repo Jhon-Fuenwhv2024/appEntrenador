@@ -1,0 +1,39 @@
+---
+description: Accesibilidad visual baja visión (WCAG 2.2 AA, focus, zoom, targets)
+globs: src/**/*.{vue,js,css}
+alwaysApply: true
+---
+
+# UI accesibilidad visual Trainfit (baja visión)
+
+## Fuente de verdad
+
+- ADR: `docs/decisions/ADR-0002-visual-accessibility-low-vision.md`
+- Contraste CTAs/overlays: ADR-0001 + `.cursor/rules/ui-contrast-theme.mdc`
+- Tokens: `src/plugin/vuetify.js`, `src/assets/theme-base.css`
+- Matriz: `docs/accessibility-visual.md`
+
+## Estándar
+
+WCAG **2.2 AA** visual: contraste texto 4.5:1 / grande 3:1; no-texto 3:1; zoom 200%; focus visible; target ≥24×24 (preferir 44px touch).
+
+## Reglas obligatorias
+
+1. Usar tokens `--tf-on-surface` / `--tf-on-surface-muted` (no grises sueltos más oscuros que el muted del tema).
+2. CTAs filled: `color="primary"` + texto `on-primary` (ADR-0001).
+3. **Nunca** `outline: none` / `outline: 0` sin reemplazo `:focus-visible`.
+4. **Nunca** reactivar overlays Vuetify opacos; el focus ring va en outline/box-shadow, no en `__overlay`.
+5. Controles solo-icono: `aria-label` (o texto visible).
+6. Estados no solo por color: badge + texto/icono.
+7. Al tocar layout: verificar ~390px y zoom ~200% sin overflow horizontal bloqueante.
+8. Preferir `var(--tf-bottom-nav-clearance)` para no tapar contenido (regla bottom-nav).
+
+## Checklist al tocar UI
+
+- [ ] Texto normal sobre bg/surface ≥4.5:1 (incl. muted / captions)
+- [ ] Bordes de inputs/botones outlined visibles (≥3:1)
+- [ ] `:focus-visible` visible en botones, links, nav, dialogs
+- [ ] Icon-button con `aria-label`
+- [ ] Target táctil razonable (≥24px; ideal ≥44px en móvil)
+- [ ] Zoom 200% / móvil: sin texto cortado ni scroll-X forzado
+- [ ] Sin regresión overlays blancos (ADR-0001)

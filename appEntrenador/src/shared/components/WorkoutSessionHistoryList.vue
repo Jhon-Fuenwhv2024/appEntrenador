@@ -330,7 +330,7 @@ function sessionMetaLine(session) {
               <v-icon
                 :icon="expandedId === session.id ? 'mdi-chevron-up' : 'mdi-chevron-down'"
                 size="18"
-                color="#8B929E"
+                color="var(--tf-on-surface-muted, #a8b0bc)"
               />
             </button>
 
@@ -394,7 +394,7 @@ function sessionMetaLine(session) {
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .wh-day__count {
@@ -501,12 +501,12 @@ function sessionMetaLine(session) {
   font-size: 0.68rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   white-space: nowrap;
 }
 
 .wh-row__chev {
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   justify-self: end;
 }
 
@@ -547,7 +547,7 @@ function sessionMetaLine(session) {
 .wh-detail__empty {
   margin: 0;
   font-size: 0.7rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 @media (max-width: 420px) {
@@ -578,7 +578,7 @@ function sessionMetaLine(session) {
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .workout-history-item {
@@ -622,7 +622,7 @@ function sessionMetaLine(session) {
 
 .workout-history-meta {
   font-size: 0.72rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   margin-top: 0.15rem;
 }
 

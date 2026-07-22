@@ -13,15 +13,19 @@
   --tf-surface-elevated: #2a2a2a;
   --tf-surface-variant: #2a3038;
   --tf-on-surface: #ffffff;
-  --tf-on-surface-muted: #8b929e;
+  /* WCAG 2.2 AA ≥4.5:1 on bg/surface (ADR-0002 / feature 062) */
+  --tf-on-surface-muted: #a8b0bc;
   --tf-primary: #00e5ff;
   --tf-on-primary: #0b0d12;
   --tf-success: #00e676;
   --tf-on-success: #0b0d12;
   --tf-error: #ff5252;
   --tf-on-error: #ffffff;
-  --tf-border: rgba(255, 255, 255, 0.08);
+  /* Non-text contrast ~≥3:1 for control borders (1.4.11) */
+  --tf-border: rgba(255, 255, 255, 0.28);
   --tf-menu-hover: rgba(0, 229, 255, 0.16);
+  --tf-focus-ring: 2px solid var(--tf-primary);
+  --tf-focus-offset: 2px;
   /* Bottom nav clearance (mobile shell ≤960px). Desktop = 0. */
   --tf-bottom-nav-clearance: 0px;
 }
@@ -117,6 +121,39 @@
   font-weight: 600;
 }
 
+/* ---- Focus visible (2.4.7): ring primary, NO overlays opacos ---- */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: var(--tf-focus-ring);
+  outline-offset: var(--tf-focus-offset);
+}
+
+.v-btn:focus-visible,
+.v-list-item:focus-visible,
+.v-tab:focus-visible,
+.v-chip:focus-visible,
+.v-checkbox:focus-visible .v-selection-control__input,
+.v-radio:focus-visible .v-selection-control__input,
+.v-switch:focus-visible .v-selection-control__input,
+.v-field--focused {
+  outline: var(--tf-focus-ring);
+  outline-offset: var(--tf-focus-offset);
+}
+
+/* Targets: icon buttons x-small ≥24px (prefer 32px touch) */
+.v-btn.v-btn--size-x-small {
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.v-btn.v-btn--size-small.v-btn--icon {
+  min-width: 40px;
+  min-height: 40px;
+}
+
 /* Campos / botones outlined: evitar fondos blancos “fantasma” */
 .v-field {
   --v-theme-surface: 30, 30, 30;
@@ -128,7 +165,7 @@
 }
 
 .v-btn.v-btn--variant-outlined {
-  border-color: rgba(255, 255, 255, 0.28) !important;
+  border-color: var(--tf-border) !important;
   background: transparent !important;
 }
 

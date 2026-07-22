@@ -391,7 +391,7 @@ defineExpose({ reloadAll });
   display: block;
   margin-top: 2px;
   font-size: 0.68rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .progress-charts__toggle {
@@ -412,7 +412,7 @@ defineExpose({ reloadAll });
   padding: 3px 8px;
   border-radius: 999px;
   font-size: 0.68rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }

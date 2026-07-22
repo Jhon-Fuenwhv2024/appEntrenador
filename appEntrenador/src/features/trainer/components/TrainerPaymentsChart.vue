@@ -93,7 +93,7 @@ const hasData = computed(() => totalTracked.value > 0);
 
 .chart-empty {
   padding: 12px 4px;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 13px;
 }
 

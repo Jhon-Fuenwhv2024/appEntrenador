@@ -343,6 +343,6 @@ function close() {
 .checkin-photos__hint {
   margin: 0 0 0.75rem;
   font-size: 0.75rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 </style>

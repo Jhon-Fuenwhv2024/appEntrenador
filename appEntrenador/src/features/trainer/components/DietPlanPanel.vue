@@ -290,13 +290,13 @@ onMounted(() => {
 .dpp__hint {
   margin: 0.15rem 0 0;
   font-size: 0.68rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .dpp__empty {
   margin: 0.5rem 0 0;
   font-size: 0.8rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .dpp__card {
@@ -343,7 +343,7 @@ onMounted(() => {
 .dpp__card-meta {
   margin: 0.15rem 0 0;
   font-size: 0.68rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .dpp__card-actions {

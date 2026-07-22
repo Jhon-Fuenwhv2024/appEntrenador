@@ -268,7 +268,7 @@ function onSubmit() {
         <v-btn
           variant="text"
           size="small"
-          color="#8B929E"
+          color="var(--tf-on-surface-muted, #a8b0bc)"
           @click="cancelEdit"
         >
           Cancelar
@@ -447,7 +447,7 @@ function onSubmit() {
   display: none;
   flex-shrink: 0;
   font-size: 0.75rem;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   white-space: nowrap;
 }
 
@@ -480,7 +480,7 @@ function onSubmit() {
 
 .profile-view__handle {
   margin: 1px 0 0;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 0.8rem;
 }
 
@@ -531,7 +531,7 @@ function onSubmit() {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   margin-bottom: 2px;
 }
 
@@ -544,7 +544,7 @@ function onSubmit() {
 
 .profile-fact__value--muted,
 .profile-note__text--muted {
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-weight: 500;
 }
 
@@ -562,7 +562,7 @@ function onSubmit() {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   margin-bottom: 6px;
 }
 

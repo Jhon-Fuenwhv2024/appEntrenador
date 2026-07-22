@@ -459,7 +459,7 @@ const moveExercise = (index, delta) => {
   display: block;
   font-size: 0.68rem;
   font-weight: 600;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   margin-bottom: 0.2rem;
   line-height: 1.2;
 }
@@ -526,7 +526,7 @@ const moveExercise = (index, delta) => {
   padding: 0.15rem 0;
   border: 0;
   background: transparent;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 0.7rem;
   font-weight: 600;
   cursor: pointer;
@@ -554,7 +554,7 @@ const moveExercise = (index, delta) => {
 .superset-hint {
   margin: 0;
   font-size: 0.68rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   line-height: 1.35;
 }
 

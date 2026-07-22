@@ -77,7 +77,7 @@ const chartOptions = {
   scales: {
     x: {
       ticks: {
-        color: '#8B929E',
+        color: 'var(--tf-on-surface-muted, #a8b0bc)',
         font: { size: 10 },
         maxRotation: 0,
       },
@@ -86,7 +86,7 @@ const chartOptions = {
     y: {
       beginAtZero: true,
       ticks: {
-        color: '#8B929E',
+        color: 'var(--tf-on-surface-muted, #a8b0bc)',
         font: { size: 10 },
         precision: 0,
         stepSize: 1,
@@ -120,6 +120,6 @@ const chartOptions = {
   padding: 1.25rem 0.5rem;
   text-align: center;
   font-size: 0.8rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 </style>

@@ -84,7 +84,7 @@ function onSubmit() {
     <div v-else class="password-form">
       <div class="password-form__header">
         <h2 class="password-form__title">Cambiar contraseña</h2>
-        <v-btn variant="text" size="small" color="#8B929E" :disabled="saving" @click="cancel">
+        <v-btn variant="text" size="small" color="var(--tf-on-surface-muted, #a8b0bc)" :disabled="saving" @click="cancel">
           Cancelar
         </v-btn>
       </div>

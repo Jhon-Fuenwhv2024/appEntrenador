@@ -106,12 +106,12 @@ const openPanels = shallowRef([]);
 
 .smart-history__hint {
   font-size: 0.68rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .smart-history__empty {
   font-size: 0.8rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .smart-history__section-label {

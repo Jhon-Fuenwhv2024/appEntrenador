@@ -24,9 +24,10 @@ Los componentes legacy `src/components/Login.vue`, `src/components/Register.vue`
 ## Tema visual (Vuetify)
 
 - Tema dark en `src/plugin/vuetify.js` con `dark: true`, `on-primary` / `on-success` = `#0B0D12`, y `surface-variant` oscuro para selects. Ver [`docs/decisions/ADR-0001-contrast-on-primary.md`](decisions/ADR-0001-contrast-on-primary.md).
+- Accesibilidad visual (baja visión, WCAG 2.2 AA): [`docs/decisions/ADR-0002-visual-accessibility-low-vision.md`](decisions/ADR-0002-visual-accessibility-low-vision.md) + matriz [`docs/accessibility-visual.md`](accessibility-visual.md). Tokens muted/bordes + `:focus-visible` en [`src/assets/theme-base.css`](../src/assets/theme-base.css).
 - Preferir `color="primary"` en CTAs frente a hex `#00E5FF`.
 - Menús overlay: clase `tf-overlay-menu` vía defaults del plugin + [`src/assets/theme-base.css`](../src/assets/theme-base.css).
-- Regla Cursor: `.cursor/rules/ui-contrast-theme.mdc`.
+- Reglas Cursor: `.cursor/rules/ui-contrast-theme.mdc`, `.cursor/rules/ui-visual-accessibility.mdc`.
 
 ## Backend
 

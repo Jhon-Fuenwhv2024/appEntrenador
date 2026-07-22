@@ -135,7 +135,7 @@ const emit = defineEmits(['update:weight', 'update:reps']);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .sets-check__row {
@@ -166,7 +166,7 @@ const emit = defineEmits(['update:weight', 'update:reps']);
 .sets-check__col--prev {
   font-variant-numeric: tabular-nums;
   font-size: 0.8rem;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -203,9 +203,17 @@ const emit = defineEmits(['update:weight', 'update:reps']);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   text-align: center;
-  outline: none;
   appearance: textfield;
   -moz-appearance: textfield;
+}
+
+.sets-check__input:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.sets-check__input:focus-visible {
+  outline: var(--tf-focus-ring, 2px solid #00e5ff);
+  outline-offset: 1px;
 }
 
 .sets-check__input::-webkit-outer-spin-button,
@@ -219,7 +227,7 @@ const emit = defineEmits(['update:weight', 'update:reps']);
 }
 
 .sets-check__x {
-  color: #5E6673;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-weight: 600;
   flex-shrink: 0;
 }

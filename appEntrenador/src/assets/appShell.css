@@ -153,11 +153,12 @@ BOTTOM NAV (mobile)
   justify-content: center;
   gap: 4px;
   min-width: 0;
+  min-height: 44px;
   padding: 6px 8px;
   border: none;
   border-radius: 12px;
   background: transparent;
-  color: #5E6673;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 11px;
   font-weight: 600;
   line-height: 1.2;
@@ -169,6 +170,13 @@ BOTTOM NAV (mobile)
 .app-bottom-nav__item:hover {
   color: #FFFFFF;
   background: rgba(255, 255, 255, 0.03);
+}
+
+.app-bottom-nav__item:focus-visible {
+  outline: var(--tf-focus-ring, 2px solid #00e5ff);
+  outline-offset: var(--tf-focus-offset, 2px);
+  color: #FFFFFF;
+  background: rgba(0, 229, 255, 0.08);
 }
 
 .app-bottom-nav__item.active {
@@ -198,7 +206,7 @@ BOTTOM NAV (mobile)
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: #13161D;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   cursor: pointer;
   flex-shrink: 0;
 }

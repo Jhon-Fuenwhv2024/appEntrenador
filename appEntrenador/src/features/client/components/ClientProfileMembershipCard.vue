@@ -162,7 +162,7 @@ const endLabel = computed(() => formatMembershipDate(normalized.value?.period_en
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .pmc__days {
@@ -183,7 +183,7 @@ const endLabel = computed(() => formatMembershipDate(normalized.value?.period_en
   margin-left: 0.3rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .pmc__badge {
@@ -220,7 +220,7 @@ const endLabel = computed(() => formatMembershipDate(normalized.value?.period_en
   margin: 0.4rem 0 0;
   font-size: 0.72rem;
   line-height: 1.35;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .pmc__track {
@@ -262,7 +262,7 @@ const endLabel = computed(() => formatMembershipDate(normalized.value?.period_en
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .pmc__meta dd {

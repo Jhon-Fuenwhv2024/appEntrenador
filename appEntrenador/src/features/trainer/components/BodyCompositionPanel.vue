@@ -168,6 +168,6 @@ onMounted(() => {
 .bcp__hint {
   margin: 0.15rem 0 0;
   font-size: 0.68rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 </style>

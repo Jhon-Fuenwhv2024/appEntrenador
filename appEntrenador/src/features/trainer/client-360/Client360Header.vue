@@ -107,7 +107,7 @@ const membershipBadge = computed(() => {
     <div class="c360-header__row">
       <v-btn
         variant="text"
-        color="#8B929E"
+        color="var(--tf-on-surface-muted, #a8b0bc)"
         class="c360-header__back px-0"
         size="small"
         prepend-icon="mdi-arrow-left"
@@ -252,7 +252,7 @@ const membershipBadge = computed(() => {
 .c360-header__objective {
   margin: 0.15rem 0 0;
   font-size: 0.75rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   line-height: 1.3;
 }
 

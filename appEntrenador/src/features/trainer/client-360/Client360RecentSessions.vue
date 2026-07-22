@@ -340,7 +340,7 @@ function toggleOlder() {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .recent__grid {
@@ -383,7 +383,7 @@ function toggleOlder() {
   font-size: 0.6rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   min-width: 1.15rem;
   height: 1.15rem;
   display: inline-flex;
@@ -476,7 +476,7 @@ function toggleOlder() {
 
 .recent-item__meta {
   font-size: 0.68rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
@@ -551,7 +551,7 @@ function toggleOlder() {
 .recent-detail__empty {
   margin: 0;
   font-size: 0.68rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .recent-older {
@@ -568,7 +568,7 @@ function toggleOlder() {
   padding: 0.25rem 0;
   border: 0;
   background: transparent;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;

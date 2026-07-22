@@ -237,7 +237,7 @@ onMounted(() => {
 .progress-best-streak {
   margin: 0;
   font-size: 0.8rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .progress-best-streak strong {

@@ -69,9 +69,11 @@ export default createVuetify({
         },
         variables: {
           'border-color': '#FFFFFF',
-          'border-opacity': 0.12,
+          /* 1.4.11 non-text contrast on dark surfaces (feature 062) */
+          'border-opacity': 0.28,
           'high-emphasis-opacity': 1,
-          'medium-emphasis-opacity': 0.7,
+          /* Secondary text closer to ≥4.5:1 on surface */
+          'medium-emphasis-opacity': 0.82,
           'disabled-opacity': 0.5,
           'idle-opacity': 0.1,
           'hover-opacity': 0.08,

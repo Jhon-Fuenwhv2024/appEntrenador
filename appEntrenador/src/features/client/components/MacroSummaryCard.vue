@@ -264,7 +264,7 @@ onMounted(() => {
 .macro-summary__compact-hint {
   margin: 2px 0 0;
   font-size: 0.68rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   line-height: 1.3;
 }
 
@@ -287,7 +287,7 @@ onMounted(() => {
 .macro-summary__kcal-unit {
   font-size: 0.62rem;
   font-weight: 600;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   text-transform: uppercase;
 }
 
@@ -318,7 +318,7 @@ onMounted(() => {
 }
 
 .macro-summary__chip-label {
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .macro-summary__title {
@@ -337,7 +337,7 @@ onMounted(() => {
 .macro-summary__empty-title {
   margin: 0;
   font-size: 0.82rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .macro-summary__body {
@@ -363,7 +363,7 @@ onMounted(() => {
 .macro-summary__cal-unit {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   text-transform: uppercase;
 }
 

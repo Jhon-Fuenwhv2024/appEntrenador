@@ -114,7 +114,7 @@ HEADER
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 13px;
   margin-bottom: 8px;
 }
@@ -129,7 +129,7 @@ HEADER
 
 .header-greeting {
   margin: 0;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 14px;
 }
 
@@ -199,7 +199,7 @@ HEADER
 }
 
 .profile-role {
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 11px;
   line-height: 1.2;
   margin-top: 2px;
@@ -229,7 +229,7 @@ FEATURE 038 — Home cliente compacto
 .client-home__date {
   margin: 0 0 2px;
   font-size: 12px;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   letter-spacing: 0.02em;
 }
 
@@ -366,7 +366,7 @@ FEATURE 038 — Home cliente compacto
 .today-hero__meta {
   margin: 4px 0 0;
   font-size: 0.78rem;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   letter-spacing: 0.01em;
 }
 
@@ -502,7 +502,7 @@ STAT CARDS
 
 .stat-label {
   font-size: 13px;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .growth-badge {
@@ -534,7 +534,7 @@ CONTENT GRID (CHART + ACTIONS)
 
 .section-subtitle {
   font-size: 12px;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   margin: 0;
 }
 
@@ -561,7 +561,7 @@ CONTENT GRID (CHART + ACTIONS)
   flex-wrap: wrap;
   gap: 16px;
   font-size: 12px;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .legend-item {
@@ -699,7 +699,7 @@ QUICK ACTIONS
 }
 
 .invite-desc {
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -761,7 +761,7 @@ SCROLL GLOBAL
   display: flex;
   align-items: center;
 }
-.stat-label { color: #8B929E; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+.stat-label { color: var(--tf-on-surface-muted, #a8b0bc); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
 .stat-value { color: white; font-weight: bold; font-size: 18px; }
 
 .card-section-title { color: white; font-size: 18px; font-weight: bold; }
@@ -777,7 +777,7 @@ SCROLL GLOBAL
 }
 .exercise-num { color: #00E5FF; font-weight: bold; margin-right: 15px; font-size: 18px; }
 .exercise-name { color: white; font-size: 14px; font-weight: 500; }
-.exercise-meta { color: #8B929E; font-size: 12px; }
+.exercise-meta { color: var(--tf-on-surface-muted, #a8b0bc); font-size: 12px; }
 
 .text-cyan { color: #00E5FF; }
 .text-green { color: #4CAF50; }
@@ -808,7 +808,7 @@ CLIENT DASHBOARD
 
 .client-empty-desc {
   font-size: 14px;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   margin: 0;
   max-width: 520px;
   line-height: 1.5;

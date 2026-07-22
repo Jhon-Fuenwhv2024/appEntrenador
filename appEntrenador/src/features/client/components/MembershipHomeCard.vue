@@ -74,7 +74,7 @@ const rangeTitle = computed(() => {
   font-weight: 600;
   letter-spacing: 0.01em;
   line-height: 1.2;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .mem-meta__dot {

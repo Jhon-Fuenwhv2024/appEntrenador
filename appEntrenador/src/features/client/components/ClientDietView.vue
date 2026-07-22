@@ -319,13 +319,13 @@ onMounted(() => {
 .cdv__subtitle {
   margin: 0.15rem 0 0;
   font-size: 0.7rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .cdv__empty {
   margin: 0.35rem 0 0;
   font-size: 0.8rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .cdv__summary {
@@ -363,7 +363,7 @@ onMounted(() => {
   font-weight: 650;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   line-height: 1.2;
 }
 
@@ -405,7 +405,7 @@ onMounted(() => {
 .cdv__metric-label {
   font-size: 0.58rem;
   font-weight: 600;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
@@ -504,7 +504,7 @@ onMounted(() => {
 
 .cdv__meal-time {
   font-size: 0.68rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .cdv__meal-kcal {
@@ -517,7 +517,7 @@ onMounted(() => {
 
 .cdv__meal-chevron {
   flex-shrink: 0;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .cdv__meal-body {
@@ -559,7 +559,7 @@ onMounted(() => {
 
 .cdv__item-qty {
   font-size: 0.7rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   white-space: nowrap;
 }
 
@@ -572,7 +572,7 @@ onMounted(() => {
 }
 
 .cdv__item-kcal {
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .cdv__item-macro {
@@ -583,6 +583,6 @@ onMounted(() => {
   margin: 0;
   padding: 0.45rem 0.35rem;
   font-size: 0.75rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 </style>

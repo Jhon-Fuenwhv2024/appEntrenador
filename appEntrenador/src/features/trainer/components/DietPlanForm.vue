@@ -499,7 +499,7 @@ defineExpose({ resetForm, buildPayload });
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .dpf__chips {
@@ -556,7 +556,7 @@ defineExpose({ resetForm, buildPayload });
   margin-bottom: 0.65rem;
   font-size: 0.72rem;
   font-weight: 600;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .dpf__item {

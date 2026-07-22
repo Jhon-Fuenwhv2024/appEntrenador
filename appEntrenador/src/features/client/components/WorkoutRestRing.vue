@@ -129,7 +129,7 @@ const nextSubtitle = computed(() => {
 
 .rest-ring__step {
   margin: 0 0 8px;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 0.85rem;
 }
 
@@ -175,7 +175,7 @@ const nextSubtitle = computed(() => {
 }
 
 .rest-ring__muted {
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .rest-ring__upnext {
@@ -209,7 +209,7 @@ const nextSubtitle = computed(() => {
 .rest-ring__upnext-set {
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .rest-ring__controls {

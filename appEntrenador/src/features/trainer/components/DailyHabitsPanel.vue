@@ -201,13 +201,13 @@ onMounted(() => {
 
 .dhp__hint {
   opacity: 1;
-  color: #8b929e !important;
+  color: var(--tf-on-surface-muted, #a8b0bc) !important;
   font-size: 0.68rem;
 }
 
 .dhp__empty {
   font-size: 0.75rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .dhp__list {

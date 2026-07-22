@@ -161,7 +161,7 @@ function onSubmit() {
           <p class="account-eyebrow mb-0">Editar perfil</p>
           <h2 class="account-name">{{ displayName }}</h2>
         </div>
-        <v-btn variant="text" size="small" color="#8B929E" @click="cancelEdit">
+        <v-btn variant="text" size="small" color="var(--tf-on-surface-muted, #a8b0bc)" @click="cancelEdit">
           Cancelar
         </v-btn>
       </div>
@@ -284,7 +284,7 @@ function onSubmit() {
 .account-hint {
   display: none;
   font-size: 0.75rem;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   white-space: nowrap;
 }
 
@@ -311,7 +311,7 @@ function onSubmit() {
 
 .account-handle {
   margin: 1px 0 0;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 0.8rem;
 }
 
@@ -351,7 +351,7 @@ function onSubmit() {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .account-fact__value {
@@ -361,7 +361,7 @@ function onSubmit() {
 }
 
 .account-fact__value--muted {
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-weight: 500;
 }
 

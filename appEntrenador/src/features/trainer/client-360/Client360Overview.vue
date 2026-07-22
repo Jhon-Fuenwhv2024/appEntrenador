@@ -231,7 +231,7 @@ const prsLabel = computed(() => {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .c360-widget__title {
@@ -242,7 +242,7 @@ const prsLabel = computed(() => {
 
 .c360-widget__meta {
   font-size: 0.72rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .c360-actions {
@@ -275,6 +275,6 @@ const prsLabel = computed(() => {
 
 .c360-panel__hint {
   font-size: 0.72rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 </style>

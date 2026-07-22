@@ -502,6 +502,7 @@ onMounted(() => {
             icon="mdi-close"
             variant="text"
             size="small"
+            aria-label="Cerrar"
             @click="duplicateOpen = false"
           />
         </v-card-title>
@@ -584,7 +585,7 @@ onMounted(() => {
 .ficha-empty {
   margin: 0.15rem 0 0;
   font-size: 0.72rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .programming-empty {

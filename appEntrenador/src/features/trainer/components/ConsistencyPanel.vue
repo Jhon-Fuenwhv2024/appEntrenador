@@ -201,7 +201,7 @@ watch(() => props.clientId, load);
   font-weight: 800;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .cs__score {
@@ -235,7 +235,7 @@ watch(() => props.clientId, load);
 }
 
 .cs__muted {
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-weight: 600;
 }
 

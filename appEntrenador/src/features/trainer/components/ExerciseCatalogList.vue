@@ -304,7 +304,7 @@ function hasLocalMedia(item) {
 
 .catalog-header__meta {
   font-size: 0.75rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   line-height: 1.35;
 }
 
@@ -344,7 +344,7 @@ function hasLocalMedia(item) {
   grid-column: 1 / -1;
   margin: 0;
   font-size: 0.68rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .catalog-filters :deep(.v-field) {
@@ -403,7 +403,7 @@ function hasLocalMedia(item) {
 .exercise-card-desc {
   margin: 0;
   font-size: 0.8rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;

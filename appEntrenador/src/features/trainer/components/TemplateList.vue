@@ -82,7 +82,7 @@ defineEmits(['edit', 'assign', 'delete']);
   border-radius: 16px;
   background: #11141B;
   border: 1px solid rgba(255, 255, 255, 0.05);
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 14px;
   line-height: 1.45;
 }
@@ -115,7 +115,7 @@ defineEmits(['edit', 'assign', 'delete']);
 .template-card__meta {
   margin: 0;
   font-size: 12px;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .template-card__notes {

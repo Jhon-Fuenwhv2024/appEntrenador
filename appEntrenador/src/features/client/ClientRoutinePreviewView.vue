@@ -317,7 +317,7 @@ onMounted(() => {
 .preview-meta {
   margin: 0.2rem 0 0;
   font-size: 0.75rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .preview-main {
@@ -382,7 +382,7 @@ onMounted(() => {
 .preview-card__rx {
   margin: 0.15rem 0 0;
   font-size: 0.72rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .preview-card__ss {
@@ -419,7 +419,7 @@ onMounted(() => {
   gap: 0.25rem;
   margin: 0.35rem 0 0;
   font-size: 0.72rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .preview-card__hint-wrap {
@@ -430,7 +430,7 @@ onMounted(() => {
 .preview-empty {
   margin: 1rem 0;
   font-size: 0.85rem;
-  color: #8b929e;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   text-align: center;
 }
 

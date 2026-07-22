@@ -161,7 +161,7 @@ video.workout-media__frame {
 
 .workout-media__fallback-text {
   margin: 0;
-  color: #8B929E;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   font-size: 0.9rem;
   line-height: 1.4;
   max-width: 100%;
