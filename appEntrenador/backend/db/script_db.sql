@@ -411,8 +411,8 @@ CREATE TABLE client_streaks (
       FOREIGN KEY (client_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- 21. PLANES DE DIETA (Feature 043)
--- Totales del plan = suma de diet_items (recalculados en backend; no confiar en el cliente).
+-- 21. PLANES DE DIETA (Feature 043 + 064 ciclo multi-semana)
+-- Totales del plan = media de días con items (recalculados en backend).
 CREATE TABLE diet_plans (
     id INT AUTO_INCREMENT PRIMARY KEY,
     trainer_id INT NOT NULL,
@@ -424,6 +424,8 @@ CREATE TABLE diet_plans (
     carbs_g DECIMAL(10, 2) NOT NULL DEFAULT 0,
     fats_g DECIMAL(10, 2) NOT NULL DEFAULT 0,
     is_active TINYINT(1) NOT NULL DEFAULT 0,
+    cycle_length_weeks TINYINT NOT NULL DEFAULT 4,
+    cycle_start_date DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_diet_plans_trainer (trainer_id),
@@ -435,15 +437,31 @@ CREATE TABLE diet_plans (
       FOREIGN KEY (client_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
-CREATE TABLE diet_meals (
+CREATE TABLE diet_plan_days (
     id INT AUTO_INCREMENT PRIMARY KEY,
     diet_plan_id INT NOT NULL,
+    week_index TINYINT NOT NULL,
+    dia_semana ENUM('Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo') NOT NULL,
+    notes TEXT NULL,
+    calories DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    protein_g DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    carbs_g DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    fats_g DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    UNIQUE KEY uq_diet_plan_day (diet_plan_id, week_index, dia_semana),
+    INDEX idx_diet_plan_days_plan (diet_plan_id),
+    CONSTRAINT fk_diet_plan_days_plan
+      FOREIGN KEY (diet_plan_id) REFERENCES diet_plans(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE diet_meals (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    diet_day_id INT NOT NULL,
     name VARCHAR(100) NOT NULL,
     sort_order INT NOT NULL DEFAULT 0,
     time_hint VARCHAR(20) NULL,
-    INDEX idx_diet_meals_plan (diet_plan_id),
-    CONSTRAINT fk_diet_meals_plan
-      FOREIGN KEY (diet_plan_id) REFERENCES diet_plans(id) ON DELETE CASCADE
+    INDEX idx_diet_meals_day (diet_day_id),
+    CONSTRAINT fk_diet_meals_day
+      FOREIGN KEY (diet_day_id) REFERENCES diet_plan_days(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE diet_items (

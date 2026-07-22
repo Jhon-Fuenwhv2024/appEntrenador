@@ -88,8 +88,16 @@ async function onSubmit(payload) {
     await loadPlans();
   } catch (error) {
     console.error('Error guardando plan de dieta:', error);
+    let text = getApiErrorMessage(error, 'No se pudo guardar el plan');
+    if (/al menos una comida/i.test(text)) {
+      text = (
+        'El backend aún no cargó el ciclo multi-semana. '
+        + 'Reinicia el API (backend → npm start), recarga esta página y vuelve a guardar. '
+        + 'Si ya reiniciaste: indica Semana + día y asegúrate de que el alimento tenga nombre.'
+      );
+    }
     emit('notify', {
-      text: getApiErrorMessage(error, 'No se pudo guardar el plan'),
+      text,
       color: 'error',
     });
   } finally {
@@ -164,7 +172,7 @@ onMounted(() => {
       <div class="min-w-0">
         <h3 class="dpp__title">Planes de Dieta</h3>
         <p class="dpp__hint">
-          Al activar, sincroniza los objetivos diarios · puedes fijar macros sin plan
+          Ciclo multi-semana (2–4) · al activar sincroniza la media de macros del ciclo
         </p>
       </div>
       <v-btn
@@ -223,9 +231,16 @@ onMounted(() => {
               </v-chip>
             </div>
             <p class="dpp__card-macros">{{ formatMacros(plan) }}</p>
-            <p v-if="plan.meals?.length" class="dpp__card-meta">
-              {{ plan.meals.length }}
-              {{ plan.meals.length === 1 ? 'comida' : 'comidas' }}
+            <p class="dpp__card-meta">
+              Ciclo {{ plan.cycle_length_weeks || 4 }} sem.
+              <template v-if="plan.day_count">
+                · {{ plan.day_count }}
+                {{ plan.day_count === 1 ? 'día' : 'días' }}
+              </template>
+              <template v-if="plan.meal_count">
+                · {{ plan.meal_count }}
+                {{ plan.meal_count === 1 ? 'comida' : 'comidas' }}
+              </template>
             </p>
           </div>
           <div class="dpp__card-actions">

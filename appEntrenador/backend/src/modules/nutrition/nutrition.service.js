@@ -122,18 +122,20 @@ async function upsertForTrainer(trainerId, clientId, payload) {
 }
 
 /**
- * Feature 043: al activar un plan de dieta, refleja sus totales en objetivos diarios.
- * No requiere plan de comidas para usar upsertForTrainer a mano (031 sigue independiente).
+ * Feature 043/064: al activar un plan de dieta, refleja sus totales en objetivos diarios.
+ * Usa media del ciclo; si algún macro redondea a 0 (p. ej. fats muy bajos),
+ * se eleva a 1 para no romper nutrition_targets (exige enteros ≥ 1).
  */
 function roundMacroToPositiveInt(value, fieldLabel) {
   const num = Math.round(Number(value));
-  if (!Number.isFinite(num) || num < 1) {
+  if (!Number.isFinite(num)) {
     throw createHttpError(
-      `No se pueden sincronizar objetivos: ${fieldLabel} del plan debe ser ≥ 1.`,
+      `No se pueden sincronizar objetivos: ${fieldLabel} del plan no es un número válido.`,
       400,
     );
   }
-  return num;
+  // Objetivos diarios (031) requieren ≥ 1; no fallar el guardado del plan por un promedio ~0.
+  return Math.max(1, num);
 }
 
 async function syncFromDietPlanTotals(trainerId, clientId, totals = {}) {

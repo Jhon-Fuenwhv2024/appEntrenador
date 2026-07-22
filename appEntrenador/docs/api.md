@@ -1080,39 +1080,55 @@ UPSERT del objetivo. Solo el trainer dueño. Body obligatorio (enteros positivos
 }
 ```
 
-## Planes de dieta (Feature 043)
+## Planes de dieta (Feature 043 + 064 ciclo)
 
-Tablas `diet_plans` → `diet_meals` → `diet_items`. **Capa dual de macros:** el frontend muestra totales en vivo; el backend **ignora** totales enviados a nivel plan/comida y recalcula desde `diet_items` dentro de una transacción.
+Jerarquía: `diet_plans` → `diet_plan_days` (week_index + dia_semana) → `diet_meals` → `diet_items`.
+
+- `cycle_length_weeks`: 2|3|4 (default 4)
+- `cycle_start_date`: ancla lunes del ciclo
+- Totales del plan = **media** de días con ≥1 item (recalculados en service)
+- Totales del día = suma de items del día
+
+**Capa dual de macros:** el frontend muestra totales en vivo; el backend ignora totales enviados a nivel plan/día/comida y recalcula desde `diet_items`.
 
 ### `GET /trainer/diets` (trainer)
 
-Lista planes del entrenador. Query opcional: `?clientId=` (valida ownership).
+Lista planes del entrenador con `days[]` anidados. Query opcional: `?clientId=` (valida ownership).
 
 ### `POST /trainer/diets` (trainer)
 
-Crea plan + meals + items en transacción. Body:
+Crea plan + días + meals + items en transacción. Body:
 
 ```json
 {
   "client_id": 12,
-  "title": "Déficit 2200",
+  "title": "Definición Q3",
   "notes": "Priorizar proteína",
   "is_active": true,
-  "meals": [
+  "cycle_length_weeks": 4,
+  "cycle_start_date": "2026-07-20",
+  "days": [
     {
-      "name": "Desayuno",
-      "sort_order": 0,
-      "time_hint": "08:00",
-      "items": [
+      "week_index": 1,
+      "dia_semana": "Lunes",
+      "notes": null,
+      "meals": [
         {
-          "food_name": "Avena",
-          "quantity": 60,
-          "unit": "g",
-          "calories": 220,
-          "protein_g": 8,
-          "carbs_g": 38,
-          "fats_g": 4,
-          "sort_order": 0
+          "name": "Desayuno",
+          "sort_order": 0,
+          "time_hint": "08:00",
+          "items": [
+            {
+              "food_name": "Avena",
+              "quantity": 60,
+              "unit": "g",
+              "calories": 220,
+              "protein_g": 8,
+              "carbs_g": 38,
+              "fats_g": 4,
+              "sort_order": 0
+            }
+          ]
         }
       ]
     }
@@ -1120,29 +1136,41 @@ Crea plan + meals + items en transacción. Body:
 }
 ```
 
-Respuesta `201` con el plan completo anidado. Los macros del plan son la suma de items.
+Respuesta `201` con el plan completo (`days` → `meals` → `items`). Macros del plan = media de días con items.
 
 ### `GET /trainer/diets/:id` (trainer)
 
-Detalle con meals e items. Solo planes del trainer autenticado.
+Detalle con días, meals e items. Solo planes del trainer autenticado.
 
 ### `PUT /trainer/diets/:id` (trainer)
 
-Reemplazo nested (UPDATE plan + DELETE meals CASCADE + re-insert). Recalcula macros desde items.
+Reemplazo nested (UPDATE plan + DELETE `diet_plan_days` CASCADE + re-insert). Recalcula macros.
 
 ### `DELETE /trainer/diets/:id` (trainer)
 
-Elimina el plan (CASCADE a meals/items).
+Elimina el plan (CASCADE a days/meals/items).
 
 ### `POST /trainer/diets/:id/activate` (trainer)
 
-Marca el plan como activo y desactiva otros planes activos del mismo `client_id`. Requiere `client_id` asignado. Tras activar (también al crear/editar con `is_active: true`), sincroniza los totales del plan a `nutrition_targets` del alumno. Los objetivos diarios siguen editables por `PUT /nutrition/:clientId` sin necesidad de un plan de comidas.
+Marca el plan como activo y desactiva otros del mismo `client_id`. Sincroniza la **media** del ciclo → `nutrition_targets` (031).
 
-### `GET /me/diet-plan` (client)
+### `POST /trainer/diets/:id/copy-day` (trainer)
 
-Plan activo del alumno autenticado (`client_id = req.user.id` y `is_active = 1`), con meals e items. Si no hay plan: `"data": null`.
+Deep copy de un día a otro. Body: `{ "from_week_index", "from_dia_semana", "to_week_index", "to_dia_semana" }`.
 
-UI trainer: ficha 360 → pestaña Nutrición (`DietPlanPanel`). UI cliente: dashboard (`ClientDietView`, Feature 057 — jerarquía comida/productos). Preview de rutina: `/client/routine/:id` (`ClientRoutinePreviewView`, Feature 058).
+### `POST /trainer/diets/:id/copy-week` (trainer)
+
+Deep copy semana completa. Body: `{ "from_week", "to_week" }`.
+
+### `GET /me/diet-plan?date=YYYY-MM-DD` (client)
+
+Plan activo del alumno con **día resuelto** según ciclo (`resolved` + `day`). Sin fallback a otro día si está vacío (`day: null`). Si no hay plan: `"data": null`.
+
+### `GET /me/diet-plan/week?date=YYYY-MM-DD` (client)
+
+Preview de los 7 días de la semana del ciclo que contiene `date`.
+
+UI trainer: ficha 360 → Nutrición (`DietPlanPanel` / ciclo L–D). UI cliente: `ClientDietView` (057 + 064).
 
 ## Hábitos diarios (Feature 032)
 

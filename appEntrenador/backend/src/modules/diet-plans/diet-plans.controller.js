@@ -110,10 +110,49 @@ async function activate(req, res) {
   }
 }
 
+async function copyDay(req, res) {
+  try {
+    const plan = await dietPlansService.copyDay(
+      req.user.id,
+      req.params.id,
+      req.body,
+    );
+
+    return res.json({
+      success: true,
+      message: 'Día duplicado',
+      data: plan,
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error duplicando día de dieta:');
+  }
+}
+
+async function copyWeek(req, res) {
+  try {
+    const plan = await dietPlansService.copyWeek(
+      req.user.id,
+      req.params.id,
+      req.body,
+    );
+
+    return res.json({
+      success: true,
+      message: 'Semana duplicada',
+      data: plan,
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error duplicando semana de dieta:');
+  }
+}
+
 async function getMine(req, res) {
   try {
     await membershipsService.assertClientMembershipAccess(req.user.id);
-    const plan = await dietPlansService.getActiveDietPlanForClient(req.user.id);
+    const plan = await dietPlansService.getActiveDietPlanForClient(
+      req.user.id,
+      req.query.date,
+    );
 
     return res.json({
       success: true,
@@ -124,6 +163,23 @@ async function getMine(req, res) {
   }
 }
 
+async function getMineWeek(req, res) {
+  try {
+    await membershipsService.assertClientMembershipAccess(req.user.id);
+    const week = await dietPlansService.getActiveDietPlanWeekForClient(
+      req.user.id,
+      req.query.date,
+    );
+
+    return res.json({
+      success: true,
+      data: week,
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error obteniendo semana del plan de dieta:');
+  }
+}
+
 module.exports = {
   list,
   getById,
@@ -131,5 +187,8 @@ module.exports = {
   update,
   remove,
   activate,
+  copyDay,
+  copyWeek,
   getMine,
+  getMineWeek,
 };

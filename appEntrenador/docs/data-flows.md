@@ -76,17 +76,17 @@
 4. Hábitos y macros se hidratan desde la misma respuesta (sin round-trips extra); el toggle de hábitos sigue siendo `POST /habits/:id/toggle`.
 5. Meta bajo el saludo (“N días restantes”); si `membershipBlocked`, hero con CTA Bloqueado (Player también responde 403 `MEMBERSHIP_BLOCKED`).
 6. Perfil cliente (`/client/profile`): `ProfileFormCard` (datos/foto) y debajo un resumen compacto de membresía (`GET /me/membership`: días, Al día/Debe, vigencia).
-7. Plan de dieta activo (043): `ClientDietView` llama `GET /me/diet-plan` (solo lectura; comidas + items + macros).
+7. Plan de dieta activo (043/064): `ClientDietView` llama `GET /me/diet-plan?date=` (día resuelto del ciclo) y `GET /me/diet-plan/week` (strip L–D).
 
-## Planes de dieta (Feature 043)
+## Planes de dieta (Feature 043 + 064 ciclo)
 
-1. Trainer en ficha 360 (pestaña Nutrición) abre `DietPlanPanel` → crea/edita con `DietPlanForm` (árbol Plan → Meals → Items).
-2. La UI calcula totales por comida y del plan con `computed` (capa FE, en vivo).
-3. Al guardar: `POST/PUT /trainer/diets` → service valida ownership, **ignora macros del plan**, suma items, escribe en transacción (nested replace en update).
-4. Activar (o guardar con `is_active`): desactiva otros planes del mismo cliente y **sincroniza totales → `nutrition_targets`** (031).
-5. Objetivos diarios (031) siguen siendo independientes: se pueden asignar/editar sin crear un plan de comidas.
-6. Cliente ve el plan activo en el dashboard vía `GET /me/diet-plan` (`req.user.id`); los macros del home siguen viniendo de `nutrition_targets` / `/me/today`.
-7. Feature **057**: `ClientDietView` presenta cada comida como bloque (icono/acento + nombre + hora + kcal) y los alimentos como filas anidadas colapsables (acordeón).
+1. Trainer en ficha 360 (Nutrición) abre `DietPlanPanel` → `DietPlanForm` con tabs Semana 1…N + strip L–D + builder por día.
+2. La UI calcula macros del día y media del ciclo en vivo (`computed`).
+3. Al guardar: `POST/PUT /trainer/diets` con `days[]` → service valida ownership, recalcula desde items, escribe en transacción (nested replace de `diet_plan_days`).
+4. Activar (o guardar activo): desactiva otros planes del cliente y sincroniza **media del ciclo** → `nutrition_targets` (031).
+5. Cliente: `GET /me/diet-plan?date=` resuelve `week_index` + `dia_semana` desde `cycle_start_date` / `cycle_length_weeks`; sin fallback si el día está vacío. Strip semanal vía `/me/diet-plan/week`.
+6. Duplicar día/semana: en el form (estado local) y endpoints `POST .../copy-day` | `copy-week`.
+7. Feature **057**: jerarquía comida/productos en `ClientDietView` se mantiene sobre el día resuelto.
 
 ## Plantillas → deep copy al alumno (Feature 018)
 

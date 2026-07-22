@@ -4,12 +4,20 @@ const { authenticate, requireRole } = require('../../middleware/auth');
 
 const router = express.Router();
 
-/** Cliente: plan activo del alumno autenticado */
+/** Cliente: plan activo del día resuelto (?date=YYYY-MM-DD) */
 router.get(
   '/me/diet-plan',
   authenticate,
   requireRole('client'),
   dietPlansController.getMine,
+);
+
+/** Cliente: preview semana del ciclo (?date=YYYY-MM-DD) */
+router.get(
+  '/me/diet-plan/week',
+  authenticate,
+  requireRole('client'),
+  dietPlansController.getMineWeek,
 );
 
 /** Entrenador: CRUD de planes de dieta */
@@ -53,6 +61,20 @@ router.post(
   authenticate,
   requireRole('trainer'),
   dietPlansController.activate,
+);
+
+router.post(
+  '/trainer/diets/:id/copy-day',
+  authenticate,
+  requireRole('trainer'),
+  dietPlansController.copyDay,
+);
+
+router.post(
+  '/trainer/diets/:id/copy-week',
+  authenticate,
+  requireRole('trainer'),
+  dietPlansController.copyWeek,
 );
 
 module.exports = router;

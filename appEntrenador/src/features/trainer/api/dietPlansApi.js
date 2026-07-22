@@ -33,3 +33,13 @@ export function deleteDietPlan(planId) {
 export function activateDietPlan(planId) {
   return http.post(`/trainer/diets/${planId}/activate`);
 }
+
+/** POST /api/trainer/diets/:id/copy-day */
+export function copyDietDay(planId, payload) {
+  return http.post(`/trainer/diets/${planId}/copy-day`, payload);
+}
+
+/** POST /api/trainer/diets/:id/copy-week */
+export function copyDietWeek(planId, payload) {
+  return http.post(`/trainer/diets/${planId}/copy-week`, payload);
+}

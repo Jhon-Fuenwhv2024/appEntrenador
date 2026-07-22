@@ -1,14 +1,14 @@
 <script setup>
 /**
- * Vista cliente: plan de dieta activo (solo lectura), agrupado por comidas.
- * Feature 057 — jerarquía visual tipo diario: comida (cabecera) vs productos (filas).
+ * Vista cliente: plan de dieta activo del día resuelto (ciclo multi-semana).
+ * Feature 057 jerarquía + Feature 064 resolución por fecha / strip semanal.
  */
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import { getApiErrorMessage } from '../../../shared/api/http.js';
-import { getMyDietPlan } from '../api/dietPlansApi.js';
+import { getMyDietPlan, getMyDietPlanWeek } from '../api/dietPlansApi.js';
 
 const props = defineProps({
-  /** Plan ya cargado (opcional). */
+  /** Respuesta ya cargada de GET /me/diet-plan (opcional). */
   initialPlan: {
     type: Object,
     default: undefined,
@@ -24,14 +24,79 @@ const props = defineProps({
   },
 });
 
+const DAYS = [
+  'Lunes',
+  'Martes',
+  'Miércoles',
+  'Jueves',
+  'Viernes',
+  'Sábado',
+  'Domingo',
+];
+const DAY_SHORT = {
+  Lunes: 'L',
+  Martes: 'M',
+  Miércoles: 'X',
+  Jueves: 'J',
+  Viernes: 'V',
+  Sábado: 'S',
+  Domingo: 'D',
+};
+
 const loading = shallowRef(false);
 const loadError = shallowRef('');
 const plan = shallowRef(null);
+const weekPreview = shallowRef(null);
 const empty = shallowRef(false);
-/** Meal ids currently expanded in the accordion. */
 const expandedIds = ref([]);
+const selectedDia = ref(null);
 
-const meals = computed(() => (Array.isArray(plan.value?.meals) ? plan.value.meals : []));
+function todayYmd() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+const resolved = computed(() => plan.value?.resolved || null);
+
+const viewingDia = computed(
+  () => selectedDia.value || resolved.value?.dia_semana || 'Lunes',
+);
+
+const isTodayView = computed(
+  () => viewingDia.value === resolved.value?.dia_semana,
+);
+
+const dayPayload = computed(() => {
+  if (!plan.value) return null;
+  if (isTodayView.value) return plan.value.day;
+
+  const slot = (weekPreview.value?.days || []).find(
+    (d) => d.dia_semana === viewingDia.value,
+  );
+  if (!slot) return null;
+  return {
+    id: slot.id,
+    week_index: slot.week_index,
+    dia_semana: slot.dia_semana,
+    notes: slot.notes,
+    calories: slot.calories,
+    protein_g: slot.protein_g,
+    carbs_g: slot.carbs_g,
+    fats_g: slot.fats_g,
+    meals: slot.meals || [],
+  };
+});
+
+const meals = computed(() =>
+  (Array.isArray(dayPayload.value?.meals) ? dayPayload.value.meals : []),
+);
+
+const dayEmpty = computed(
+  () => Boolean(plan.value) && (!dayPayload.value || !meals.value.length),
+);
 
 const MEAL_ACCENTS = [
   {
@@ -61,7 +126,6 @@ const DEFAULT_ACCENT = {
   color: '#00E5FF',
 };
 
-/** Same palette as MacroSummaryCard (Nutrición). */
 const MACRO_COLORS = {
   protein: '#EF5350',
   carbs: '#42A5F5',
@@ -80,32 +144,54 @@ function formatNum(value) {
   return Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10);
 }
 
-const planMacros = computed(() => {
-  const p = plan.value;
-  if (!p) return [];
+const dayMacros = computed(() => {
+  const d = dayPayload.value;
+  if (!d) return [];
   return [
     {
       key: 'protein',
       label: 'Proteína',
       short: 'P',
-      grams: formatNum(p.protein_g),
+      grams: formatNum(d.protein_g),
       color: MACRO_COLORS.protein,
     },
     {
       key: 'carbs',
       label: 'Carbohidratos',
       short: 'C',
-      grams: formatNum(p.carbs_g),
+      grams: formatNum(d.carbs_g),
       color: MACRO_COLORS.carbs,
     },
     {
       key: 'fats',
       label: 'Grasas',
       short: 'G',
-      grams: formatNum(p.fats_g),
+      grams: formatNum(d.fats_g),
       color: MACRO_COLORS.fats,
     },
   ];
+});
+
+const weekStrip = computed(() => {
+  const days = weekPreview.value?.days || [];
+  return DAYS.map((dia) => {
+    const slot = days.find((d) => d.dia_semana === dia);
+    return {
+      dia,
+      short: DAY_SHORT[dia],
+      filled: Boolean(slot?.has_meals || slot?.meals?.length),
+      calories: Number(slot?.calories) || 0,
+      isResolved: dia === resolved.value?.dia_semana,
+      isSelected: dia === viewingDia.value,
+    };
+  });
+});
+
+const headerSubtitle = computed(() => {
+  if (!plan.value || !resolved.value) return 'Consumo previsto del día';
+  const week = resolved.value.week_index;
+  const label = isTodayView.value ? 'Hoy' : viewingDia.value;
+  return `${label} · Semana ${week} · ${viewingDia.value}`;
 });
 
 function isExpanded(mealId) {
@@ -121,7 +207,6 @@ function toggleMeal(mealId) {
 }
 
 function syncExpandedFromPlan() {
-  // Collapsed by default — user expands meals on tap (Feature 057).
   expandedIds.value = [];
 }
 
@@ -130,12 +215,26 @@ function applyPlan(value) {
   empty.value = !plan.value;
   loadError.value = '';
   loading.value = false;
+  selectedDia.value = value?.resolved?.dia_semana || null;
   syncExpandedFromPlan();
+}
+
+async function loadWeek(date) {
+  try {
+    const response = await getMyDietPlanWeek(date);
+    weekPreview.value = response.data?.data ?? null;
+  } catch (error) {
+    console.error('Error cargando semana del plan:', error);
+    weekPreview.value = null;
+  }
 }
 
 async function loadPlan() {
   if (props.skipFetch) {
     applyPlan(props.initialPlan);
+    if (props.initialPlan?.resolved?.date) {
+      await loadWeek(props.initialPlan.resolved.date);
+    }
     return;
   }
 
@@ -143,12 +242,19 @@ async function loadPlan() {
     loading.value = true;
     loadError.value = '';
     empty.value = false;
-    const response = await getMyDietPlan();
+    const date = todayYmd();
+    const response = await getMyDietPlan(date);
     applyPlan(response.data?.data ?? null);
+    if (response.data?.data) {
+      await loadWeek(date);
+    } else {
+      weekPreview.value = null;
+    }
   } catch (error) {
     console.error('Error cargando plan de dieta:', error);
     loadError.value = getApiErrorMessage(error, 'No se pudo cargar tu plan de dieta');
     plan.value = null;
+    weekPreview.value = null;
     empty.value = false;
     expandedIds.value = [];
   } finally {
@@ -156,11 +262,19 @@ async function loadPlan() {
   }
 }
 
+function selectStripDay(dia) {
+  selectedDia.value = dia;
+  syncExpandedFromPlan();
+}
+
 watch(
   () => [props.skipFetch, props.initialPlan],
-  () => {
+  async () => {
     if (props.skipFetch) {
       applyPlan(props.initialPlan);
+      if (props.initialPlan?.resolved?.date) {
+        await loadWeek(props.initialPlan.resolved.date);
+      }
     }
   },
 );
@@ -178,8 +292,8 @@ onMounted(() => {
   >
     <div class="cdv__head">
       <h3 class="cdv__title">Mi plan de dieta</h3>
-      <p v-if="plan" class="cdv__subtitle">{{ plan.title }}</p>
-      <p v-else class="cdv__subtitle">Consumo previsto del día</p>
+      <p v-if="plan" class="cdv__plan-name">{{ plan.title }}</p>
+      <p class="cdv__subtitle">{{ headerSubtitle }}</p>
     </div>
 
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-2" height="2" />
@@ -196,98 +310,132 @@ onMounted(() => {
     </p>
 
     <template v-else-if="plan">
-      <div class="cdv__summary" aria-label="Totales del plan">
-        <div class="cdv__summary-kcal">
-          <span class="cdv__summary-kcal-value">{{ formatNum(plan.calories) }}</span>
-          <span class="cdv__summary-kcal-unit">kcal del plan</span>
-        </div>
-        <div class="cdv__summary-macros">
-          <div
-            v-for="macro in planMacros"
-            :key="macro.key"
-            class="cdv__metric"
-            :style="{ '--macro-color': macro.color }"
-          >
-            <span class="cdv__metric-letter">{{ macro.short }}</span>
-            <span class="cdv__metric-grams">{{ macro.grams }}g</span>
-            <span class="cdv__metric-label">{{ macro.label }}</span>
-          </div>
-        </div>
-      </div>
-
-      <p v-if="plan.notes" class="cdv__notes">{{ plan.notes }}</p>
-
-      <div class="cdv__meals" role="list">
-        <article
-          v-for="meal in meals"
-          :key="meal.id"
-          class="cdv__meal"
-          :style="{ '--meal-accent': mealAccent(meal.name).color }"
+      <div
+        v-if="weekStrip.length"
+        class="cdv__strip"
+        role="list"
+        aria-label="Días de la semana del ciclo"
+      >
+        <button
+          v-for="slot in weekStrip"
+          :key="slot.dia"
+          type="button"
+          class="cdv__strip-day"
+          :class="{
+            'cdv__strip-day--active': slot.isSelected,
+            'cdv__strip-day--today': slot.isResolved,
+            'cdv__strip-day--filled': slot.filled,
+          }"
           role="listitem"
+          :aria-label="`${slot.dia}${slot.filled ? `, ${slot.calories} kcal` : ', sin comidas'}`"
+          :aria-pressed="slot.isSelected"
+          @click="selectStripDay(slot.dia)"
         >
-          <button
-            type="button"
-            class="cdv__meal-head"
-            :aria-expanded="isExpanded(meal.id)"
-            :aria-controls="`cdv-meal-${meal.id}`"
-            @click="toggleMeal(meal.id)"
-          >
-            <span
-              class="cdv__meal-icon"
-              aria-hidden="true"
-            >
-              <v-icon :icon="mealAccent(meal.name).icon" size="20" />
-            </span>
-            <span class="cdv__meal-copy">
-              <span class="cdv__meal-name">{{ meal.name }}</span>
-              <span v-if="meal.time_hint" class="cdv__meal-time">{{ meal.time_hint }}</span>
-            </span>
-            <span class="cdv__meal-kcal">{{ formatNum(meal.calories) }} kcal</span>
-            <v-icon
-              class="cdv__meal-chevron"
-              :icon="isExpanded(meal.id) ? 'mdi-chevron-up' : 'mdi-chevron-down'"
-              size="20"
-            />
-          </button>
-
-          <div
-            v-show="isExpanded(meal.id)"
-            :id="`cdv-meal-${meal.id}`"
-            class="cdv__meal-body"
-          >
-            <ul
-              v-if="Array.isArray(meal.items) && meal.items.length"
-              class="cdv__items"
-            >
-              <li
-                v-for="item in meal.items"
-                :key="item.id"
-                class="cdv__item"
-              >
-                <div class="cdv__item-main">
-                  <span class="cdv__item-name">{{ item.food_name }}</span>
-                  <span class="cdv__item-qty">
-                    {{ formatNum(item.quantity) }} {{ item.unit }}
-                  </span>
-                </div>
-                <div class="cdv__item-macros">
-                  <span class="cdv__item-kcal">{{ formatNum(item.calories) }} kcal</span>
-                  <span class="cdv__item-macro" :style="{ color: MACRO_COLORS.protein }">
-                    P {{ formatNum(item.protein_g) }}
-                  </span>
-                  <span class="cdv__item-macro" :style="{ color: MACRO_COLORS.carbs }">
-                    C {{ formatNum(item.carbs_g) }}
-                  </span>
-                  <span class="cdv__item-macro" :style="{ color: MACRO_COLORS.fats }">
-                    G {{ formatNum(item.fats_g) }}
-                  </span>
-                </div>
-              </li>
-            </ul>
-            <p v-else class="cdv__items-empty">Sin alimentos en esta comida.</p>
-          </div>
-        </article>
+          <span class="cdv__strip-short">{{ slot.short }}</span>
+          <span v-if="slot.filled" class="cdv__strip-kcal">{{ formatNum(slot.calories) }}</span>
+          <span v-else class="cdv__strip-empty">—</span>
+        </button>
       </div>
+
+      <template v-if="dayEmpty">
+        <p class="cdv__empty">
+          No hay comidas asignadas para {{ viewingDia }}.
+        </p>
+      </template>
+
+      <template v-else-if="dayPayload">
+        <div class="cdv__summary" aria-label="Totales del día">
+          <div class="cdv__summary-kcal">
+            <span class="cdv__summary-kcal-value">{{ formatNum(dayPayload.calories) }}</span>
+            <span class="cdv__summary-kcal-unit">kcal del día</span>
+          </div>
+          <div class="cdv__summary-macros">
+            <div
+              v-for="macro in dayMacros"
+              :key="macro.key"
+              class="cdv__metric"
+              :style="{ '--macro-color': macro.color }"
+            >
+              <span class="cdv__metric-letter">{{ macro.short }}</span>
+              <span class="cdv__metric-grams">{{ macro.grams }}g</span>
+              <span class="cdv__metric-label">{{ macro.label }}</span>
+            </div>
+          </div>
+        </div>
+
+        <p v-if="dayPayload.notes || plan.notes" class="cdv__notes">
+          {{ dayPayload.notes || plan.notes }}
+        </p>
+
+        <div class="cdv__meals" role="list">
+          <article
+            v-for="meal in meals"
+            :key="meal.id || meal.name"
+            class="cdv__meal"
+            :style="{ '--meal-accent': mealAccent(meal.name).color }"
+            role="listitem"
+          >
+            <button
+              type="button"
+              class="cdv__meal-head"
+              :aria-expanded="isExpanded(meal.id || meal.name)"
+              :aria-controls="`cdv-meal-${meal.id || meal.name}`"
+              @click="toggleMeal(meal.id || meal.name)"
+            >
+              <span class="cdv__meal-icon" aria-hidden="true">
+                <v-icon :icon="mealAccent(meal.name).icon" size="20" />
+              </span>
+              <span class="cdv__meal-copy">
+                <span class="cdv__meal-name">{{ meal.name }}</span>
+                <span v-if="meal.time_hint" class="cdv__meal-time">{{ meal.time_hint }}</span>
+              </span>
+              <span class="cdv__meal-kcal">{{ formatNum(meal.calories) }} kcal</span>
+              <v-icon
+                class="cdv__meal-chevron"
+                :icon="isExpanded(meal.id || meal.name) ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+                size="20"
+              />
+            </button>
+
+            <div
+              v-show="isExpanded(meal.id || meal.name)"
+              :id="`cdv-meal-${meal.id || meal.name}`"
+              class="cdv__meal-body"
+            >
+              <ul
+                v-if="Array.isArray(meal.items) && meal.items.length"
+                class="cdv__items"
+              >
+                <li
+                  v-for="item in meal.items"
+                  :key="item.id || item.food_name"
+                  class="cdv__item"
+                >
+                  <div class="cdv__item-main">
+                    <span class="cdv__item-name">{{ item.food_name }}</span>
+                    <span class="cdv__item-qty">
+                      {{ formatNum(item.quantity) }} {{ item.unit }}
+                    </span>
+                  </div>
+                  <div class="cdv__item-macros">
+                    <span class="cdv__item-kcal">{{ formatNum(item.calories) }} kcal</span>
+                    <span class="cdv__item-macro" :style="{ color: MACRO_COLORS.protein }">
+                      P {{ formatNum(item.protein_g) }}
+                    </span>
+                    <span class="cdv__item-macro" :style="{ color: MACRO_COLORS.carbs }">
+                      C {{ formatNum(item.carbs_g) }}
+                    </span>
+                    <span class="cdv__item-macro" :style="{ color: MACRO_COLORS.fats }">
+                      G {{ formatNum(item.fats_g) }}
+                    </span>
+                  </div>
+                </li>
+              </ul>
+              <p v-else class="cdv__items-empty">Sin alimentos en esta comida.</p>
+            </div>
+          </article>
+        </div>
+      </template>
     </template>
   </section>
 </template>
@@ -316,6 +464,13 @@ onMounted(() => {
   line-height: 1.2;
 }
 
+.cdv__plan-name {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: #d5dae3;
+}
+
 .cdv__subtitle {
   margin: 0.15rem 0 0;
   font-size: 0.7rem;
@@ -325,6 +480,63 @@ onMounted(() => {
 .cdv__empty {
   margin: 0.35rem 0 0;
   font-size: 0.8rem;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.cdv__strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.3rem;
+  margin-bottom: 0.65rem;
+}
+
+.cdv__strip-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  min-height: 44px;
+  padding: 0.3rem 0.1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.22);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.cdv__strip-day:focus-visible {
+  outline: 2px solid rgba(0, 229, 255, 0.55);
+  outline-offset: 1px;
+}
+
+.cdv__strip-day--filled {
+  border-color: rgba(0, 229, 255, 0.25);
+}
+
+.cdv__strip-day--today {
+  box-shadow: inset 0 -2px 0 rgb(var(--v-theme-primary));
+}
+
+.cdv__strip-day--active {
+  border-color: rgba(0, 229, 255, 0.55);
+  background: rgba(0, 229, 255, 0.12);
+}
+
+.cdv__strip-short {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: rgb(var(--v-theme-primary));
+}
+
+.cdv__strip-kcal {
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: #d5dae3;
+}
+
+.cdv__strip-empty {
+  font-size: 0.55rem;
   color: var(--tf-on-surface-muted, #a8b0bc);
 }
 

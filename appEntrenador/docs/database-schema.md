@@ -25,7 +25,8 @@ erDiagram
   usuarios ||--o{ nutrition_targets : "trainer_id"
   usuarios ||--o{ diet_plans : "trainer_id"
   usuarios ||--o{ diet_plans : "client_id"
-  diet_plans ||--o{ diet_meals : "contiene"
+  diet_plans ||--o{ diet_plan_days : "ciclo"
+  diet_plan_days ||--o{ diet_meals : "contiene"
   diet_meals ||--o{ diet_items : "contiene"
   usuarios ||--o| client_memberships : "client_id"
   usuarios ||--o{ client_memberships : "updated_by"
@@ -277,11 +278,11 @@ npm run db:create-nutrition-targets
 # o: node scripts/createNutritionTargetsTable.js
 ```
 
-### `diet_plans` / `diet_meals` / `diet_items` (Feature 043)
+### `diet_plans` / `diet_plan_days` / `diet_meals` / `diet_items` (043 + 064)
 
-Plan de dieta asignable a un cliente (`client_id` nullable para plantillas futuras). Jerarquía: plan → comidas → alimentos con macros por ítem. Los totales del plan (`calories`, `protein_g`, `carbs_g`, `fats_g`) se **recalculan en el service** desde `diet_items` (no se confía en el payload del cliente). Como máximo un `is_active = 1` por `client_id` (enforce en activate/create/update).
+Plan de dieta en **ciclo multi-semana** (2–4). Jerarquía: plan → días (`week_index` + `dia_semana` L–D) → comidas → alimentos. Campos de ciclo en `diet_plans`: `cycle_length_weeks`, `cycle_start_date` (ancla lunes). Totales del día cacheados en `diet_plan_days`; totales del plan = media de días con items. Como máximo un `is_active = 1` por `client_id`.
 
-Migración: [`backend/db/migrations/023_diet_plans.sql`](../backend/db/migrations/023_diet_plans.sql). Al arrancar, `ensureDietPlansTables` aplica `CREATE TABLE IF NOT EXISTS`.
+Migraciones: [`023_diet_plans.sql`](../backend/db/migrations/023_diet_plans.sql), [`028_diet_plan_cycle_days.sql`](../backend/db/migrations/028_diet_plan_cycle_days.sql). Al arrancar, `ensureDietPlansTables` crea/migra schema + backfill legacy (semana 1 × 7 días).
 
 ### `client_memberships` (Feature 040)
 
