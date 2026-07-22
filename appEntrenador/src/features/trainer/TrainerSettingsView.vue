@@ -12,12 +12,14 @@ import {
 } from '../../shared/api/accountApi.js';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { getSessionUser, setSession } from '../../shared/auth/session.js';
+import { useSessionAccount } from '../../shared/composables/useSessionAccount.js';
 import AppShell from '../../shared/layout/AppShell.vue';
 import SessionHeaderActions from '../../shared/layout/SessionHeaderActions.vue';
 import ChangePasswordForm from '../../shared/components/ChangePasswordForm.vue';
 import TrainerAccountCard from '../../shared/components/TrainerAccountCard.vue';
 
 const router = useRouter();
+const { loadAccount: refreshSessionHeader } = useSessionAccount({ role: 'trainer' });
 
 const account = shallowRef(null);
 const loading = shallowRef(true);
@@ -69,6 +71,7 @@ async function onSaveProfile({ fields, fotoFile, done }) {
       });
     }
     notify('Perfil actualizado');
+    await refreshSessionHeader({ force: true });
     done?.(true);
   } catch (error) {
     console.error('Error guardando perfil de cuenta:', error);

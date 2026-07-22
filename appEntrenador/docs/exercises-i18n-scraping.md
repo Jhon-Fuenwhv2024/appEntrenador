@@ -29,6 +29,19 @@ app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 Archivos en `backend/public/uploads/exercises/` (gitignored; `.gitkeep`).
 
+Si una rutina muestra “Sin demo visual”, falta vínculo a un ejercicio **con GIF local** (`local_media_path`).
+Texto libre o catálogo wrkout sin GIF no sirve. Reparar:
+
+```bash
+cd backend
+npm run db:backfill-exercise-links:confirm
+```
+
+Eso religa por nombre/`name_es`/aliases a ejercicios Fitcron con GIF y elimina reimports wrkout solo-imagen.  
+Al programar, el autocomplete usa catálogo `enriched` (con GIF / `name_es`).
+
+Al guardar rutinas/plantillas, el backend auto-resuelve `exercise_id` solo hacia catálogo con GIF.
+
 ## Flujo recomendado (catálogo = Fitcron con GIF)
 
 ```bash

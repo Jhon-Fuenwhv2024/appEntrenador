@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import AppLogo from '../../components/AppLogo.vue';
 import { clearSession, getSessionUser } from '../auth/session.js';
+import { clearSessionAccountCache } from '../composables/useSessionAccount.js';
 import AppBottomNav from './AppBottomNav.vue';
 
 const props = defineProps({
@@ -28,6 +29,7 @@ const router = useRouter();
 const isSuperAdmin = computed(() => getSessionUser()?.is_superadmin === true);
 
 const handleLogout = () => {
+  clearSessionAccountCache();
   clearSession();
   router.push('/');
 };

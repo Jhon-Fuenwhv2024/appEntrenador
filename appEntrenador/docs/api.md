@@ -702,6 +702,18 @@ Respuesta:
 ```
 
 Media estática: `GET {API_ORIGIN}/uploads/exercises/...` (fuera de `/api`).
+**Política Feature 044:** las demos del player/preview solo usan `local_media_path` (GIF hosteado). No se usan JPG wrkout de GitHub.
+
+**Vínculo catálogo (rutinas / plantillas):** al crear/editar, si falta `exercise_id` el backend resuelve por nombre/`name_es`/aliases **solo** contra ejercicios con GIF local.  
+Backfill de líneas huérfanas (local o producción):
+
+```bash
+cd backend
+npm run db:backfill-exercise-links          # dry-run
+npm run db:backfill-exercise-links:confirm  # religa a GIF + borra wrkout sin GIF reimportados
+```
+
+El cleanup `db:cleanup-exercises-no-local:confirm` es intencional (quita globales sin GIF). Tras usarlo, corre el backfill para religar rutinas a alternativas con GIF.
 
 ### `POST /exercises` (trainer)
 

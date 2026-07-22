@@ -244,17 +244,29 @@ async function enrichRoutinesWithCatalogMedia(routines, clientId) {
   };
 
   function mapCatalogMedia(row) {
-    const localPath = row.local_media_path || null;
-    let mediaType = row.media_type || 'none';
-    if (localPath) {
-      const lower = localPath.toLowerCase();
-      if (lower.endsWith('.mp4') || lower.endsWith('.webm')) mediaType = 'video';
-      else if (lower.endsWith('.gif')) mediaType = 'gif';
-      else if (/\.(jpe?g|png|webp)$/.test(lower)) mediaType = 'image';
+    const localPath = typeof row.local_media_path === 'string'
+      ? row.local_media_path.trim()
+      : '';
+    // Feature 044: demos only from hosted GIF — never fall back to wrkout JPG.
+    if (!localPath) {
+      return {
+        media_type: 'none',
+        media_url: null,
+        local_media_path: null,
+        name_es: row.name_es ?? null,
+        description_es: row.description_es ?? null,
+      };
     }
+
+    let mediaType = row.media_type || 'gif';
+    const lower = localPath.toLowerCase();
+    if (lower.endsWith('.mp4') || lower.endsWith('.webm')) mediaType = 'video';
+    else if (lower.endsWith('.gif')) mediaType = 'gif';
+    else if (/\.(jpe?g|png|webp)$/.test(lower)) mediaType = 'image';
+
     return {
       media_type: mediaType,
-      media_url: row.media_url || null,
+      media_url: null,
       local_media_path: localPath,
       name_es: row.name_es ?? null,
       description_es: row.description_es ?? null,
@@ -296,32 +308,39 @@ async function enrichRoutinesWithCatalogMedia(routines, clientId) {
 
   if (names.size > 0) {
     const nameList = [...names];
-    const placeholders = nameList.map(() => '?').join(',');
-    const params = trainerId == null
-      ? [...nameList]
-      : [...nameList, trainerId];
-
     const trainerClause = trainerId == null
       ? 'created_by_trainer_id IS NULL'
       : '(created_by_trainer_id IS NULL OR created_by_trainer_id = ?)';
+    const catalogParams = trainerId == null ? [] : [trainerId];
 
     const [catalogRows] = await db.query(
       `SELECT name, name_es, description_es, media_type, media_url, local_media_path,
               created_by_trainer_id
        FROM exercises
-       WHERE LOWER(TRIM(name)) IN (${placeholders})
-         AND ${trainerClause}`,
-      params,
+       WHERE ${trainerClause}`,
+      catalogParams,
+    );
+
+    const wanted = new Set(
+      nameList.map((n) => exercisesService.normalizeExerciseKey(n)).filter(Boolean),
     );
 
     for (const row of catalogRows) {
-      const key = String(row.name).trim().toLowerCase();
-      const existing = mediaByName.get(key);
+      const keys = [row.name, row.name_es]
+        .filter((v) => typeof v === 'string' && v.trim())
+        .map((v) => exercisesService.normalizeExerciseKey(v))
+        .filter((key) => key && wanted.has(key));
+
+      if (keys.length === 0) continue;
+
       const isTrainerOwned = trainerId != null
         && row.created_by_trainer_id === trainerId;
 
-      if (!existing || isTrainerOwned) {
-        mediaByName.set(key, mapCatalogMedia(row));
+      for (const key of keys) {
+        const existing = mediaByName.get(key);
+        if (!existing || isTrainerOwned) {
+          mediaByName.set(key, mapCatalogMedia(row));
+        }
       }
     }
   }
@@ -333,7 +352,7 @@ async function enrichRoutinesWithCatalogMedia(routines, clientId) {
         const media = mediaById.get(ex.exercise_id);
         return { ...ex, ...media };
       }
-      const key = String(ex.nombre || '').trim().toLowerCase();
+      const key = exercisesService.normalizeExerciseKey(ex.nombre);
       const media = mediaByName.get(key);
       return {
         ...ex,
@@ -525,6 +544,10 @@ async function insertExerciseLines(connection, routineId, ejercicios) {
 async function createRoutine(trainerId, clientId, payload) {
   await assertTrainerOwnsClient(trainerId, clientId);
   const data = validateRoutinePayload(payload);
+  data.ejercicios = await exercisesService.resolveExerciseIdsForLines(
+    data.ejercicios,
+    trainerId,
+  );
   await exercisesService.assertCatalogExerciseIdsVisible(
     data.ejercicios.map((ex) => ex.exercise_id),
     trainerId,
@@ -557,6 +580,10 @@ async function createRoutine(trainerId, clientId, payload) {
 async function updateRoutine(trainerId, routineId, payload) {
   await getRoutineOwnedByTrainer(routineId, trainerId);
   const data = validateRoutinePayload(payload);
+  data.ejercicios = await exercisesService.resolveExerciseIdsForLines(
+    data.ejercicios,
+    trainerId,
+  );
   await exercisesService.assertCatalogExerciseIdsVisible(
     data.ejercicios.map((ex) => ex.exercise_id),
     trainerId,

@@ -31,7 +31,9 @@
     "test:feature-033": "node scripts/test-feature-033.js",
     "test:feature-035": "node scripts/test-feature-035.js",
     "test:feature-039": "node scripts/test-feature-039.js",
-    "seed:exercises": "node scripts/seedExercises.js"
+    "seed:exercises": "node scripts/seedExercises.js",
+    "db:backfill-exercise-links": "node scripts/backfillExerciseCatalogLinks.js --dry-run",
+    "db:backfill-exercise-links:confirm": "node scripts/backfillExerciseCatalogLinks.js --confirm"
   },
   "keywords": [],
   "author": "",

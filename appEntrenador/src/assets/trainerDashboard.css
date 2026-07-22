@@ -104,10 +104,8 @@ MAIN CONTENT
 HEADER
 =========================== */
 
+/* Header layout is global in appShell.css (Feature 063). */
 .dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
   margin-bottom: 28px;
 }
 
@@ -137,7 +135,7 @@ HEADER
 .header-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
 }
 
 .text-cyan {

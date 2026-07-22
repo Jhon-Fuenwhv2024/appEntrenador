@@ -1,8 +1,13 @@
 /**
  * Feature 044 — Limpia globales wrkout sin media local (solo imagen GitHub).
  *
+ * Intencional: Trainfit solo muestra demos con GIF en `local_media_path`.
+ * Tras borrar, las rutinas pueden quedar con `exercise_id` NULL — corre:
+ *   npm run db:backfill-exercise-links:confirm
+ * para religar a alternativas del catálogo enriquecido (con GIF).
+ *
  * Conserva ejercicios con local_media_path (GIF Fitcron hosteado).
- * FK ejercicio_id en rutinas/plantillas: ON DELETE SET NULL (historial intacto).
+ * FK ejercicio_id en rutinas/plantillas: ON DELETE SET NULL.
  *
  * Usage (desde backend/):
  *   node scripts/cleanupExercisesWithoutLocalMedia.js --dry-run

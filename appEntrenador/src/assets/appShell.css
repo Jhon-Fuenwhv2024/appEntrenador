@@ -196,6 +196,60 @@ BOTTOM NAV (mobile)
   white-space: nowrap;
 }
 
+/*
+ * Page header (Feature 063) — utilidades de sesión siempre arriba a la derecha.
+ * Fuente de verdad global: todas las vistas autenticadas (Inicio, Perfil, etc.)
+ * deben compartir este layout. No usar flex-direction: column ni wrap que baje
+ * SessionHeaderActions bajo el título.
+ */
+.dashboard-header {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 28px;
+}
+
+.header-left {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.header-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.header-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 6px;
+  line-height: 1.2;
+}
+
+.header-greeting {
+  margin: 0;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+  font-size: 14px;
+}
+
 /* ===========================
 MOBILE ≤960px
 =========================== */
@@ -237,26 +291,20 @@ MOBILE ≤960px
   .app-bottom-nav {
     display: flex;
   }
+
+  .dashboard-header {
+    margin-bottom: 16px;
+  }
 }
 
 @media (max-width: 600px) {
   .dashboard-header {
+    /* Mantener fila: campana + cuenta ancladas top-right (igual que Inicio) */
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: flex-start;
-    gap: 12px;
+    gap: 10px;
     margin-bottom: 14px;
-  }
-
-  .header-left {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  .header-right {
-    flex: 0 0 auto;
-    width: auto;
-    justify-content: flex-end;
   }
 
   .header-title {

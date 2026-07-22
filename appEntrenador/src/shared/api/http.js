@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { resolveApiBaseUrl, resolveApiOrigin } from '../../config/api.js';
 import { clearSession, getAuthToken } from '../auth/session.js';
+import { clearSessionAccountCache } from '../composables/useSessionAccount.js';
 
 const API_BASE_URL = resolveApiBaseUrl();
 
@@ -39,6 +40,7 @@ http.interceptors.response.use(
       || 'Error de conexión con el servidor.';
 
     if (status === 401) {
+      clearSessionAccountCache();
       clearSession();
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/registro')) {
         const onLogin = window.location.pathname === '/' || window.location.pathname === '';

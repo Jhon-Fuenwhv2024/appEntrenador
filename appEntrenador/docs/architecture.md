@@ -9,7 +9,7 @@ Trainfit usa una migración modular gradual. La estructura actual mantiene compa
 - `src/shared/auth/session.js`: persistencia de token + datos de usuario en `localStorage`.
 - `src/shared/layout/AppShell.vue` + `AppBottomNav.vue`: shell autenticado (sidebar desktop / bottom nav móvil ≤960px). Estilos en `src/assets/appShell.css`.
   - **Trainer (4 slots):** Inicio (`/dashboard`), Alumnos (`/trainer/clients`), Biblioteca (`/trainer/library`), Ajustes (`/trainer/settings`). Logout: menú de cuenta en header (Feature 063) + pie sidebar desktop.
-  - **Session header (063):** `SessionHeaderActions` + `UserAccountMenu` en `src/shared/layout/` — campana (`NotificationBadge`, badge numérico) + avatar con menú (perfil/ajustes + cerrar sesión con confirmación). En trainer el trigger muestra chip de plan SaaS (`FREE`/`PRO`). Composable `useSessionAccount`.
+  - **Session header (063):** `SessionHeaderActions` + `UserAccountMenu` en `src/shared/layout/` — campana (`NotificationBadge`, badge numérico) + avatar con menú (perfil/ajustes + cerrar sesión con confirmación). En trainer el trigger muestra chip de plan SaaS (`FREE`/`PRO`). Layout del page header (`.dashboard-header` / `.header-right`) vive en `appShell.css` para anclar utilidades arriba-derecha en todas las vistas. Composable `useSessionAccount`.
   - **Contexto (no ítem de barra):** ficha `/trainer/clients/:clientId` marca Alumnos; catálogo `/trainer/exercises` es herramienta de Biblioteca (sin slot propio).
   - **Client (3 slots):** Inicio (`/dashboard`), Progreso (`/client/progress`, Feature 021), Perfil (`/client/profile`). Workout Player y preview de rutina (`/client/routine/:id`, Feature 058) sin bottom nav.
 - `src/features/auth/`: vistas de login/registro y llamadas de auth.

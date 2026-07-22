@@ -195,11 +195,13 @@ const setRestSeconds = ({ index, value }) => {
 };
 
 const loadCatalog = async () => {
-  const items = await getAllExercises();
-  catalogExercises.value = items.map((item) => ({
-    ...item,
-    display_name: displayExerciseName(item),
-  }));
+  const items = await getAllExercises({ enriched: true });
+  catalogExercises.value = items
+    .filter((item) => Boolean(item.local_media_path?.trim()))
+    .map((item) => ({
+      ...item,
+      display_name: displayExerciseName(item),
+    }));
 };
 
 const loadData = async () => {

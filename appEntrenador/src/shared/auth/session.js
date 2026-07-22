@@ -3,6 +3,9 @@ const ROLE_KEY = 'userRole';
 const NAME_KEY = 'userName';
 const ID_KEY = 'userId';
 const SUPERADMIN_KEY = 'userIsSuperadmin';
+const ACCOUNT_PLAN_KEY = 'sessionSaasPlan';
+const ACCOUNT_FOTO_KEY = 'sessionFotoUrl';
+const ACCOUNT_EMAIL_KEY = 'sessionEmail';
 
 function toBool(value) {
   return value === true || value === 1 || value === '1' || value === 'true';
@@ -52,6 +55,9 @@ export function clearSession() {
   localStorage.removeItem(NAME_KEY);
   localStorage.removeItem(ID_KEY);
   localStorage.removeItem(SUPERADMIN_KEY);
+  localStorage.removeItem(ACCOUNT_PLAN_KEY);
+  localStorage.removeItem(ACCOUNT_FOTO_KEY);
+  localStorage.removeItem(ACCOUNT_EMAIL_KEY);
 }
 
 export function isAuthenticated() {

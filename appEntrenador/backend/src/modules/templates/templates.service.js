@@ -250,6 +250,10 @@ async function insertTemplateExerciseLines(connection, templateId, exercises) {
 
 async function createTemplate(trainerId, payload) {
   const data = validateTemplatePayload(payload);
+  data.exercises = await exercisesService.resolveExerciseIdsForLines(
+    data.exercises,
+    trainerId,
+  );
   await exercisesService.assertCatalogExerciseIdsVisible(
     data.exercises.map((ex) => ex.exercise_id),
     trainerId,
@@ -283,6 +287,10 @@ async function createTemplate(trainerId, payload) {
 async function updateTemplate(trainerId, templateId, payload) {
   await getTemplateOwnedByTrainer(templateId, trainerId);
   const data = validateTemplatePayload(payload);
+  data.exercises = await exercisesService.resolveExerciseIdsForLines(
+    data.exercises,
+    trainerId,
+  );
   await exercisesService.assertCatalogExerciseIdsVisible(
     data.exercises.map((ex) => ex.exercise_id),
     trainerId,
@@ -344,6 +352,14 @@ async function assignTemplate(trainerId, templateId, payload = {}) {
     throw createHttpError('La plantilla no tiene ejercicios para asignar.', 400);
   }
 
+  const resolvedExercises = await exercisesService.resolveExerciseIdsForLines(
+    template.exercises.map((exercise) => ({
+      ...exercise,
+      exercise_id: exercise.exercise_id ?? null,
+    })),
+    trainerId,
+  );
+
   const connection = await db.getConnection();
   let routineId;
 
@@ -357,7 +373,7 @@ async function assignTemplate(trainerId, templateId, payload = {}) {
 
     routineId = result.insertId;
 
-    for (const exercise of template.exercises) {
+    for (const exercise of resolvedExercises) {
       await connection.query(
         `INSERT INTO ejercicios
            (rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, rest_time_seconds, superset_letter)

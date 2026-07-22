@@ -156,6 +156,97 @@ async function assertCatalogExerciseIdsVisible(exerciseIds, trainerId) {
   }
 }
 
+/**
+ * Normalize exercise names for catalog matching (accents, punctuation).
+ * @param {string|null|undefined} value
+ * @returns {string}
+ */
+function normalizeExerciseKey(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[/_-]+/g, ' ')
+    .replace(/\s+/g, ' ');
+}
+
+/**
+ * Build name/name_es → catalog row index (trainer private wins over global).
+ * Only indexes exercises with local GIF (`local_media_path`) — Feature 044 policy.
+ * @param {number} trainerId
+ * @returns {Promise<Map<string, { id: number, name: string, name_es: string|null, created_by_trainer_id: number|null }>>}
+ */
+async function buildCatalogNameIndex(trainerId) {
+  const [rows] = await db.query(
+    `SELECT id, name, name_es, created_by_trainer_id
+     FROM exercises
+     WHERE (created_by_trainer_id IS NULL OR created_by_trainer_id = ?)
+       AND local_media_path IS NOT NULL
+       AND TRIM(local_media_path) <> ''`,
+    [trainerId],
+  );
+
+  const byKey = new Map();
+  for (const row of rows) {
+    const keys = [row.name, row.name_es]
+      .filter((v) => typeof v === 'string' && v.trim())
+      .map((v) => normalizeExerciseKey(v));
+
+    for (const key of keys) {
+      if (!key) continue;
+      const existing = byKey.get(key);
+      const isTrainerOwned = row.created_by_trainer_id != null
+        && Number(row.created_by_trainer_id) === Number(trainerId);
+      if (!existing || (isTrainerOwned && existing.created_by_trainer_id == null)) {
+        byKey.set(key, row);
+      }
+    }
+  }
+  return byKey;
+}
+
+/**
+ * Free-text / legacy names → catalog key (normalized) of a GIF-backed exercise.
+ * Used when exact name was never in the Fitcron-enriched catalog.
+ */
+const EXERCISE_NAME_ALIASES = {
+  'board press': 'barbell bench press medium grip',
+  'bench sprint': 'sprints con rodilla alta',
+  'adductor groin': 'zancada lateral con mancuerna',
+  'ab roller': 'wheel rollout de rodillas',
+  'bench jump': 'sentadilla con salto con mancuernas',
+  'bent over low pulley side lateral': 'elevaciones laterales horizontales con mancuernas',
+  'elevaciones laterales': 'elevaciones laterales horizontales con mancuernas',
+  'press militar': 'press militar en polea',
+  'sentadilla profunda': 'sentadilla profunda con barra',
+  'extension de cuadriceps': 'extension de cuadriceps en maquina',
+  'extensión de cuádriceps': 'extension de cuadriceps en maquina',
+};
+
+/**
+ * Fill missing exercise_id from GIF-backed catalog (name / name_es / aliases).
+ * @param {Array<{ nombre: string, exercise_id: number|null }>} lines
+ * @param {number} trainerId
+ */
+async function resolveExerciseIdsForLines(lines, trainerId) {
+  if (!Array.isArray(lines) || lines.length === 0) return lines;
+
+  const needsLookup = lines.some((line) => line.exercise_id == null);
+  if (!needsLookup) return lines;
+
+  const index = await buildCatalogNameIndex(trainerId);
+  return lines.map((line) => {
+    if (line.exercise_id != null) return line;
+    const key = normalizeExerciseKey(line.nombre);
+    if (!key) return line;
+    const aliasKey = EXERCISE_NAME_ALIASES[key];
+    const match = index.get(key) || (aliasKey ? index.get(aliasKey) : null);
+    if (!match) return line;
+    return { ...line, exercise_id: Number(match.id) };
+  });
+}
+
 async function assertNameAvailable(name, trainerId, excludeId = null) {
   const params = [name, trainerId];
   let sql = `
@@ -396,5 +487,8 @@ module.exports = {
   deleteExerciseForTrainer,
   getExerciseVisibleToTrainer,
   assertCatalogExerciseIdsVisible,
+  normalizeExerciseKey,
+  buildCatalogNameIndex,
+  resolveExerciseIdsForLines,
   createHttpError,
 };
