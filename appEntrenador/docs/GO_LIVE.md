@@ -2,10 +2,19 @@
 
 ## Ya hecho en TiDB
 
-- Esquema `coach_db` importado (25 tablas).
-- Usuarios de prueba:
-  - **demo_trainer** / `TrainfitDemo2026!`
-  - **Camila123** / `Camila123` (trainer)
+- Esquema `coach_db` importado (tablas con datos).
+- Tras un dump phpMyAdmin, **TiDB no aplica** `ALTER ... AUTO_INCREMENT` vía `MODIFY`. Si los `INSERT` fallan con `Field 'id' doesn't have a default value`, ejecuta:
+
+```bash
+# mismas DB_* que Render
+node scripts/fixTidbAutoIncrement.js
+```
+
+Eso recrea cada tabla PK `id` con `AUTO_INCREMENT` (copia datos → drop → rename). Ya aplicado en el cluster de producción (2026-07-23).
+
+- Usuarios de prueba (rol real en dump):
+  - **Camila123** → `client` (alumno)
+  - Trainers en dump: `jhon`, `Tiago123`
   - Cambia las passwords tras el primer login.
 
 ## Importar dump poblado (`db/coach_db.sql`)
@@ -21,13 +30,14 @@ $env:DB_PASSWORD="TU_PASSWORD"
 $env:DB_NAME="coach_db"
 $env:DB_SSL="true"
 node scripts/importSqlDump.js db/coach_db.sql
+node scripts/fixTidbAutoIncrement.js
 ```
 
-Eso **borra las tablas actuales** de `coach_db` e importa el dump phpMyAdmin.
+Eso **borra las tablas actuales** de `coach_db`, importa el dump phpMyAdmin y repara `AUTO_INCREMENT` (obligatorio en TiDB).
 
 ## Obligatorias en Render (no van en Git)
 
-Dashboard → `appentrenador` → Environment → añade **exactamente**:
+Dashboard → `appentrenador` → Environment → añade **exactamente** (valores reales solo en Render; **nunca** en Git):
 
 ```
 NODE_ENV=production
@@ -35,8 +45,8 @@ JWT_SECRET=genera-un-secreto-largo-aleatorio-aqui
 
 DB_HOST=gateway01.ap-northeast-1.prod.aws.tidbcloud.com
 DB_PORT=4000
-DB_USER=3PR9n1htx4hCCG7.root
-DB_PASSWORD=<1jkUAy4zdI2FQt5H>
+DB_USER=<cluster-id>.root
+DB_PASSWORD=<password-de-tidb-cloud>
 DB_NAME=coach_db
 DB_SSL=true
 DB_SSL_REJECT_UNAUTHORIZED=true

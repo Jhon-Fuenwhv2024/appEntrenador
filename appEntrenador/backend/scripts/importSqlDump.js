@@ -191,6 +191,11 @@ async function main() {
       failures,
     }, null, 2));
 
+    if (/tidbcloud\.com$/i.test(host || '')) {
+      console.log('\nTiDB detectado: los ALTER AUTO_INCREMENT del dump NO funcionan vía MODIFY.');
+      console.log('Ejecuta ahora: node scripts/fixTidbAutoIncrement.js');
+    }
+
     if (failures.length) process.exitCode = 2;
   } finally {
     await conn.end();

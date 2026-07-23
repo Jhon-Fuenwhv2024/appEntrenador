@@ -53,7 +53,14 @@ Importa el esquema una vez:
 mysql -h DB_HOST -P 4000 -u DB_USER -p --ssl-mode=REQUIRED < appEntrenador/backend/db/script_db.sql
 ```
 
-O desde el SQL editor de TiDB Cloud: pega/ejecuta el contenido de `backend/db/script_db.sql`.
+O dump poblado + reparación TiDB (phpMyAdmin no deja `AUTO_INCREMENT` usable vía `ALTER MODIFY` en TiDB):
+
+```bash
+node scripts/importSqlDump.js db/coach_db.sql
+node scripts/fixTidbAutoIncrement.js
+```
+
+O desde el SQL editor de TiDB Cloud: pega/ejecuta el contenido de `backend/db/script_db.sql` (ese script ya define `AUTO_INCREMENT` en el `CREATE TABLE`).
 
 Si la DB exige TLS (TiDB / Aiven / etc.):
 
