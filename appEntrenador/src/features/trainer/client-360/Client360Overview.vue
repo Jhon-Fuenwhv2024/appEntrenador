@@ -15,6 +15,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  routines: {
+    type: Array,
+    default: () => [],
+  },
   sessionsHasMore: {
     type: Boolean,
     default: false,
@@ -165,6 +169,7 @@ const prsLabel = computed(() => {
 
     <Client360RecentSessions
       :sessions="sessions"
+      :routines="routines"
       :has-more="sessionsHasMore"
       :loading-more="sessionsLoadingMore"
       @load-more="emit('load-more-sessions')"

@@ -61,6 +61,14 @@
 2. Historial Resumen: solo **Hoy** y **Ayer** visibles (columnas); estados Completada vs Sin completar (`abandoned`); días anteriores colapsados. Carga inicial ~12 sesiones.
 3. Portal cliente `GET /me/workout-sessions` sigue devolviendo **array** (máx. 50) para no romper Progreso 021.
 
+## Rutina programada de hoy en Actividad reciente (Feature 066)
+
+1. En Resumen, `Client360View` carga en paralelo `GET /clients/:id/workout-sessions` y `GET /clients/:id/routines`.
+2. `Client360RecentSessions` resuelve el weekday local (`es-ES` long → `Lunes`…`Domingo`, misma convención que `useClientToday` / `getTodayBundle`).
+3. En el bucket **Hoy**, si hay rutina(s) con ese `dia_semana` y aún no hay sesión de hoy asociada (`routine_id`, o mismo nombre si la sesión no trae id), se inserta fila sintética `kind: 'planned'` con badge **Pendiente** (solo UI; no crea `workout_sessions`).
+4. Si ya hay sesión de esa rutina hoy → solo la sesión real (sin duplicar Pendiente). Empty «Sin entrenamientos hoy» solo sin sesión ni rutina programada.
+5. Ayer / días anteriores siguen basados solo en sesiones reales.
+
 ## Membresía y control de pago (Feature 040)
 
 1. Trainer en ficha 360 guarda estado/fechas/notas/bloqueo → `PUT /clients/:id/membership` (upsert en `client_memberships`).

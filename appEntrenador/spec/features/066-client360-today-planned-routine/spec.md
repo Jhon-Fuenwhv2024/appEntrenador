@@ -1,6 +1,6 @@
 # 066 · Rutina programada de hoy en Actividad reciente (Client 360)
 
-**Estado:** especificado  
+**Estado:** implementado (pendiente smoke T6)  
 **Depende de:** 060 (Resumen Client 360 / Actividad reciente), 039 (ficha 360), rutinas por `dia_semana`  
 **Alimenta:** glance del tab Resumen en `/trainer/clients/:clientId`
 
@@ -14,28 +14,28 @@ Hoy (gap 060): Hoy/Ayer solo listan sesiones (`completed` / `abandoned`). Sin se
 
 ### Datos
 
-- [ ] Se obtiene la rutina de hoy desde `rutinas` del cliente (`dia_semana` = weekday local, misma convención que el portal cliente: `es-ES` long → `Lunes`…`Domingo`).
-- [ ] No se crean filas falsas en `workout_sessions`; la fila “planificada” es solo UI (o campo sintético en el FE).
+- [x] Se obtiene la rutina de hoy desde `rutinas` del cliente (`dia_semana` = weekday local, misma convención que el portal cliente: `es-ES` long → `Lunes`…`Domingo`).
+- [x] No se crean filas falsas en `workout_sessions`; la fila “planificada” es solo UI (o campo sintético en el FE).
 
 ### UI — columna Hoy
 
-- [ ] Si hay rutina para hoy y **no** hay sesión de hoy asociada a esa rutina (`routine_id`) → mostrar fila con:
+- [x] Si hay rutina para hoy y **no** hay sesión de hoy asociada a esa rutina (`routine_id`) → mostrar fila con:
   - nombre = `nombre_rutina`
   - badge **Pendiente**
   - icono distinto (p. ej. calendario / reloj)
   - no expandible a series (o sin accordion de sets)
-- [ ] Si ya hay sesión de hoy para esa rutina (completada o abandonada) → mostrar solo la sesión real (sin duplicar “Pendiente”).
-- [ ] Empty “Sin entrenamientos hoy” solo cuando no hay sesión **ni** rutina programada para hoy.
-- [ ] Contador de Hoy incluye la fila pendiente cuando aplique.
+- [x] Si ya hay sesión de hoy para esa rutina (completada o abandonada) → mostrar solo la sesión real (sin duplicar “Pendiente”).
+- [x] Empty “Sin entrenamientos hoy” solo cuando no hay sesión **ni** rutina programada para hoy.
+- [x] Contador de Hoy incluye la fila pendiente cuando aplique.
 
 ### Ayer / anteriores
 
-- [ ] Sin cambio de alcance: Ayer y días anteriores siguen basados en sesiones reales (no inventar pendientes históricos).
+- [x] Sin cambio de alcance: Ayer y días anteriores siguen basados en sesiones reales (no inventar pendientes históricos).
 
 ### UX / tema
 
-- [ ] Contraste ADR-0001; badge Pendiente distinguible de Completada / Sin completar (no solo color).
-- [ ] Clearance bottom nav intacto; usable ~390px.
+- [x] Contraste ADR-0001; badge Pendiente distinguible de Completada / Sin completar (no solo color).
+- [x] Clearance bottom nav intacto; usable ~390px.
 
 ## Fuera de alcance
 

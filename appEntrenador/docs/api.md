@@ -348,7 +348,7 @@ Agregado 360 para la ficha del alumno (solo trainer dueño). Incluye perfil, con
 }
 ```
 
-UI: `/trainer/clients/:clientId` (`Client360View`) con secciones vía `?tab=` (`resumen` | `programacion` | `nutricion` | `medidas` | `checkins` | `graficas` | `chat`). En Resumen (Feature 060): `MembershipPanel` (vista/edición), `ConsistencyPanel` strip compacto, widgets + historial paginado.
+UI: `/trainer/clients/:clientId` (`Client360View`) con secciones vía `?tab=` (`resumen` | `programacion` | `nutricion` | `medidas` | `checkins` | `graficas` | `chat`). En Resumen (Feature 060 + 066): `MembershipPanel` (vista/edición), `ConsistencyPanel` strip compacto, widgets + historial paginado; Actividad reciente mergea rutina(s) de hoy (`GET /clients/:id/routines` + weekday local) como fila **Pendiente** si no hay sesión.
 
 ## Membresía del alumno (Feature 040)
 

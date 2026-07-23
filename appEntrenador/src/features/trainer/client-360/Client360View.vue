@@ -17,6 +17,7 @@ import SessionHeaderActions from '../../../shared/layout/SessionHeaderActions.vu
 import ProfileFormCard from '../../../shared/components/ProfileFormCard.vue';
 import ChatThread from '../../messaging/components/ChatThread.vue';
 import { getClientOverview } from '../api/clientsApi.js';
+import { getClientRoutines } from '../api/routinesApi.js';
 import { getClientWorkoutSessions } from '../api/workoutSessionsApi.js';
 import BodyCompositionPanel from '../components/BodyCompositionPanel.vue';
 import CheckinsHistoryPanel from '../components/CheckinsHistoryPanel.vue';
@@ -42,6 +43,7 @@ const clientId = computed(() => Number(route.params.clientId));
 const overview = shallowRef(null);
 const clientProfile = shallowRef(null);
 const workoutSessions = shallowRef([]);
+const clientRoutines = shallowRef([]);
 const sessionsHasMore = shallowRef(false);
 const sessionsLoadingMore = shallowRef(false);
 const SESSIONS_PAGE_SIZE = 12;
@@ -179,6 +181,21 @@ const loadMoreSessions = () => {
   return loadSessions({ append: true });
 };
 
+/** Feature 066 — rutinas del alumno para fila «Pendiente» en Actividad reciente. */
+const loadRoutines = async () => {
+  try {
+    const routinesRes = await getClientRoutines(clientId.value);
+    clientRoutines.value = routinesRes.data?.data ?? [];
+  } catch (error) {
+    console.error('Error cargando rutinas del alumno (Resumen 360):', error);
+    clientRoutines.value = [];
+    showNotification(
+      getApiErrorMessage(error, 'No se pudo cargar la rutina programada de hoy'),
+      'warning',
+    );
+  }
+};
+
 const loadProfileFallback = async () => {
   try {
     const profileRes = await getProfile(clientId.value);
@@ -221,7 +238,7 @@ const loadData = async () => {
     await loadProfileFallback();
   }
 
-  await loadSessions();
+  await Promise.all([loadSessions(), loadRoutines()]);
 };
 
 const onSaveProfile = async ({ fields, fotoFile, done }) => {
@@ -259,6 +276,7 @@ watch(clientId, () => {
   overview.value = null;
   clientProfile.value = null;
   workoutSessions.value = [];
+  clientRoutines.value = [];
   sessionsHasMore.value = false;
   loadData();
 });
@@ -357,6 +375,7 @@ onMounted(() => {
             <Client360Overview
               :overview="overview"
               :sessions="workoutSessions"
+              :routines="clientRoutines"
               :sessions-has-more="sessionsHasMore"
               :sessions-loading-more="sessionsLoadingMore"
               :client-name="client?.nombre || ''"
