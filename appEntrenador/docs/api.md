@@ -130,7 +130,9 @@ Genera una invitación `pending` vinculada al trainer autenticado.
 
 Headers: `Authorization: Bearer <token>`
 
-Middleware adicional (Feature 037): `checkTrainerLimits`. Si el trainer está en plan `FREE` y ya tiene **≥ 3** slots (alumnos registrados + invitaciones `pending`), responde `402`:
+Middleware adicional (Feature 037 + 065): `checkTrainerLimits`. Usa el **plan efectivo**:
+`PRO` con `saas_expiration_date` (DATE) **&lt; hoy** se trata como FREE (soft-expiry; no se reescribe `saas_plan` en DB).
+Si el plan efectivo es FREE y ya tiene **≥ 3** slots (alumnos registrados + invitaciones `pending`), responde `402`:
 
 ```json
 {
@@ -139,6 +141,26 @@ Middleware adicional (Feature 037): `checkTrainerLimits`. Si el trainer está en
   "message": "Límite de clientes alcanzado en plan gratuito. Actualiza a PRO."
 }
 ```
+
+Si el 402 es por PRO vencido, el `message` indica renovación, p. ej.:
+`"Tu plan PRO venció. Renueva para seguir invitando alumnos sin límite."`
+
+### Soft-lock de asientos FREE (Feature 065 opción B)
+
+Cuando el **plan efectivo** es FREE (FREE nativo o PRO vencido), solo los **3 primeros alumnos** del trainer (`usuarios.id ASC`) son editables.
+
+Writes de coaching sobre un alumno fuera del cupo (rutinas, dieta asignada, macros, hábitos, membresía, composición, review de check-in, perfil del alumno) responden `402`:
+
+```json
+{
+  "success": false,
+  "error": "SEAT_LOCKED",
+  "message": "Plan gratuito: solo puedes editar tus 3 primeros alumnos. Actualiza a PRO para gestionar todos.",
+  "code": "SEAT_LOCKED"
+}
+```
+
+No se bloquean: login, listados/GET, chat/mensajes, ni biblioteca de plantillas sin `clientId`.
 
 Respuesta exitosa (`201`):
 
@@ -176,7 +198,10 @@ Base: `/api/saas`. Requiere JWT + `req.user.is_superadmin === true` (`requireSup
 
 ### `GET /api/saas/trainers`
 
-Lista todos los trainers con `saas_plan`, `saas_expiration_date` y `client_count` (alumnos + invites pending).
+Lista todos los trainers con `saas_plan`, `saas_expiration_date`, `effective_plan`, `is_expired` y `client_count` (alumnos + invites pending).
+
+- Soft-expiry (Feature 065): si `saas_plan = PRO` y `saas_expiration_date < hoy` → `effective_plan = FREE`, `is_expired = true`. La fila DB no se muta.
+- `saas_expiration_date` NULL → PRO sin caducidad (`is_expired = false`).
 
 ### `PUT /api/saas/trainers/:id/plan`
 
@@ -190,8 +215,9 @@ Body:
 ```
 
 `saas_plan`: `FREE` | `PRO`. `saas_expiration_date`: `YYYY-MM-DD` o `null`. UPSERT en `trainers_info`.
+La respuesta incluye también `effective_plan` e `is_expired`.
 
-UI: `/backoffice` (solo si `is_superadmin` en sesión).
+UI: `/backoffice` (solo si `is_superadmin` en sesión). Chip **Vencido** + CTA **Renovar Plan** cuando `is_expired`.
 
 ## Clientes (trainer + JWT)
 
@@ -257,7 +283,7 @@ Respuesta `data`:
 
 Devuelve solo los clientes con `trainer_id = req.user.id`.
 
-Cada ítem incluye `routines_count`, `status` (`Activo` si tiene ≥1 rutina, `Sin plan` si no) y `membership` (Feature 040): `{ status, period_start, period_end, days_remaining, block_on_unpaid }` o `null` si no hay fila.
+Cada ítem incluye `routines_count`, `status` (`Activo` si tiene ≥1 rutina, `Sin plan` si no), `membership` (Feature 040): `{ status, period_start, period_end, days_remaining, block_on_unpaid }` o `null`, y `seat_editable` (boolean; Feature 065): `true` si el plan efectivo es PRO o el alumno está entre los 3 primeros por `id ASC`.
 
 UI trainer: lista en `/trainer/clients` (`ClientsListView`). La búsqueda por nombre/usuario y el filtro de membresía (Al día / Por vencer ≤7 / Vencidos / Pendientes) son **filtros locales** sobre esta respuesta. Click → `/trainer/clients/:clientId`.
 
@@ -267,13 +293,13 @@ Detalle de un cliente propio.
 
 ### `GET /clients/:clientId/overview` (Feature 039)
 
-Agregado 360 para la ficha del alumno (solo trainer dueño). Incluye perfil, conteos, última sesión, último check-in, targets nutricionales, membresía (040), `consistencyScore` (042) y `prsThisMonth` (041).
+Agregado 360 para la ficha del alumno (solo trainer dueño). Incluye perfil, conteos, última sesión, último check-in, targets nutricionales, membresía (040), `consistencyScore` (042), `prsThisMonth` (041) y `seat_editable` (065).
 
 ```json
 {
   "success": true,
   "data": {
-    "client": { "id": 2, "nombre": "Ana", "username": "ana" },
+    "client": { "id": 2, "nombre": "Ana", "username": "ana", "seat_editable": true },
     "profile": {
       "user_id": 2,
       "nombre": "Ana",
@@ -315,7 +341,8 @@ Agregado 360 para la ficha del alumno (solo trainer dueño). Incluye perfil, con
       "week_goal": 3,
       "workouts_this_week": 2
     },
-    "prsThisMonth": { "count": 2 }
+    "prsThisMonth": { "count": 2 },
+    "seat_editable": true
   },
   "message": "Overview del alumno"
 }
@@ -391,13 +418,17 @@ Devuelve datos de cuenta:
   "rol": "trainer",
   "telefono": "3001112233",
   "foto_url": "/uploads/avatars/user_1.jpg",
-  "saas_plan": "FREE"
+  "saas_plan": "PRO",
+  "saas_expiration_date": "2026-01-15",
+  "effective_plan": "FREE",
+  "is_expired": true
 }
 ```
 
 - `email` vive en `usuarios` (Feature 056; nullable en usuarios legacy).
-- Trainer: `telefono` / `foto_url` / `saas_plan` (`FREE` | `PRO`) desde `trainers_info` (plan default `FREE`).
-- Client: `telefono` / `foto_url` desde `alumnos_info` si existen (sin `saas_plan`).
+- Trainer: `telefono` / `foto_url` / `saas_plan` / `saas_expiration_date` desde `trainers_info` (plan default `FREE`).
+- Feature 065: `effective_plan` e `is_expired` (soft-expiry en runtime; `NULL` en fecha = PRO sin caducidad).
+- Client: `telefono` / `foto_url` desde `alumnos_info` si existen (sin campos SaaS).
 
 ### `PUT /me/account`
 

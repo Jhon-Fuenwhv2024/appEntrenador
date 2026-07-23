@@ -17,6 +17,7 @@ import AppShell from '../../shared/layout/AppShell.vue';
 import SessionHeaderActions from '../../shared/layout/SessionHeaderActions.vue';
 import ChangePasswordForm from '../../shared/components/ChangePasswordForm.vue';
 import TrainerAccountCard from '../../shared/components/TrainerAccountCard.vue';
+import TrainerSaasPlanCard from '../saas/components/TrainerSaasPlanCard.vue';
 
 const router = useRouter();
 const { loadAccount: refreshSessionHeader } = useSessionAccount({ role: 'trainer' });
@@ -139,8 +140,12 @@ onMounted(() => {
             @save="onSaveProfile"
           />
           <ChangePasswordForm
+            class="mb-4"
             :saving="savingPassword"
             @submit="onChangePassword"
+          />
+          <TrainerSaasPlanCard
+            :account="account"
           />
         </template>
       </div>

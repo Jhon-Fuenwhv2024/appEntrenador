@@ -35,6 +35,11 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  /** Soft-lock FREE: false = alumno fuera del cupo editable. */
+  seatEditable: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 defineEmits(['back']);
@@ -141,6 +146,18 @@ const membershipBadge = computed(() => {
           <span class="c360-dot" aria-hidden="true">·</span>
           <strong>{{ sessionsCount }}</strong> sesiones
         </div>
+        <v-chip
+          v-if="!seatEditable"
+          size="small"
+          label
+          variant="tonal"
+          color="error"
+          class="c360-membership-chip"
+          title="Solo lectura por límite del plan"
+        >
+          <v-icon icon="mdi-lock-outline" size="14" start />
+          Solo lectura
+        </v-chip>
         <v-chip
           v-if="membershipBadge"
           size="small"

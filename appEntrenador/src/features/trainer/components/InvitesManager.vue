@@ -21,6 +21,7 @@ const revokingId = shallowRef(null);
 const invites = ref([]);
 const lastCreatedLink = shallowRef('');
 const paywallOpen = shallowRef(false);
+const paywallMessage = shallowRef(PAYWALL_MESSAGE);
 
 const STATUS_META = {
   pending: { label: 'Pendiente', color: 'warning' },
@@ -102,6 +103,7 @@ const handleCreate = async () => {
   } catch (error) {
     console.error('Error al generar invitación:', error);
     if (isPaymentRequiredError(error)) {
+      paywallMessage.value = error?.response?.data?.message || PAYWALL_MESSAGE;
       paywallOpen.value = true;
       return;
     }
@@ -312,10 +314,10 @@ onMounted(() => {
       <v-card color="surface">
         <v-card-title class="text-h6 d-flex align-center ga-2">
           <v-icon icon="mdi-lock-outline" color="warning" />
-          Límite del plan gratuito
+          Límite del plan
         </v-card-title>
         <v-card-text>
-          {{ PAYWALL_MESSAGE }}
+          {{ paywallMessage }}
         </v-card-text>
         <v-card-actions class="pa-4 pt-0">
           <v-spacer />

@@ -4,6 +4,7 @@ const exercisesService = require('../exercises/exercises.service');
 const habitsService = require('../habits/habits.service');
 const nutritionService = require('../nutrition/nutrition.service');
 const membershipsService = require('../memberships/memberships.service');
+const { assertClientWritableUnderPlan } = require('../../shared/saas/trainerSeats');
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 /** Sunday-first index aligned with Date#getUTCDay(). */
@@ -543,6 +544,7 @@ async function insertExerciseLines(connection, routineId, ejercicios) {
 
 async function createRoutine(trainerId, clientId, payload) {
   await assertTrainerOwnsClient(trainerId, clientId);
+  await assertClientWritableUnderPlan(trainerId, clientId);
   const data = validateRoutinePayload(payload);
   data.ejercicios = await exercisesService.resolveExerciseIdsForLines(
     data.ejercicios,
@@ -578,7 +580,8 @@ async function createRoutine(trainerId, clientId, payload) {
 }
 
 async function updateRoutine(trainerId, routineId, payload) {
-  await getRoutineOwnedByTrainer(routineId, trainerId);
+  const owned = await getRoutineOwnedByTrainer(routineId, trainerId);
+  await assertClientWritableUnderPlan(trainerId, owned.alumno_id);
   const data = validateRoutinePayload(payload);
   data.ejercicios = await exercisesService.resolveExerciseIdsForLines(
     data.ejercicios,
@@ -619,7 +622,8 @@ async function updateRoutine(trainerId, routineId, payload) {
 }
 
 async function deleteRoutine(trainerId, routineId) {
-  await getRoutineOwnedByTrainer(routineId, trainerId);
+  const owned = await getRoutineOwnedByTrainer(routineId, trainerId);
+  await assertClientWritableUnderPlan(trainerId, owned.alumno_id);
   await db.query('DELETE FROM rutinas WHERE id = ?', [routineId]);
 }
 

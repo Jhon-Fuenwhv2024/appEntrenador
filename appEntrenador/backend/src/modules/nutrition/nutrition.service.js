@@ -1,6 +1,7 @@
 const db = require('../../config/db');
 const clientsService = require('../clients/clients.service');
 const { caloriesFromMacros } = require('./macros');
+const { assertClientWritableUnderPlan } = require('../../shared/saas/trainerSeats');
 
 const SELECT_COLUMNS = `
   id, client_id, trainer_id, calories, protein_g, carbs_g, fats_g,
@@ -96,6 +97,7 @@ async function upsertForTrainer(trainerId, clientId, payload) {
   }
 
   await clientsService.getClientOwnedByTrainer(clientId, trainerId);
+  await assertClientWritableUnderPlan(trainerId, clientId);
   const data = normalizePayload(payload || {});
 
   await db.query(

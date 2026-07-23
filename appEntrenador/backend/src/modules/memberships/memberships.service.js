@@ -7,6 +7,10 @@ function getClientsService() {
   return require('../clients/clients.service');
 }
 
+function getTrainerSeats() {
+  return require('../../shared/saas/trainerSeats');
+}
+
 const SELECT_COLUMNS = `
   cm.id,
   cm.client_id,
@@ -246,6 +250,7 @@ async function upsertForTrainer(trainerId, clientId, payload) {
   }
 
   await getClientsService().getClientOwnedByTrainer(clientId, trainerId);
+  await getTrainerSeats().assertClientWritableUnderPlan(trainerId, clientId);
   const data = normalizeUpsertPayload(payload);
 
   await db.query(

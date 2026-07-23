@@ -1,9 +1,24 @@
 const db = require('../../config/db');
+const { resolveEffectiveSaasPlan } = require('../../shared/saas/effectivePlan');
 
 function createHttpError(message, code) {
   const error = new Error(message);
   error.code = code;
   return error;
+}
+
+function mapTrainerSaasRow(row) {
+  const resolved = resolveEffectiveSaasPlan(row.saas_plan, row.saas_expiration_date);
+  return {
+    id: row.id,
+    username: row.username,
+    nombre: row.nombre,
+    saas_plan: resolved.saas_plan,
+    saas_expiration_date: resolved.saas_expiration_date,
+    effective_plan: resolved.effective_plan,
+    is_expired: resolved.is_expired,
+    client_count: Number(row.client_count) || 0,
+  };
 }
 
 /**
@@ -33,14 +48,7 @@ async function listAllTrainers() {
      ORDER BY u.nombre ASC`,
   );
 
-  return rows.map((row) => ({
-    id: row.id,
-    username: row.username,
-    nombre: row.nombre,
-    saas_plan: row.saas_plan || 'FREE',
-    saas_expiration_date: row.saas_expiration_date || null,
-    client_count: Number(row.client_count) || 0,
-  }));
+  return rows.map(mapTrainerSaasRow);
 }
 
 /**
@@ -78,10 +86,17 @@ async function updateTrainerPlan(trainerId, plan, expirationDate) {
     [id],
   );
 
+  const resolved = resolveEffectiveSaasPlan(
+    rows[0]?.saas_plan || plan,
+    rows[0]?.saas_expiration_date ?? expirationDate,
+  );
+
   return {
     trainer_id: id,
-    saas_plan: rows[0]?.saas_plan || plan,
-    saas_expiration_date: rows[0]?.saas_expiration_date || null,
+    saas_plan: resolved.saas_plan,
+    saas_expiration_date: resolved.saas_expiration_date,
+    effective_plan: resolved.effective_plan,
+    is_expired: resolved.is_expired,
   };
 }
 

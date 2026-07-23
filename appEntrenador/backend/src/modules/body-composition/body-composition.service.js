@@ -1,5 +1,6 @@
 const db = require('../../config/db');
 const clientsService = require('../clients/clients.service');
+const { assertClientWritableUnderPlan } = require('../../shared/saas/trainerSeats');
 
 const METRIC_FIELDS = [
   'body_fat_pct',
@@ -154,6 +155,7 @@ async function listMine(clientId) {
 
 async function createForClient(trainerId, clientId, payload) {
   await clientsService.getClientOwnedByTrainer(clientId, trainerId);
+  await assertClientWritableUnderPlan(trainerId, clientId);
   const data = normalizePayload(payload);
 
   const [result] = await db.query(
@@ -189,6 +191,7 @@ async function createForClient(trainerId, clientId, payload) {
 
 async function updateForClient(trainerId, clientId, logId, payload) {
   await clientsService.getClientOwnedByTrainer(clientId, trainerId);
+  await assertClientWritableUnderPlan(trainerId, clientId);
 
   const existing = await getLogById(logId);
   if (!existing || Number(existing.client_id) !== Number(clientId)) {

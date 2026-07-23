@@ -63,15 +63,28 @@ http.interceptors.response.use(
 );
 
 export function getApiErrorMessage(error, fallback = 'Error de conexión con el servidor.') {
-  return error?.normalized?.error
+  return error?.response?.data?.message
+    || error?.normalized?.message
+    || error?.normalized?.error
     || error?.response?.data?.error
-    || error?.response?.data?.message
     || fallback;
 }
 
-/** True si el backend respondió 402 (límite FREE / paywall SaaS). */
+/** True si el backend respondió 402 (límite FREE / paywall SaaS / asiento bloqueado). */
 export function isPaymentRequiredError(error) {
   return Number(error?.response?.status || error?.normalized?.code) === 402;
+}
+
+/** True si el alumno está fuera del cupo FREE editable (Feature 065 opción B). */
+export function isSeatLockedError(error) {
+  const code = error?.response?.data?.code
+    || error?.response?.data?.error
+    || error?.normalized?.code;
+  return code === 'SEAT_LOCKED'
+    || (
+      isPaymentRequiredError(error)
+      && String(error?.response?.data?.message || '').toLowerCase().includes('3 primeros')
+    );
 }
 
 /** True si el alumno está soft-locked por membresía (Feature 040). */

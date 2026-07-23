@@ -142,6 +142,13 @@ const statusClass = (status) => {
             >
               {{ client.status || 'Activo' }}
             </span>
+            <span
+              v-if="client.seat_editable === false"
+              class="status-chip chip-readonly"
+              title="Solo lectura por límite del plan FREE"
+            >
+              Solo lectura
+            </span>
           </div>
         </div>
 
@@ -203,6 +210,12 @@ const statusClass = (status) => {
   flex-direction: column;
   text-align: center;
   gap: 4px;
+}
+
+.chip-readonly {
+  color: #ff8a80;
+  background: rgba(255, 92, 92, 0.12);
+  border: 1px solid rgba(255, 92, 92, 0.22);
 }
 
 @media (max-width: 600px) {

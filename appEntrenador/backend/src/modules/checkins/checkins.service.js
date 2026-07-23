@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const db = require('../../config/db');
 const clientsService = require('../clients/clients.service');
+const { assertClientWritableUnderPlan } = require('../../shared/saas/trainerSeats');
 const {
   PHOTOS_DIR,
   resolvePhotoPublicUrl,
@@ -311,6 +312,7 @@ async function markReviewed(requester, checkinIdParam) {
 
   const row = rows[0];
   await clientsService.getClientOwnedByTrainer(Number(row.client_id), requester.id);
+  await assertClientWritableUnderPlan(requester.id, Number(row.client_id));
 
   if (row.reviewed_at != null) {
     return mapCheckinRow(row, []);

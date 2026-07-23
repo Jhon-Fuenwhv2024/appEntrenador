@@ -1,8 +1,10 @@
 const db = require('../config/db');
+const { resolveEffectiveSaasPlan } = require('../shared/saas/effectivePlan');
 
 /**
- * Gatekeeper plan FREE: bloquea creación de invitaciones si el trainer
+ * Gatekeeper plan FREE (efectivo): bloquea creación de invitaciones si el trainer
  * ya tiene >= 3 slots ocupados (alumnos registrados + invites pending).
+ * PRO con saas_expiration_date < hoy se trata como FREE (Feature 065).
  * Usar después de authenticate + requireRole('trainer').
  */
 async function checkTrainerLimits(req, res, next) {
@@ -17,16 +19,19 @@ async function checkTrainerLimits(req, res, next) {
     }
 
     const [planRows] = await db.query(
-      `SELECT saas_plan
+      `SELECT saas_plan, saas_expiration_date
        FROM trainers_info
        WHERE user_id = ?
        LIMIT 1`,
       [trainerId],
     );
 
-    const plan = planRows[0]?.saas_plan || 'FREE';
+    const resolved = resolveEffectiveSaasPlan(
+      planRows[0]?.saas_plan,
+      planRows[0]?.saas_expiration_date,
+    );
 
-    if (plan === 'PRO') {
+    if (resolved.effective_plan === 'PRO') {
       return next();
     }
 
@@ -47,10 +52,14 @@ async function checkTrainerLimits(req, res, next) {
     const total = Number(clientRow?.count || 0) + Number(inviteRow?.count || 0);
 
     if (total >= 3) {
+      const message = resolved.is_expired
+        ? 'Tu plan PRO venció. Renueva para seguir invitando alumnos sin límite.'
+        : 'Límite de clientes alcanzado en plan gratuito. Actualiza a PRO.';
+
       return res.status(402).json({
         success: false,
         error: 'LIMIT_EXCEEDED',
-        message: 'Límite de clientes alcanzado en plan gratuito. Actualiza a PRO.',
+        message,
       });
     }
 

@@ -1,5 +1,6 @@
 const db = require('../../config/db');
 const clientsService = require('../clients/clients.service');
+const { assertClientWritableUnderPlan } = require('../../shared/saas/trainerSeats');
 
 const LOCAL_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -92,6 +93,7 @@ async function listByClientForTrainer(trainerId, clientId) {
 async function createForTrainer(trainerId, clientId, payload) {
   const id = parsePositiveId(clientId, 'clientId');
   await clientsService.getClientOwnedByTrainer(id, trainerId);
+  await assertClientWritableUnderPlan(trainerId, id);
   const title = normalizeTitle(payload?.title);
 
   const [result] = await db.query(
@@ -135,6 +137,7 @@ async function deleteForTrainer(trainerId, habitId) {
   }
 
   await clientsService.getClientOwnedByTrainer(habit.client_id, trainerId);
+  await assertClientWritableUnderPlan(trainerId, habit.client_id);
 
   await db.query('DELETE FROM habits WHERE id = ?', [id]);
 

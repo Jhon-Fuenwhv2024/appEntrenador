@@ -160,6 +160,12 @@ function resolveAvatarPublicUrl(file) {
 
 async function upsertProfile(actor, targetUserId, body, uploadedFile) {
   await assertCanAccessProfile(actor, targetUserId);
+
+  if (actor.rol === 'trainer') {
+    const { assertClientWritableUnderPlan } = require('../../shared/saas/trainerSeats');
+    await assertClientWritableUnderPlan(actor.id, targetUserId);
+  }
+
   const fields = normalizeProfilePayload(body);
   const fotoUrl = uploadedFile ? resolveAvatarPublicUrl(uploadedFile) : undefined;
 

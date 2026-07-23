@@ -98,10 +98,17 @@ async function getClientsForTrainer(trainerId) {
   );
 
   const membershipsService = getMembershipsService();
+  const {
+    getSeatEditabilityContext,
+  } = require('../../shared/saas/trainerSeats');
+  const seatCtx = await getSeatEditabilityContext(trainerId);
 
   return clients.map((client) => {
     const routinesCount = Number(client.routines_count) || 0;
     const hasMembership = client.membership_status != null;
+    const clientId = Number(client.id);
+    const seatEditable = seatCtx.isPro
+      || (seatCtx.includedIds != null && seatCtx.includedIds.has(clientId));
 
     let membership = null;
     if (hasMembership) {
@@ -124,6 +131,7 @@ async function getClientsForTrainer(trainerId) {
       routines_count: routinesCount,
       status: routinesCount > 0 ? 'Activo' : 'Sin plan',
       membership,
+      seat_editable: seatEditable,
     };
   });
 }
@@ -462,6 +470,9 @@ async function getClientOverview(clientId, trainerId) {
   const membershipRow = await membershipsService.getByClientId(clientId);
   const membership = membershipsService.summarizeMembership(membershipRow);
 
+  const { isClientSeatEditable } = require('../../shared/saas/trainerSeats');
+  const seatEditable = await isClientSeatEditable(trainerId, clientId);
+
   let consistencyScore = null;
   let prsThisMonth = null;
   try {
@@ -501,6 +512,7 @@ async function getClientOverview(clientId, trainerId) {
       id: client.id,
       nombre: client.nombre,
       username: client.username,
+      seat_editable: seatEditable,
     },
     profile: {
       user_id: client.id,
@@ -527,6 +539,7 @@ async function getClientOverview(clientId, trainerId) {
     membership,
     consistencyScore,
     prsThisMonth,
+    seat_editable: seatEditable,
   };
 }
 

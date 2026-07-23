@@ -3,8 +3,10 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, shallowRef } from
 import { useRoute, useRouter } from 'vue-router';
 import { getMyAccount } from '../../shared/api/accountApi.js';
 import { getApiErrorMessage, isPaymentRequiredError } from '../../shared/api/http.js';
+import { useSessionAccount } from '../../shared/composables/useSessionAccount.js';
 import AppShell from '../../shared/layout/AppShell.vue';
 import SessionHeaderActions from '../../shared/layout/SessionHeaderActions.vue';
+import SaasExpiredBanner from '../saas/components/SaasExpiredBanner.vue';
 import { getTrainerDashboard } from './api/clientsApi.js';
 import { generateInvitationLink } from './api/invitationsApi.js';
 import InviteClientAction from './components/InviteClientAction.vue';
@@ -20,10 +22,17 @@ const PAYWALL_MESSAGE =
 const router = useRouter();
 const route = useRoute();
 
+const {
+  isSaasExpired,
+  isProPlan,
+  loadAccount: refreshSessionAccount,
+} = useSessionAccount({ role: 'trainer' });
+
 const userName = shallowRef('');
 const invitationLink = shallowRef('');
 const isGeneratingInvitation = shallowRef(false);
 const paywallOpen = shallowRef(false);
+const paywallMessage = shallowRef(PAYWALL_MESSAGE);
 const dashboardStats = reactive({
   clientsCount: 0,
   routinesCount: 0,
@@ -58,6 +67,10 @@ const dashboardStats = reactive({
 });
 let inviteLinkHideTimer = null;
 
+const seatLimitHint = computed(() => (
+  !isProPlan.value && Number(dashboardStats.clientsCount) > 3
+));
+
 const snackbar = reactive({
   show: false,
   text: '',
@@ -88,6 +101,7 @@ const loadAccountMeta = async () => {
     const response = await getMyAccount();
     const data = response.data?.data;
     if (data?.nombre) userName.value = data.nombre;
+    await refreshSessionAccount({ force: true });
   } catch (error) {
     console.error('Error cargando cuenta del trainer:', error);
   }
@@ -198,6 +212,7 @@ const handleGenerateInvite = async () => {
   } catch (error) {
     console.error('Error al generar invitación:', error);
     if (isPaymentRequiredError(error)) {
+      paywallMessage.value = error?.response?.data?.message || PAYWALL_MESSAGE;
       paywallOpen.value = true;
       return;
     }
@@ -255,6 +270,10 @@ onUnmounted(() => {
           <p class="header-greeting">
             Bienvenido de vuelta, <span class="text-cyan">{{ userName }}</span>
           </p>
+          <SaasExpiredBanner
+            :expired="isSaasExpired"
+            :seat-limit-hint="seatLimitHint"
+          />
         </div>
 
         <div class="header-right">
@@ -295,10 +314,10 @@ onUnmounted(() => {
     <v-card color="surface">
       <v-card-title class="text-h6 d-flex align-center ga-2">
         <v-icon icon="mdi-lock-outline" color="warning" />
-        Límite del plan gratuito
+        Límite del plan
       </v-card-title>
       <v-card-text>
-        {{ PAYWALL_MESSAGE }}
+        {{ paywallMessage }}
       </v-card-text>
       <v-card-actions class="pa-4 pt-0">
         <v-spacer />

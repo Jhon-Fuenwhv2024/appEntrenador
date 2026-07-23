@@ -1,6 +1,7 @@
 const db = require('../../config/db');
 const clientsService = require('../clients/clients.service');
 const nutritionService = require('../nutrition/nutrition.service');
+const { assertClientWritableUnderPlan } = require('../../shared/saas/trainerSeats');
 
 const TITLE_MAX = 150;
 const MEAL_NAME_MAX = 100;
@@ -506,6 +507,12 @@ async function assertClientOwnedIfPresent(trainerId, clientId) {
   await clientsService.getClientOwnedByTrainer(clientId, trainerId);
 }
 
+/** Soft-lock FREE: bloquea writes de planes asignados a alumnos fuera del cupo. */
+async function assertClientWritableIfPresent(trainerId, clientId) {
+  if (clientId == null) return;
+  await assertClientWritableUnderPlan(trainerId, clientId);
+}
+
 async function getPlanOwnedByTrainer(planId, trainerId) {
   const id = Number(planId);
   if (!Number.isInteger(id) || id < 1) {
@@ -731,6 +738,7 @@ async function getDietPlanForTrainer(trainerId, planId) {
 async function createDietPlan(trainerId, payload) {
   const data = validateDietPlanPayload(payload);
   await assertClientOwnedIfPresent(trainerId, data.client_id);
+  await assertClientWritableIfPresent(trainerId, data.client_id);
 
   const connection = await db.getConnection();
   let planId;
@@ -780,9 +788,12 @@ async function createDietPlan(trainerId, payload) {
 }
 
 async function updateDietPlan(trainerId, planId, payload) {
-  await getPlanOwnedByTrainer(planId, trainerId);
+  const existing = await getPlanOwnedByTrainer(planId, trainerId);
   const data = validateDietPlanPayload(payload);
   await assertClientOwnedIfPresent(trainerId, data.client_id);
+  // Bloquear si el plan ya estaba o pasa a estar asignado a un alumno fuera de cupo
+  await assertClientWritableIfPresent(trainerId, existing.client_id);
+  await assertClientWritableIfPresent(trainerId, data.client_id);
 
   const connection = await db.getConnection();
 
@@ -839,7 +850,8 @@ async function updateDietPlan(trainerId, planId, payload) {
 }
 
 async function deleteDietPlan(trainerId, planId) {
-  await getPlanOwnedByTrainer(planId, trainerId);
+  const plan = await getPlanOwnedByTrainer(planId, trainerId);
+  await assertClientWritableIfPresent(trainerId, plan.client_id);
   await db.query('DELETE FROM diet_plans WHERE id = ? AND trainer_id = ?', [
     planId,
     trainerId,
@@ -855,6 +867,8 @@ async function activateDietPlan(trainerId, planId) {
       400,
     );
   }
+
+  await assertClientWritableUnderPlan(trainerId, plan.client_id);
 
   const connection = await db.getConnection();
 
@@ -1141,6 +1155,7 @@ async function ensureDayRow(connection, planId, weekIndex, diaSemana) {
 
 async function copyDay(trainerId, planId, payload) {
   const plan = await getPlanOwnedByTrainer(planId, trainerId);
+  await assertClientWritableIfPresent(trainerId, plan.client_id);
   const cycleLen = Number(plan.cycle_length_weeks) || 4;
 
   const fromWeek = Number(payload?.from_week_index);
@@ -1197,6 +1212,7 @@ async function copyDay(trainerId, planId, payload) {
 
 async function copyWeek(trainerId, planId, payload) {
   const plan = await getPlanOwnedByTrainer(planId, trainerId);
+  await assertClientWritableIfPresent(trainerId, plan.client_id);
   const cycleLen = Number(plan.cycle_length_weeks) || 4;
 
   const fromWeek = Number(payload?.from_week);

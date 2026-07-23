@@ -75,6 +75,7 @@ const membership = computed(() => overview.value?.membership ?? null);
 const consistencyScore = computed(() => overview.value?.consistencyScore ?? null);
 const routinesCount = computed(() => overview.value?.counts?.routines ?? 0);
 const sessionsCount = computed(() => overview.value?.counts?.sessions ?? 0);
+const seatEditable = computed(() => overview.value?.seat_editable !== false);
 
 const showNotification = (text, color = 'success') => {
   snackbar.show = true;
@@ -224,6 +225,14 @@ const loadData = async () => {
 };
 
 const onSaveProfile = async ({ fields, fotoFile, done }) => {
+  if (!seatEditable.value) {
+    showNotification(
+      'Solo lectura: este alumno está fuera de tu cupo FREE. Renueva PRO para editarlo.',
+      'warning',
+    );
+    done?.(false);
+    return;
+  }
   try {
     savingProfile.value = true;
     const formData = buildProfileFormData(fields, fotoFile);
@@ -287,12 +296,24 @@ onMounted(() => {
             :consistency-score="consistencyScore"
             :routines-count="routinesCount"
             :sessions-count="sessionsCount"
+            :seat-editable="seatEditable"
             @back="router.push('/trainer/clients')"
           >
             <template #actions>
               <SessionHeaderActions role="trainer" />
             </template>
           </Client360Header>
+
+          <p
+            v-if="!seatEditable"
+            class="c360-seat-lock"
+            role="status"
+          >
+            <span class="c360-seat-lock__dot" aria-hidden="true" />
+            <span>
+              Solo lectura · fuera de tus 3 alumnos editables del plan FREE. Chat disponible; renueva PRO para editar.
+            </span>
+          </p>
 
           <div class="c360-tabs-wrap">
             <v-tabs
@@ -313,6 +334,10 @@ onMounted(() => {
             </v-tabs>
           </div>
 
+          <div
+            class="c360-tab-body"
+            :class="{ 'c360-tab-body--readonly': !seatEditable && activeTab !== 'chat' }"
+          >
           <div
             v-if="activeTab === 'resumen'"
             class="c360-stack"
@@ -406,6 +431,7 @@ onMounted(() => {
               :partner-name="client?.nombre || ''"
             />
           </section>
+          </div>
         </template>
       </div>
     </main>
@@ -450,6 +476,44 @@ onMounted(() => {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   margin: 0 -0.15rem;
   padding: 0 0.15rem;
+}
+
+.c360-seat-lock {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #ff8a80;
+}
+
+.c360-seat-lock__dot {
+  width: 6px;
+  height: 6px;
+  margin-top: 0.3rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #ff5c5c;
+  box-shadow: 0 0 8px rgba(255, 92, 92, 0.45);
+}
+
+.c360-tab-body--readonly {
+  position: relative;
+  opacity: 0.72;
+  pointer-events: none;
+  user-select: none;
+}
+
+.c360-tab-body--readonly::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: 12px;
+  background: transparent;
 }
 
 .c360-tabs {

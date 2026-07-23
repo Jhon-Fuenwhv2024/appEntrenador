@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../../config/db');
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../../config/env');
+const { resolveEffectiveSaasPlan } = require('../../shared/saas/effectivePlan');
 
 const DEFAULT_AVATAR_MARKERS = new Set(['', 'default_avatar.png', 'null', 'undefined']);
 
@@ -81,7 +82,7 @@ async function getMyAccount(userId) {
 
   if (user.rol === 'trainer') {
     const [info] = await db.query(
-      `SELECT telefono, foto_url, saas_plan
+      `SELECT telefono, foto_url, saas_plan, saas_expiration_date
        FROM trainers_info
        WHERE user_id = ?
        LIMIT 1`,
@@ -91,8 +92,15 @@ async function getMyAccount(userId) {
       base.telefono = info[0].telefono || null;
       base.foto_url = normalizeFotoUrl(info[0].foto_url);
     }
-    // Plan SaaS del trainer (FREE/PRO); default FREE si no hay fila
-    base.saas_plan = info[0]?.saas_plan === 'PRO' ? 'PRO' : 'FREE';
+    // Plan SaaS + soft-expiry (Feature 065); default FREE si no hay fila
+    const resolved = resolveEffectiveSaasPlan(
+      info[0]?.saas_plan,
+      info[0]?.saas_expiration_date,
+    );
+    base.saas_plan = resolved.saas_plan;
+    base.saas_expiration_date = resolved.saas_expiration_date;
+    base.effective_plan = resolved.effective_plan;
+    base.is_expired = resolved.is_expired;
   } else if (user.rol === 'client') {
     const [info] = await db.query(
       `SELECT telefono, foto_url

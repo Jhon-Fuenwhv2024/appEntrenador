@@ -3,14 +3,15 @@ const profileService = require('./profile.service');
 function sendError(res, error, context) {
   const code = error.code || 500;
   const message = error.message || 'Error interno del servidor.';
+  const errorKey = error.error || message;
 
   console.error(context, error);
 
   return res.status(code).json({
     success: false,
-    error: message,
+    error: errorKey,
     message,
-    code,
+    code: error.error || code,
   });
 }
 

@@ -1,13 +1,19 @@
 <script setup>
 /**
- * Panel SuperAdmin SaaS (Feature 037 Fase 1).
+ * Panel SuperAdmin SaaS (Feature 037 + 065).
  * Lista trainers y permite actualizar plan FREE/PRO + fecha de vencimiento.
+ * Soft-expiry: chip Vencido, fecha enfatizada, CTA Renovar Plan.
  */
 import { computed, onMounted, reactive, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
+import {
+  formatExpirationRelative,
+  resolveEffectiveSaasPlan,
+  toDateOnlyString,
+} from '../../shared/saas/effectivePlan.js';
 import { listTrainers, updateTrainerPlan } from './api/saasApi.js';
 
 const router = useRouter();
@@ -49,13 +55,26 @@ function notify(text, color = 'success') {
 }
 
 function formatDate(value) {
-  if (!value) return '—';
-  const raw = String(value).slice(0, 10);
+  const raw = toDateOnlyString(value);
   return raw || '—';
 }
 
 function planColor(plan) {
   return plan === 'PRO' ? 'primary' : 'warning';
+}
+
+function trainerExpired(item) {
+  if (typeof item?.is_expired === 'boolean') return item.is_expired;
+  return resolveEffectiveSaasPlan(item?.saas_plan, item?.saas_expiration_date).is_expired;
+}
+
+function expirationHint(item) {
+  if (!trainerExpired(item)) return null;
+  return formatExpirationRelative(item?.saas_expiration_date);
+}
+
+function actionLabel(item) {
+  return trainerExpired(item) ? 'Renovar Plan' : 'Actualizar Plan';
 }
 
 async function loadTrainers() {
@@ -151,18 +170,41 @@ onMounted(() => {
         density="comfortable"
       >
         <template #item.saas_plan="{ item }">
-          <v-chip
-            :color="planColor(item.saas_plan)"
-            size="small"
-            variant="tonal"
-            label
-          >
-            {{ item.saas_plan || 'FREE' }}
-          </v-chip>
+          <div class="d-flex flex-wrap align-center ga-1">
+            <v-chip
+              :color="planColor(item.saas_plan)"
+              size="small"
+              variant="tonal"
+              label
+            >
+              {{ item.saas_plan || 'FREE' }}
+            </v-chip>
+            <v-chip
+              v-if="trainerExpired(item)"
+              color="error"
+              size="small"
+              variant="tonal"
+              label
+              prepend-icon="mdi-alert-circle-outline"
+            >
+              Vencido
+            </v-chip>
+          </div>
         </template>
 
         <template #item.saas_expiration_date="{ item }">
-          {{ formatDate(item.saas_expiration_date) }}
+          <div
+            class="saas-exp"
+            :class="{ 'saas-exp--expired': trainerExpired(item) }"
+          >
+            <span class="saas-exp__date">{{ formatDate(item.saas_expiration_date) }}</span>
+            <span
+              v-if="expirationHint(item)"
+              class="saas-exp__hint"
+            >
+              {{ expirationHint(item) }}
+            </span>
+          </div>
         </template>
 
         <template #item.client_count="{ item }">
@@ -172,12 +214,14 @@ onMounted(() => {
         <template #item.actions="{ item }">
           <v-btn
             size="small"
+            min-height="40"
             variant="tonal"
-            color="primary"
-            prepend-icon="mdi-crown-outline"
+            :color="trainerExpired(item) ? 'error' : 'primary'"
+            :prepend-icon="trainerExpired(item) ? 'mdi-refresh' : 'mdi-crown-outline'"
+            :aria-label="`${actionLabel(item)} de ${item.nombre || item.username}`"
             @click="openPlanDialog(item)"
           >
-            Actualizar Plan
+            {{ actionLabel(item) }}
           </v-btn>
         </template>
       </v-data-table>
@@ -186,13 +230,23 @@ onMounted(() => {
     <v-dialog v-model="dialogOpen" max-width="420" persistent>
       <v-card color="surface">
         <v-card-title class="text-h6">
-          Actualizar plan
+          {{ selectedTrainer && trainerExpired(selectedTrainer) ? 'Renovar plan' : 'Actualizar plan' }}
         </v-card-title>
         <v-card-subtitle v-if="selectedTrainer">
           {{ selectedTrainer.nombre }} (@{{ selectedTrainer.username }})
         </v-card-subtitle>
 
         <v-card-text>
+          <v-alert
+            v-if="selectedTrainer && trainerExpired(selectedTrainer)"
+            type="warning"
+            variant="tonal"
+            density="compact"
+            class="mb-4"
+            border="start"
+          >
+            Plan PRO vencido. Pon una fecha futura o deja vacío para sin vencimiento.
+          </v-alert>
           <v-select
             v-model="formPlan"
             :items="['FREE', 'PRO']"
@@ -251,5 +305,30 @@ onMounted(() => {
 
 .saas-table {
   background: transparent;
+}
+
+.saas-exp {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.25;
+}
+
+.saas-exp__date {
+  color: var(--tf-on-surface);
+}
+
+.saas-exp--expired .saas-exp__date {
+  color: rgb(var(--v-theme-error));
+  font-weight: 600;
+}
+
+.saas-exp__hint {
+  font-size: 0.75rem;
+  color: var(--tf-on-surface-muted);
+}
+
+.saas-exp--expired .saas-exp__hint {
+  color: rgb(var(--v-theme-error));
 }
 </style>
