@@ -10,7 +10,7 @@
 node scripts/fixTidbAutoIncrement.js
 ```
 
-Eso recrea cada tabla PK `id` con `AUTO_INCREMENT` (copia datos → drop → rename). Ya aplicado en el cluster de producción (2026-07-23).
+Eso recrea cada tabla PK `id` con `AUTO_INCREMENT` mediante una copia y un intercambio atómico que conserva la tabla original hasta validar el reemplazo. Ya aplicado en el cluster de producción (2026-07-23).
 
 - Usuarios de prueba (rol real en dump):
   - **Camila123** → `client` (alumno)
