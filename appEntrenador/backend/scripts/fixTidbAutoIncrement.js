@@ -1,6 +1,6 @@
 /**
  * TiDB cannot ALTER ... ADD AUTO_INCREMENT on existing columns.
- * Rebuild each table whose `id` PK lacks AUTO_INCREMENT (copy → drop → rename).
+ * Rebuild each table whose `id` PK lacks AUTO_INCREMENT (copy → atomic swap).
  *
  *   DB_HOST=... DB_PORT=4000 DB_USER=... DB_PASSWORD=... DB_NAME=coach_db DB_SSL=true \
  *   node scripts/fixTidbAutoIncrement.js
@@ -33,6 +33,76 @@ function injectAutoIncrement(createSql, tableName, tmpName) {
 
   // Strip leftover AUTO_INCREMENT=N on table options if any; we'll set after copy
   return sql;
+}
+
+async function rebuildTable(conn, table) {
+  const tmp = `${table}__ai_fix`;
+  const backup = `${table}__ai_backup`;
+  let swapped = false;
+
+  try {
+    await conn.query(`DROP TABLE IF EXISTS \`${tmp}\``);
+
+    const [createRows] = await conn.query(`SHOW CREATE TABLE \`${table}\``);
+    const createSql = createRows[0]['Create Table'] || createRows[0]['CREATE TABLE'];
+    const newCreate = injectAutoIncrement(createSql, table, tmp);
+
+    if (!/`id`[^,\n]*AUTO_INCREMENT/i.test(newCreate)) {
+      throw new Error('Failed to inject AUTO_INCREMENT into CREATE TABLE');
+    }
+
+    await conn.query(newCreate);
+
+    const [countBefore] = await conn.query(`SELECT COUNT(*) AS c FROM \`${table}\``);
+    await conn.query(`INSERT INTO \`${tmp}\` SELECT * FROM \`${table}\``);
+    const [countAfter] = await conn.query(`SELECT COUNT(*) AS c FROM \`${tmp}\``);
+
+    if (Number(countBefore[0].c) !== Number(countAfter[0].c)) {
+      throw new Error(
+        `Row count mismatch: before=${countBefore[0].c} after=${countAfter[0].c}`,
+      );
+    }
+
+    // TiDB performs a multi-table RENAME atomically. Keep the original as a
+    // backup until every post-swap validation has succeeded.
+    await conn.query(
+      `RENAME TABLE \`${table}\` TO \`${backup}\`, \`${tmp}\` TO \`${table}\``,
+    );
+    swapped = true;
+
+    const [maxRows] = await conn.query(
+      `SELECT COALESCE(MAX(id), 0) AS m FROM \`${table}\``,
+    );
+    const next = Number(maxRows[0].m) + 1;
+    await conn.query(`ALTER TABLE \`${table}\` AUTO_INCREMENT = ${next}`);
+    await conn.query(`DROP TABLE \`${backup}\``);
+
+    return { rows: Number(countAfter[0].c), next };
+  } catch (error) {
+    if (swapped) {
+      try {
+        await conn.query(
+          `RENAME TABLE \`${table}\` TO \`${tmp}\`, \`${backup}\` TO \`${table}\``,
+        );
+        swapped = false;
+      } catch (rollbackError) {
+        throw new Error(
+          `Rebuild failed and automatic rollback failed. Recovery tables were preserved as ` +
+            `\`${table}\` and \`${backup}\`: ${error.message}; rollback: ${rollbackError.message}`,
+          { cause: error },
+        );
+      }
+    }
+
+    // Before the swap, or after a successful rollback, tmp is only the
+    // incomplete/rejected rebuilt copy. Never delete the original backup.
+    try {
+      await conn.query(`DROP TABLE IF EXISTS \`${tmp}\``);
+    } catch {
+      // Preserve the original error; a stale tmp table is safe to inspect.
+    }
+    throw error;
+  }
 }
 
 async function main() {
@@ -87,51 +157,17 @@ async function main() {
 
   await conn.query('SET FOREIGN_KEY_CHECKS=0');
 
+  let failures = 0;
   for (const col of needFix) {
     const table = col.TABLE_NAME;
-    const tmp = `${table}__ai_fix`;
     console.log(`\n=== Rebuilding ${table} ===`);
 
     try {
-      await conn.query(`DROP TABLE IF EXISTS \`${tmp}\``);
-
-      const [createRows] = await conn.query(`SHOW CREATE TABLE \`${table}\``);
-      const createSql = createRows[0]['Create Table'] || createRows[0]['CREATE TABLE'];
-      const newCreate = injectAutoIncrement(createSql, table, tmp);
-
-      if (!/`id`[^,\n]*AUTO_INCREMENT/i.test(newCreate)) {
-        throw new Error('Failed to inject AUTO_INCREMENT into CREATE TABLE');
-      }
-
-      await conn.query(newCreate);
-
-      const [countBefore] = await conn.query(`SELECT COUNT(*) AS c FROM \`${table}\``);
-      await conn.query(`INSERT INTO \`${tmp}\` SELECT * FROM \`${table}\``);
-      const [countAfter] = await conn.query(`SELECT COUNT(*) AS c FROM \`${tmp}\``);
-
-      if (Number(countBefore[0].c) !== Number(countAfter[0].c)) {
-        throw new Error(
-          `Row count mismatch: before=${countBefore[0].c} after=${countAfter[0].c}`,
-        );
-      }
-
-      await conn.query(`DROP TABLE \`${table}\``);
-      await conn.query(`RENAME TABLE \`${tmp}\` TO \`${table}\``);
-
-      const [maxRows] = await conn.query(
-        `SELECT COALESCE(MAX(id), 0) AS m FROM \`${table}\``,
-      );
-      const next = Number(maxRows[0].m) + 1;
-      await conn.query(`ALTER TABLE \`${table}\` AUTO_INCREMENT = ${next}`);
-
-      console.log(`OK ${table} rows=${countAfter[0].c} next_id=${next}`);
+      const result = await rebuildTable(conn, table);
+      console.log(`OK ${table} rows=${result.rows} next_id=${result.next}`);
     } catch (e) {
+      failures += 1;
       console.error(`FAIL ${table}:`, e.message);
-      try {
-        await conn.query(`DROP TABLE IF EXISTS \`${tmp}\``);
-      } catch {
-        // ignore
-      }
     }
   }
 
@@ -167,10 +203,17 @@ async function main() {
   }
 
   await conn.end();
-  if (missing > 0) process.exit(2);
+  if (missing > 0 || failures > 0) process.exit(2);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  injectAutoIncrement,
+  rebuildTable,
+};
