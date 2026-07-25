@@ -71,7 +71,7 @@ Orden sugerido tras cerrar el Epic Fitness (035 → 043 → 044 → 045):
 | **046** | Recuperación de contraseña + email SMTP | Ejecución SDD en **056** (`056-password-recovery-smtp`; el ID 046 local lo usa `exercise-muscle-tagger`) |
 | **047** | Caducidad / envío de invitaciones por email | Operativa real del trainer (hoy: copiar link) |
 | **048** | Suite tests API/E2E críticos | Login, ownership, guardar sesión, soft-lock membresía |
-| **049** | Deploy producción (Netlify FE + API + env) | Checklist deploy; `netlify.toml` sólido |
+| **049** | Deploy producción | Checklist go-live; alinear a **Coolify + VPS** (histórico citaba Netlify). Media durable = **068** |
 | **050** | Pagos SaaS automatizados (037 Fase 2) | Stripe/pasarela + portal facturación; FREE/PRO hoy es manual vía SuperAdmin |
 | **051** | PWA + notificaciones push | Retención móvil; hoy solo in-app (025) |
 | **052** | Informe semanal automático al trainer | Resumen alumnos (entrenos, rachas en riesgo, membresías por vencer) |
@@ -80,6 +80,15 @@ Orden sugerido tras cerrar el Epic Fitness (035 → 043 → 044 → 045):
 | **055** | Exportar informe PDF del alumno | Valor alto para trainers que reportan a clientes |
 
 Specs SDD: `spec/features/043-…` … `045-…` (Epic) y `046-…` … `055-…` (backlog; carpetas al iniciar cada una).
+
+## Producción real (Coolify + VPS) — diferidas
+
+No implementar en el entorno de prueba. Activar al configurar el VPS con Coolify:
+
+| ID | Feature | Notas |
+|----|---------|--------|
+| **068** | Object storage de media (MinIO + capa S3) | Avatares, fotos check-in, GIFs/vídeos de ejercicios; cuotas multi-trainer FREE/PRO. Spec: `068-object-storage-coolify-media`. Sustituye disco del contenedor; Netlify Blobs fuera de alcance. |
+| **049** | Deploy producción | Revisar al go-live: checklist Coolify/VPS (el texto histórico citaba Netlify; alinear docs entonces). |
 
 ## Backlog técnico / nice-to-have (post-055)
 
