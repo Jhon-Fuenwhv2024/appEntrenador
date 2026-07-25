@@ -432,7 +432,7 @@ Devuelve datos de cuenta:
 
 ### `PUT /me/account`
 
-`multipart/form-data` opcional. Campos: `nombre`, `email`, `telefono`, archivo `foto`.
+`multipart/form-data` opcional. Campos: `nombre`, `email`, `telefono`, archivo `foto` (mismo storage R2/local que el perfil alumno, ADR-0004).
 
 Actualiza `usuarios.nombre` / `usuarios.email` y hace upsert en `trainers_info` (trainer) o `alumnos_info` (client) para teléfono/foto.
 
@@ -456,7 +456,7 @@ UI client: `/client/profile` (`ChangePasswordForm`, Feature 045).
 
 ## Perfil alumno (`alumnos_info` · Feature 020)
 
-Tabla 1:1 con `usuarios` (rol client). Upsert al guardar. Avatares en `backend/public/uploads/avatars` servidos en `/uploads/avatars/...` (fuera de `/api`; **requiere JWT** Bearer o `?token=`).
+Tabla 1:1 con `usuarios` (rol client). Upsert al guardar. Avatares servidos en `/uploads/avatars/...` (fuera de `/api`; **requiere JWT** Bearer o `?token=`). Con env R2 (ADR-0004) el archivo vive en Cloudflare R2 y Express hace de proxy; sin R2, disco local `backend/public/uploads/avatars`.
 
 ### `GET /profile/:userId`
 
@@ -491,7 +491,7 @@ Respuesta `data`:
 Misma autorización que GET. Acepta `multipart/form-data` (campos de texto + archivo opcional `foto`).
 
 Campos de texto: `email` (en `usuarios`, Feature 056), `telefono`, `fecha_nacimiento`, `sexo`, `lesiones`, `objetivo`.  
-Archivo: `foto` (JPEG/PNG/WebP/GIF, máx. 2 MB) → guarda en disco y persiste URL relativa en `foto_url`.
+Archivo: `foto` (JPEG/PNG/WebP/GIF, máx. 2 MB) → persiste en R2 (si está configurado) o disco local, y guarda URL relativa en `foto_url`.
 
 Si no existe fila en `alumnos_info`, la crea (upsert). `email` se actualiza en `usuarios` (único, válido).
 

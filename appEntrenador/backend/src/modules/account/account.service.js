@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const db = require('../../config/db');
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../../config/env');
 const { resolveEffectiveSaasPlan } = require('../../shared/saas/effectivePlan');
+const { putAvatar } = require('../../shared/storage/avatarStorage');
 
 const DEFAULT_AVATAR_MARKERS = new Set(['', 'default_avatar.png', 'null', 'undefined']);
 
@@ -35,11 +36,6 @@ function signToken(user) {
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN },
   );
-}
-
-function resolveAvatarPublicUrl(file) {
-  if (!file?.filename) return null;
-  return `/uploads/avatars/${file.filename}`;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -124,7 +120,18 @@ async function updateMyAccount(userId, body = {}, uploadedFile = null) {
   const telefonoRaw = body.telefono != null ? String(body.telefono).trim() : undefined;
   const emailProvided = body.email != null;
   const emailRaw = emailProvided ? normalizeEmail(body.email) : undefined;
-  const fotoUrl = uploadedFile ? resolveAvatarPublicUrl(uploadedFile) : undefined;
+  let fotoUrl;
+  if (uploadedFile) {
+    try {
+      fotoUrl = await putAvatar({ userId, file: uploadedFile });
+    } catch (error) {
+      console.error('[account] putAvatar failed:', error.message);
+      throw createHttpError(
+        error.message || 'No se pudo guardar la foto de perfil.',
+        error.code && Number.isInteger(error.code) ? error.code : 500,
+      );
+    }
+  }
 
   if (nombreRaw !== undefined) {
     if (!nombreRaw) {

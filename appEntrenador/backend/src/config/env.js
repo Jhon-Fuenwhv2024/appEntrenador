@@ -53,6 +53,31 @@ const CORS_ORIGINS =
     ? CORS_ORIGINS_FROM_ENV
     : [...new Set([...LOCAL_DEV_ORIGINS, ...CORS_ORIGINS_FROM_ENV])];
 
+/** Cloudflare R2 (S3-compatible) — profile avatars only. All four required to enable. */
+const R2_ACCOUNT_ID = String(process.env.R2_ACCOUNT_ID || '').trim();
+const R2_ACCESS_KEY_ID = String(process.env.R2_ACCESS_KEY_ID || '').trim();
+const R2_SECRET_ACCESS_KEY = String(process.env.R2_SECRET_ACCESS_KEY || '').trim();
+const R2_BUCKET = String(process.env.R2_BUCKET || '').trim();
+const R2_ENDPOINT = String(process.env.R2_ENDPOINT || '').trim()
+  || (R2_ACCOUNT_ID
+    ? `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
+    : '');
+
+const isR2Configured = Boolean(
+  R2_ACCOUNT_ID
+  && R2_ACCESS_KEY_ID
+  && R2_SECRET_ACCESS_KEY
+  && R2_BUCKET,
+);
+
+const R2 = {
+  accountId: R2_ACCOUNT_ID,
+  accessKeyId: R2_ACCESS_KEY_ID,
+  secretAccessKey: R2_SECRET_ACCESS_KEY,
+  bucket: R2_BUCKET,
+  endpoint: R2_ENDPOINT,
+};
+
 module.exports = {
   JWT_SECRET: JWT_SECRET || 'trainfit-dev-only-change-me',
   JWT_EXPIRES_IN,
@@ -61,4 +86,6 @@ module.exports = {
   SMTP,
   APP_PUBLIC_URL,
   CORS_ORIGINS,
+  R2,
+  isR2Configured,
 };

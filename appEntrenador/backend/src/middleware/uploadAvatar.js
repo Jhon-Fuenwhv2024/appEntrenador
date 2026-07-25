@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
-
-const AVATARS_DIR = path.join(__dirname, '../../public/uploads/avatars');
+const { isR2Configured } = require('../config/env');
+const { buildAvatarFilename, AVATARS_DIR } = require('../shared/storage/avatarPaths');
 
 function ensureAvatarsDir() {
   fs.mkdirSync(AVATARS_DIR, { recursive: true });
@@ -15,7 +15,11 @@ const ALLOWED_MIME = new Set([
   'image/gif',
 ]);
 
-const storage = multer.diskStorage({
+function resolveUploadUserId(req) {
+  return Number(req.params.userId) || Number(req.user?.id) || 'unknown';
+}
+
+const diskStorage = multer.diskStorage({
   destination(_req, _file, cb) {
     try {
       ensureAvatarsDir();
@@ -25,12 +29,8 @@ const storage = multer.diskStorage({
     }
   },
   filename(req, file, cb) {
-    const userId = Number(req.params.userId) || Number(req.user?.id) || 'unknown';
-    const ext = path.extname(file.originalname || '').toLowerCase() || '.jpg';
-    const safeExt = ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext)
-      ? (ext === '.jpeg' ? '.jpg' : ext)
-      : '.jpg';
-    cb(null, `user_${userId}${safeExt}`);
+    const userId = resolveUploadUserId(req);
+    cb(null, buildAvatarFilename(userId, file.originalname, file.mimetype));
   },
 });
 
@@ -44,7 +44,7 @@ function fileFilter(_req, file, cb) {
 }
 
 const uploadAvatar = multer({
-  storage,
+  storage: isR2Configured ? multer.memoryStorage() : diskStorage,
   fileFilter,
   limits: {
     fileSize: 2 * 1024 * 1024,
@@ -53,35 +53,47 @@ const uploadAvatar = multer({
 
 /**
  * Multer wrapper that maps errors to HTTP-friendly shape.
+ * With R2 (memory storage), assigns `file.filename` for downstream services.
  */
 function uploadAvatarMiddleware(req, res, next) {
   uploadAvatar(req, res, (error) => {
-    if (!error) return next();
-
-    if (error instanceof multer.MulterError) {
-      if (error.code === 'LIMIT_FILE_SIZE') {
+    if (error) {
+      if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            success: false,
+            error: 'La imagen supera el límite de 2 MB.',
+            message: 'La imagen supera el límite de 2 MB.',
+            code: 400,
+          });
+        }
         return res.status(400).json({
           success: false,
-          error: 'La imagen supera el límite de 2 MB.',
-          message: 'La imagen supera el límite de 2 MB.',
+          error: error.message,
+          message: error.message,
           code: 400,
         });
       }
-      return res.status(400).json({
+
+      const code = error.code || 400;
+      return res.status(code).json({
         success: false,
-        error: error.message,
-        message: error.message,
-        code: 400,
+        error: error.message || 'Error al subir la imagen.',
+        message: error.message || 'Error al subir la imagen.',
+        code,
       });
     }
 
-    const code = error.code || 400;
-    return res.status(code).json({
-      success: false,
-      error: error.message || 'Error al subir la imagen.',
-      message: error.message || 'Error al subir la imagen.',
-      code,
-    });
+    if (req.file && !req.file.filename) {
+      const userId = resolveUploadUserId(req);
+      req.file.filename = buildAvatarFilename(
+        userId,
+        req.file.originalname,
+        req.file.mimetype,
+      );
+    }
+
+    return next();
   });
 }
 

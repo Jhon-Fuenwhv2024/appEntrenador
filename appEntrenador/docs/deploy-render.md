@@ -98,6 +98,33 @@ Importa el esquema con `backend/db/script_db.sql` (ya aplicado en el cluster del
 
 ## Notas
 
-- Disco efímero: avatares/fotos en `public/uploads` se pierden al redeploy (luego R2/S3).
+- Disco efímero: fotos de progreso y ejercicios en `public/uploads` se pierden al redeploy. **Avatares** pueden ir a Cloudflare R2 (ver abajo) y sobreviven.
 - Free tier: cold start tras inactividad (~30–60 s).
 - Verifica: `GET https://<servicio>.onrender.com/health` → `{ "success": true, "message": "ok" }`.
+
+## Avatares en Cloudflare R2 (trial)
+
+Persistencia de **solo fotos de perfil** mientras el API esté en Render. Detalle: [`docs/decisions/ADR-0004-r2-avatars-trial.md`](decisions/ADR-0004-r2-avatars-trial.md).
+
+### Setup (una vez)
+
+1. Cloudflare Dashboard → **R2** → Create bucket (p. ej. `trainfit-avatars`), storage **Standard**, **sin** acceso público.
+2. R2 → **Manage R2 API Tokens** → Create token con Object Read & Write sobre ese bucket.
+3. Anota Account ID, Access Key ID y Secret Access Key.
+4. En el Web Service de Render → **Environment**:
+
+```
+R2_ACCOUNT_ID=<account_id>
+R2_ACCESS_KEY_ID=<access_key>
+R2_SECRET_ACCESS_KEY=<secret>
+R2_BUCKET=trainfit-avatars
+```
+
+(`R2_ENDPOINT` es opcional; por defecto `https://{ACCOUNT_ID}.r2.cloudflarestorage.com`.)
+
+5. Redeploy del API. En logs debe aparecer: `[avatars] R2 configurado — fotos de perfil en Cloudflare R2`.
+6. **Re-sube** la foto de perfil en la app (las que solo estaban en disco de Render ya no existen).
+
+### Coste
+
+Free tier permanente de R2 (Standard): 10 GB + ops incluidas; egress gratis. Solo avatares de prueba → uso esperado **$0**. Vigila Usage en el dashboard R2.

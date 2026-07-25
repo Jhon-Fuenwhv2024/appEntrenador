@@ -1,6 +1,8 @@
 const path = require('path');
 const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../config/env');
+const { JWT_SECRET, isR2Configured } = require('../config/env');
+const { getAvatarFromR2 } = require('../shared/storage/avatarStorage');
+const { AVATARS_DIR } = require('../shared/storage/avatarPaths');
 
 /**
  * Auth for private static media (/uploads/photos, /uploads/avatars).
@@ -60,17 +62,79 @@ function authenticatePrivateUploads(req, res, next) {
 
 const UPLOADS_ROOT = path.join(__dirname, '../../public/uploads');
 
+/**
+ * Stream avatar from R2 when configured; otherwise 404 JSON.
+ */
+async function serveAvatarFromR2(req, res) {
+  const filename = path.basename(req.path || '');
+  if (!filename || filename === '/' || filename === '.') {
+    return res.status(404).json({
+      success: false,
+      error: 'Avatar no encontrado.',
+      message: 'Avatar no encontrado.',
+      code: 404,
+    });
+  }
+
+  try {
+    const object = await getAvatarFromR2(filename);
+    if (!object) {
+      return res.status(404).json({
+        success: false,
+        error: 'Avatar no encontrado.',
+        message: 'Avatar no encontrado.',
+        code: 404,
+      });
+    }
+
+    if (object.contentType) {
+      res.setHeader('Content-Type', object.contentType);
+    }
+    if (object.contentLength != null) {
+      res.setHeader('Content-Length', String(object.contentLength));
+    }
+    res.setHeader('Cache-Control', 'private, max-age=300');
+
+    if (typeof object.body?.pipe === 'function') {
+      object.body.pipe(res);
+      return undefined;
+    }
+
+    const chunks = [];
+    for await (const chunk of object.body) {
+      chunks.push(chunk);
+    }
+    return res.send(Buffer.concat(chunks));
+  } catch (error) {
+    console.error('[avatars/r2] serve failed:', error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Error al servir el avatar.',
+      message: 'Error al servir el avatar.',
+      code: 500,
+    });
+  }
+}
+
 function mountPrivateUploads(app, express) {
   app.use(
     '/uploads/photos',
     authenticatePrivateUploads,
     express.static(path.join(UPLOADS_ROOT, 'photos')),
   );
-  app.use(
-    '/uploads/avatars',
-    authenticatePrivateUploads,
-    express.static(path.join(UPLOADS_ROOT, 'avatars')),
-  );
+
+  if (isR2Configured) {
+    app.use('/uploads/avatars', authenticatePrivateUploads, (req, res) => {
+      serveAvatarFromR2(req, res);
+    });
+  } else {
+    app.use(
+      '/uploads/avatars',
+      authenticatePrivateUploads,
+      express.static(AVATARS_DIR),
+    );
+  }
+
   // Catálogo de ejercicios: público (menos sensible; usado en listados/media).
   app.use(
     '/uploads/exercises',

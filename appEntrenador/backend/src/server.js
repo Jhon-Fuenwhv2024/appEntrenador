@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const { PORT, CORS_ORIGINS, NODE_ENV } = require('./config/env');
+const { PORT, CORS_ORIGINS, NODE_ENV, isR2Configured } = require('./config/env');
 const authRoutes = require('./modules/auth/auth.routes');
 const invitesRoutes = require('./modules/invites/invites.routes');
 const clientsRoutes = require('./modules/clients/clients.routes');
@@ -214,6 +214,11 @@ async function start() {
   // Render / containers require binding 0.0.0.0 (not only localhost).
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor API modular (JWT) en 0.0.0.0:${PORT} (${NODE_ENV})`);
+    console.log(
+      isR2Configured
+        ? '[avatars] R2 configurado — fotos de perfil en Cloudflare R2'
+        : '[avatars] R2 no configurado — fotos de perfil en disco local',
+    );
   });
 }
 

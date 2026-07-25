@@ -1,4 +1,5 @@
 const db = require('../../config/db');
+const { putAvatar } = require('../../shared/storage/avatarStorage');
 
 const SEX_OPTIONS = ['Masculino', 'Femenino', 'Otro'];
 const DEFAULT_AVATAR_MARKERS = new Set(['', 'default_avatar.png', 'null', 'undefined']);
@@ -153,11 +154,6 @@ function normalizeProfilePayload(body = {}) {
   };
 }
 
-function resolveAvatarPublicUrl(file) {
-  if (!file?.filename) return null;
-  return `/uploads/avatars/${file.filename}`;
-}
-
 async function upsertProfile(actor, targetUserId, body, uploadedFile) {
   await assertCanAccessProfile(actor, targetUserId);
 
@@ -167,7 +163,18 @@ async function upsertProfile(actor, targetUserId, body, uploadedFile) {
   }
 
   const fields = normalizeProfilePayload(body);
-  const fotoUrl = uploadedFile ? resolveAvatarPublicUrl(uploadedFile) : undefined;
+  let fotoUrl;
+  if (uploadedFile) {
+    try {
+      fotoUrl = await putAvatar({ userId: targetUserId, file: uploadedFile });
+    } catch (error) {
+      console.error('[profile] putAvatar failed:', error.message);
+      throw createHttpError(
+        error.message || 'No se pudo guardar la foto de perfil.',
+        error.code && Number.isInteger(error.code) ? error.code : 500,
+      );
+    }
+  }
 
   const connection = await db.getConnection();
   try {

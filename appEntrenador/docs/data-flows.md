@@ -22,14 +22,17 @@
 1. Cliente abre `/client/profile` o trainer la sección Perfil en `/trainer/clients/:id`.
 2. `GET /profile/:userId` con ownership (client = propio; trainer = alumno suyo).
 3. Al guardar: `PUT /profile/:userId` con `FormData` (texto + opcional `foto`).
-4. Multer guarda en `backend/public/uploads/avatars`; Express sirve `/uploads`.
-5. Upsert en `alumnos_info`; si `foto_url` es null, la UI usa `src/assets/foto_perfil.png`.
+4. Multer recibe `foto` (máx. 2 MB). Si hay env R2 → sube a Cloudflare R2 (`avatars/user_{id}.*`); si no → disco `backend/public/uploads/avatars`.
+5. Express sirve `/uploads/avatars/...` con JWT (`?token=`): proxy R2 o `express.static` local. La DB guarda solo la ruta relativa en `alumnos_info.foto_url`.
+6. Si `foto_url` es null, la UI usa `src/assets/foto_perfil.png`.
+
+Ver ADR-0004 y `docs/deploy-render.md` (sección R2).
 
 ## Ajustes de cuenta del trainer (Feature 024)
 
 1. Trainer abre `/trainer/settings`.
 2. `GET /me/account` carga nombre + `trainers_info` (teléfono/foto).
-3. Editar perfil: `PUT /me/account` (FormData); se renueva el JWT con el nuevo nombre.
+3. Editar perfil: `PUT /me/account` (FormData); avatar usa la misma capa R2/local que el perfil alumno; se renueva el JWT con el nuevo nombre.
 4. Cambiar contraseña: `POST /me/password` con password actual; la sesión no se cierra.
 5. Avatar por defecto igual que alumnos si no hay `foto_url`.
 
