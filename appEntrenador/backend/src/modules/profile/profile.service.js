@@ -113,18 +113,27 @@ function normalizeProfilePayload(body = {}) {
   const fechaRaw = body.fecha_nacimiento != null
     ? String(body.fecha_nacimiento).trim()
     : undefined;
-  const emailProvided = body.email != null;
+  // FormData siempre puede mandar `email: ""` al guardar otros campos.
+  // Cadena vacía = no actualizar email (no bloquear el resto del perfil).
+  const emailProvided = body.email != null && String(body.email).trim() !== '';
   const emailRaw = emailProvided ? normalizeEmail(body.email) : undefined;
 
   if (sexoRaw !== undefined && sexoRaw !== '' && !SEX_OPTIONS.includes(sexoRaw)) {
     throw createHttpError('Sexo inválido. Usa Masculino, Femenino u Otro.', 400);
   }
 
-  if (fechaRaw !== undefined && fechaRaw !== '') {
+  let fechaNacimiento;
+  if (fechaRaw === undefined) {
+    fechaNacimiento = undefined;
+  } else if (!fechaRaw) {
+    fechaNacimiento = null;
+  } else {
     const parsed = new Date(fechaRaw);
     if (Number.isNaN(parsed.getTime())) {
       throw createHttpError('fecha_nacimiento inválida.', 400);
     }
+    // TiDB/MySQL DATE: guardar solo YYYY-MM-DD (evitar ISO con hora).
+    fechaNacimiento = formatDateOnly(fechaRaw) || formatDateOnly(parsed);
   }
 
   if (telefono !== undefined && telefono.length > 20) {
@@ -135,13 +144,8 @@ function normalizeProfilePayload(body = {}) {
     throw createHttpError('El objetivo no puede superar 100 caracteres.', 400);
   }
 
-  if (emailProvided) {
-    if (!emailRaw) {
-      throw createHttpError('El correo electrónico no puede quedar vacío.', 400);
-    }
-    if (!isValidEmail(emailRaw)) {
-      throw createHttpError('Debes indicar un correo electrónico válido.', 400);
-    }
+  if (emailProvided && !isValidEmail(emailRaw)) {
+    throw createHttpError('Debes indicar un correo electrónico válido.', 400);
   }
 
   return {
@@ -149,7 +153,7 @@ function normalizeProfilePayload(body = {}) {
     objetivo: objetivo === undefined ? undefined : (objetivo || null),
     lesiones: lesiones === undefined ? undefined : (lesiones || null),
     sexo: sexoRaw === undefined ? undefined : (sexoRaw || null),
-    fecha_nacimiento: fechaRaw === undefined ? undefined : (fechaRaw || null),
+    fecha_nacimiento: fechaNacimiento,
     email: emailProvided ? emailRaw : undefined,
   };
 }

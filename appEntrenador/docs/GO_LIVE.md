@@ -17,6 +17,17 @@ Eso recrea cada tabla PK `id` con `AUTO_INCREMENT` (copia datos → drop → ren
   - Trainers en dump: `jhon`, `Tiago123`
   - Cambia las passwords tras el primer login.
 
+### Seed demo Client 360 (rutinas + nutrición)
+
+Para enriquecer clientes **ya existentes** (sin crear usuarios; no toca Camila ni smoke tests):
+
+```bash
+# Desde backend/, mismas DB_* que Render / TiDB
+node scripts/seedExistingClientsDemo.js
+```
+
+El script es idempotente: completa huecos de rutinas L–V, `nutrition_targets`, plan de dieta ciclo 2 semanas, membresía, hábitos, composición corporal, check-ins, sesiones, PRs y rachas para Lucas, Daniela, Chavo, Dayana y Sofía.
+
 ## Importar dump poblado (`db/coach_db.sql`)
 
 Desde `backend/` (con las mismas `DB_*` que Render / TiDB):

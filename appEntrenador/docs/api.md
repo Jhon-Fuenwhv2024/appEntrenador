@@ -493,7 +493,8 @@ Misma autorización que GET. Acepta `multipart/form-data` (campos de texto + arc
 Campos de texto: `email` (en `usuarios`, Feature 056), `telefono`, `fecha_nacimiento`, `sexo`, `lesiones`, `objetivo`.  
 Archivo: `foto` (JPEG/PNG/WebP/GIF, máx. 2 MB) → persiste en R2 (si está configurado) o disco local, y guarda URL relativa en `foto_url`.
 
-Si no existe fila en `alumnos_info`, la crea (upsert). `email` se actualiza en `usuarios` (único, válido).
+Si no existe fila en `alumnos_info`, la crea (upsert). `email` se actualiza en `usuarios` (único, válido).  
+Si `email` viene vacío u omitido, **no se modifica** el correo actual (permite guardar teléfono/objetivo/etc. en alumnos sin email).
 
 ## Rutinas
 

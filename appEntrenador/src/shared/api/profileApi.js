@@ -23,7 +23,11 @@ export function buildProfileFormData(fields, fotoFile = null) {
   const keys = ['email', 'telefono', 'fecha_nacimiento', 'sexo', 'lesiones', 'objetivo'];
   for (const key of keys) {
     if (fields[key] == null) continue;
-    formData.append(key, String(fields[key]));
+    const value = String(fields[key]);
+    // No enviar email vacío: el backend lo interpretaba como "obligatorio" y
+    // bloqueaba guardar teléfono/objetivo/etc. en alumnos sin correo.
+    if (key === 'email' && !value.trim()) continue;
+    formData.append(key, value);
   }
   if (fotoFile) {
     formData.append('foto', fotoFile);
