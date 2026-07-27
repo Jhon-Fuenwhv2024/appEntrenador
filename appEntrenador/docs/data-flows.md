@@ -98,6 +98,7 @@ Ver ADR-0004 y `docs/deploy-render.md` (sección R2).
 5. Cliente: `GET /me/diet-plan?date=` resuelve `week_index` + `dia_semana` desde `cycle_start_date` / `cycle_length_weeks`; sin fallback si el día está vacío. Strip semanal vía `/me/diet-plan/week`.
 6. Duplicar día/semana: en el form (estado local) y endpoints `POST .../copy-day` | `copy-week`.
 7. Feature **057**: jerarquía comida/productos en `ClientDietView` se mantiene sobre el día resuelto.
+8. Feature **069**: al escribir un alimento en `DietPlanForm`, blur/debounce o botón “Autocompletar” llama `GET /trainer/foods/lookup` (USDA → OFF) y rellena kcal/P/C/G si estaban en 0; reescala con `per_100g` al cambiar cantidad en g/ml.
 
 ## Plantillas → deep copy al alumno (Feature 018)
 

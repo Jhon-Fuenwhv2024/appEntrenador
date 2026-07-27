@@ -1203,6 +1203,40 @@ Preview de los 7 días de la semana del ciclo que contiene `date`.
 
 UI trainer: ficha 360 → Nutrición (`DietPlanPanel` / ciclo L–D). UI cliente: `ClientDietView` (057 + 064).
 
+## Lookup nutricional de alimentos (Feature 069)
+
+Proxy autenticado (trainer). Consulta USDA FoodData Central (si hay `USDA_FDC_API_KEY`) y Open Food Facts como fallback. La key **no** se expone al frontend. Macros base por 100 g/ml; se escalan a `quantity` cuando `unit` es `g` o `ml`.
+
+### `GET /trainer/foods/search?q=` (trainer)
+
+Hasta 8 sugerencias `{ id, name, source, per_100g }` para autocomplete. Mínimo 2 caracteres.
+
+### `GET /trainer/foods/lookup?q=&quantity=&unit=&fdcId=` (trainer)
+
+Devuelve macros escalados para rellenar el ítem del plan:
+
+```json
+{
+  "success": true,
+  "data": {
+    "query": "Huevo",
+    "matched_name": "Egg, whole, raw, fresh, n",
+    "quantity": 100,
+    "unit": "g",
+    "calories": 143,
+    "protein_g": 12.6,
+    "carbs_g": 0.7,
+    "fats_g": 9.5,
+    "per_100g": { "calories": 143, "protein_g": 12.6, "carbs_g": 0.7, "fats_g": 9.5 },
+    "source": "usda",
+    "scaled": true,
+    "note": null
+  }
+}
+```
+
+Errores: `400 INVALID_QUERY`, `404 FOOD_NOT_FOUND`.
+
 ## Hábitos diarios (Feature 032)
 
 Tablas `habits` + `habit_logs`. Las fechas de completado (`logged_date`) son **cadenas civiles `YYYY-MM-DD`** enviadas por el cliente según su zona local. El backend las valida y las guarda como `DATE` sin convertir a UTC.

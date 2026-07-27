@@ -24,6 +24,7 @@ const membershipsRoutes = require('./modules/memberships/memberships.routes');
 const personalRecordsRoutes = require('./modules/personal-records/personal-records.routes');
 const consistencyRoutes = require('./modules/consistency/consistency.routes');
 const dietPlansRoutes = require('./modules/diet-plans/diet-plans.routes');
+const foodLookupRoutes = require('./modules/food-lookup/food-lookup.routes');
 const adminExercisesRoutes = require('./modules/admin-exercises/admin-exercises.routes');
 const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
 const { ensurePhotosDir } = require('./middleware/uploadProgressPhotos');
@@ -136,6 +137,7 @@ app.use('/api', membershipsRoutes);
 app.use('/api', personalRecordsRoutes);
 app.use('/api', consistencyRoutes);
 app.use('/api', dietPlansRoutes);
+app.use('/api', foodLookupRoutes);
 app.use('/api/admin', adminExercisesRoutes);
 
 async function start() {

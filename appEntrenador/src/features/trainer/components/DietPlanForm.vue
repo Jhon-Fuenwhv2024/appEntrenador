@@ -1,9 +1,11 @@
 <script setup>
 /**
  * Editor de plan de dieta en ciclo multi-semana (Feature 064).
- * Meta + tabs Semana 1…N + strip L–D + builder de comidas del día.
+ * Autocompletado nutricional (Feature 069).
  */
 import { computed, reactive, ref, shallowRef, watch } from 'vue';
+import { getApiErrorMessage } from '../../../shared/api/http.js';
+import { lookupFood, searchFoods } from '../api/foodLookupApi.js';
 
 const props = defineProps({
   clientId: {
@@ -21,9 +23,10 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['submit', 'cancel']);
+const emit = defineEmits(['submit', 'cancel', 'notify']);
 
 const UNIT_OPTIONS = ['g', 'ml', 'unidad', 'taza', 'cucharada', 'porción'];
+const SCALE_UNITS = new Set(['g', 'ml']);
 const DAYS = [
   'Lunes',
   'Martes',
@@ -57,6 +60,8 @@ function emptyItem() {
     protein_g: 0,
     carbs_g: 0,
     fats_g: 0,
+    _per_100g: null,
+    _autofilled: false,
   };
 }
 
@@ -111,6 +116,8 @@ function cloneMeals(meals) {
       protein_g: Number(item.protein_g) || 0,
       carbs_g: Number(item.carbs_g) || 0,
       fats_g: Number(item.fats_g) || 0,
+      _per_100g: item._per_100g || null,
+      _autofilled: Boolean(item._autofilled),
     })),
   }));
 }
@@ -359,6 +366,203 @@ function removeItem(mealIndex, itemIndex) {
   const items = currentDay.value.meals[mealIndex].items;
   if (items.length <= 1) return;
   items.splice(itemIndex, 1);
+}
+
+function itemKey(mealIndex, itemIndex) {
+  return `${mealIndex}:${itemIndex}`;
+}
+
+function macrosAreEmpty(item) {
+  return !(
+    Number(item.calories) > 0
+    || Number(item.protein_g) > 0
+    || Number(item.carbs_g) > 0
+    || Number(item.fats_g) > 0
+  );
+}
+
+function roundMacro(n) {
+  return Math.round(Number(n) * 100) / 100;
+}
+
+function applyLookupData(item, data) {
+  item.calories = Number(data.calories) || 0;
+  item.protein_g = Number(data.protein_g) || 0;
+  item.carbs_g = Number(data.carbs_g) || 0;
+  item.fats_g = Number(data.fats_g) || 0;
+  item._per_100g = data.per_100g
+    ? {
+        calories: Number(data.per_100g.calories) || 0,
+        protein_g: Number(data.per_100g.protein_g) || 0,
+        carbs_g: Number(data.per_100g.carbs_g) || 0,
+        fats_g: Number(data.per_100g.fats_g) || 0,
+      }
+    : null;
+  item._autofilled = true;
+}
+
+function rescaleFromPer100g(item) {
+  if (!item?._per_100g || !item._autofilled) return;
+  if (!SCALE_UNITS.has(item.unit)) return;
+  const qty = Number(item.quantity);
+  if (!Number.isFinite(qty) || qty <= 0) return;
+  const factor = qty / 100;
+  const p = item._per_100g;
+  item.calories = roundMacro(p.calories * factor);
+  item.protein_g = roundMacro(p.protein_g * factor);
+  item.carbs_g = roundMacro(p.carbs_g * factor);
+  item.fats_g = roundMacro(p.fats_g * factor);
+}
+
+function markManualMacros(item) {
+  if (!item) return;
+  item._autofilled = false;
+}
+
+const foodSuggestions = reactive({});
+const foodSearchLoading = reactive({});
+const foodLookupLoading = reactive({});
+const searchTimers = {};
+const lookupTimers = {};
+
+async function fetchFoodSuggestions(mealIndex, itemIndex) {
+  const item = currentDay.value.meals[mealIndex]?.items?.[itemIndex];
+  if (!item) return;
+  const q = String(item.food_name || '').trim();
+  const key = itemKey(mealIndex, itemIndex);
+  if (q.length < 2) {
+    foodSuggestions[key] = [];
+    return;
+  }
+  foodSearchLoading[key] = true;
+  try {
+    const response = await searchFoods(q);
+    foodSuggestions[key] = response.data?.data ?? [];
+  } catch (error) {
+    console.error('Error buscando alimentos:', error);
+    foodSuggestions[key] = [];
+  } finally {
+    foodSearchLoading[key] = false;
+  }
+}
+
+async function runFoodLookup(mealIndex, itemIndex, { force = false } = {}) {
+  const item = currentDay.value.meals[mealIndex]?.items?.[itemIndex];
+  if (!item) return;
+  // Capture name first — autocomplete blur can race and clear model-value.
+  const name = String(item.food_name || '').trim();
+  if (name.length < 2) return;
+  if (!force && !macrosAreEmpty(item)) return;
+
+  const key = itemKey(mealIndex, itemIndex);
+  if (foodLookupLoading[key]) return;
+  foodLookupLoading[key] = true;
+  try {
+    const suggestions = foodSuggestions[key] || [];
+    const match = suggestions.find(
+      (s) => String(s.name || '').toLowerCase() === name.toLowerCase(),
+    );
+    const response = await lookupFood({
+      q: name,
+      quantity: item.quantity,
+      unit: item.unit,
+      fdcId: match?.id,
+    });
+    const data = response.data?.data;
+    if (!data) {
+      throw new Error('Sin datos nutricionales');
+    }
+    // Re-read item in case indices shifted; restore name if blur cleared it.
+    const live = currentDay.value.meals[mealIndex]?.items?.[itemIndex];
+    if (!live) return;
+    if (!String(live.food_name || '').trim()) {
+      live.food_name = name;
+    }
+    applyLookupData(live, data);
+    if (data.note) {
+      emit('notify', { text: data.note, color: 'info' });
+    } else if (force) {
+      emit('notify', {
+        text: `Macros de “${data.matched_name || name}” aplicados`,
+        color: 'success',
+      });
+    }
+  } catch (error) {
+    console.error('Error en lookup nutricional:', error);
+    emit('notify', {
+      text: getApiErrorMessage(error, 'No se pudo autocompletar el alimento'),
+      color: 'error',
+    });
+  } finally {
+    foodLookupLoading[key] = false;
+  }
+}
+
+function scheduleFoodSearch(mealIndex, itemIndex) {
+  const key = itemKey(mealIndex, itemIndex);
+  clearTimeout(searchTimers[key]);
+  searchTimers[key] = setTimeout(() => {
+    fetchFoodSuggestions(mealIndex, itemIndex);
+  }, 400);
+}
+
+function scheduleFoodLookup(mealIndex, itemIndex) {
+  const key = itemKey(mealIndex, itemIndex);
+  clearTimeout(lookupTimers[key]);
+  lookupTimers[key] = setTimeout(() => {
+    runFoodLookup(mealIndex, itemIndex, { force: false });
+  }, 600);
+}
+
+/**
+ * Normalize food name input and schedule search + autofill.
+ */
+function onFoodTyped(mealIndex, itemIndex) {
+  const item = currentDay.value.meals[mealIndex]?.items?.[itemIndex];
+  if (!item) return;
+  item.food_name = String(item.food_name || '');
+  scheduleFoodSearch(mealIndex, itemIndex);
+  scheduleFoodLookup(mealIndex, itemIndex);
+}
+
+function onFoodClear(mealIndex, itemIndex) {
+  const item = currentDay.value.meals[mealIndex]?.items?.[itemIndex];
+  if (!item) return;
+  item.food_name = '';
+  item._per_100g = null;
+  item._autofilled = false;
+  const key = itemKey(mealIndex, itemIndex);
+  foodSuggestions[key] = [];
+  clearTimeout(searchTimers[key]);
+  clearTimeout(lookupTimers[key]);
+}
+
+function onFoodBlur(mealIndex, itemIndex) {
+  const key = itemKey(mealIndex, itemIndex);
+  clearTimeout(lookupTimers[key]);
+  setTimeout(() => {
+    runFoodLookup(mealIndex, itemIndex, { force: false });
+  }, 180);
+}
+
+function onAutofillClick(mealIndex, itemIndex) {
+  const key = itemKey(mealIndex, itemIndex);
+  clearTimeout(lookupTimers[key]);
+  runFoodLookup(mealIndex, itemIndex, { force: true });
+}
+
+function applySuggestion(mealIndex, itemIndex, suggestion) {
+  const item = currentDay.value.meals[mealIndex]?.items?.[itemIndex];
+  if (!item || !suggestion) return;
+  item.food_name = String(suggestion.name || '').trim();
+  const key = itemKey(mealIndex, itemIndex);
+  foodSuggestions[key] = [suggestion];
+  runFoodLookup(mealIndex, itemIndex, { force: true });
+}
+
+function onQuantityUnitChange(mealIndex, itemIndex) {
+  const item = currentDay.value.meals[mealIndex]?.items?.[itemIndex];
+  rescaleFromPer100g(item);
 }
 
 function moveMeal(mealIndex, delta) {
@@ -856,8 +1060,8 @@ defineExpose({ resetForm, buildPayload });
           :key="itemIndex"
           class="dpf__item"
         >
-          <v-row dense>
-            <v-col cols="12" sm="4">
+          <div class="dpf__item-row">
+            <div class="dpf__item-food">
               <v-text-field
                 v-model="item.food_name"
                 label="Alimento"
@@ -865,9 +1069,59 @@ defineExpose({ resetForm, buildPayload });
                 variant="outlined"
                 hide-details="auto"
                 color="primary"
-              />
-            </v-col>
-            <v-col cols="4" sm="2">
+                clearable
+                autocomplete="off"
+                class="dpf__food-input"
+                :loading="Boolean(
+                  foodSearchLoading[`${mealIndex}:${itemIndex}`]
+                  || foodLookupLoading[`${mealIndex}:${itemIndex}`]
+                )"
+                @update:model-value="onFoodTyped(mealIndex, itemIndex)"
+                @click:clear="onFoodClear(mealIndex, itemIndex)"
+                @blur="onFoodBlur(mealIndex, itemIndex)"
+                @keydown.enter.prevent="onAutofillClick(mealIndex, itemIndex)"
+              >
+                <template #append-inner>
+                  <v-btn
+                    icon="mdi-magic-staff"
+                    size="x-small"
+                    variant="text"
+                    color="primary"
+                    class="dpf__food-autofill"
+                    type="button"
+                    tabindex="-1"
+                    :loading="Boolean(foodLookupLoading[`${mealIndex}:${itemIndex}`])"
+                    :disabled="!String(item.food_name || '').trim()"
+                    aria-label="Autocompletar macros del alimento"
+                    @mousedown.prevent
+                    @click="onAutofillClick(mealIndex, itemIndex)"
+                  />
+                </template>
+              </v-text-field>
+              <div
+                v-if="(foodSuggestions[`${mealIndex}:${itemIndex}`] || []).length"
+                class="dpf__food-suggestions"
+                role="listbox"
+                aria-label="Sugerencias de alimentos"
+              >
+                <button
+                  v-for="suggestion in foodSuggestions[`${mealIndex}:${itemIndex}`]"
+                  :key="suggestion.id || suggestion.name"
+                  type="button"
+                  class="dpf__food-suggestion"
+                  role="option"
+                  @mousedown.prevent
+                  @click="applySuggestion(mealIndex, itemIndex, suggestion)"
+                >
+                  <span class="dpf__food-suggestion-name">{{ suggestion.name }}</span>
+                  <span class="dpf__food-suggestion-src">{{
+                    suggestion.source === 'usda' ? 'USDA' : 'OFF'
+                  }}</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="dpf__item-num dpf__item-qty">
               <v-text-field
                 v-model.number="item.quantity"
                 label="Cant."
@@ -878,9 +1132,10 @@ defineExpose({ resetForm, buildPayload });
                 variant="outlined"
                 hide-details="auto"
                 color="primary"
+                @update:model-value="onQuantityUnitChange(mealIndex, itemIndex)"
               />
-            </v-col>
-            <v-col cols="4" sm="2">
+            </div>
+            <div class="dpf__item-num dpf__item-unit">
               <v-select
                 v-model="item.unit"
                 :items="UNIT_OPTIONS"
@@ -891,9 +1146,10 @@ defineExpose({ resetForm, buildPayload });
                 color="primary"
                 :menu-props="{ contentClass: 'tf-overlay-menu' }"
                 :list-props="{ bgColor: 'surface' }"
+                @update:model-value="onQuantityUnitChange(mealIndex, itemIndex)"
               />
-            </v-col>
-            <v-col cols="4" sm="1">
+            </div>
+            <div class="dpf__item-num dpf__item-macro">
               <v-text-field
                 v-model.number="item.calories"
                 label="kcal"
@@ -904,9 +1160,10 @@ defineExpose({ resetForm, buildPayload });
                 variant="outlined"
                 hide-details="auto"
                 color="primary"
+                @update:model-value="markManualMacros(item)"
               />
-            </v-col>
-            <v-col cols="4" sm="1">
+            </div>
+            <div class="dpf__item-num dpf__item-macro">
               <v-text-field
                 v-model.number="item.protein_g"
                 label="P"
@@ -917,9 +1174,10 @@ defineExpose({ resetForm, buildPayload });
                 variant="outlined"
                 hide-details="auto"
                 color="primary"
+                @update:model-value="markManualMacros(item)"
               />
-            </v-col>
-            <v-col cols="4" sm="1">
+            </div>
+            <div class="dpf__item-num dpf__item-macro">
               <v-text-field
                 v-model.number="item.carbs_g"
                 label="C"
@@ -930,9 +1188,10 @@ defineExpose({ resetForm, buildPayload });
                 variant="outlined"
                 hide-details="auto"
                 color="primary"
+                @update:model-value="markManualMacros(item)"
               />
-            </v-col>
-            <v-col cols="3" sm="1">
+            </div>
+            <div class="dpf__item-num dpf__item-macro">
               <v-text-field
                 v-model.number="item.fats_g"
                 label="G"
@@ -943,9 +1202,10 @@ defineExpose({ resetForm, buildPayload });
                 variant="outlined"
                 hide-details="auto"
                 color="primary"
+                @update:model-value="markManualMacros(item)"
               />
-            </v-col>
-            <v-col cols="1" class="d-flex align-center justify-center">
+            </div>
+            <div class="dpf__item-remove">
               <v-btn
                 icon="mdi-close"
                 size="x-small"
@@ -954,8 +1214,8 @@ defineExpose({ resetForm, buildPayload });
                 aria-label="Quitar alimento"
                 @click="removeItem(mealIndex, itemIndex)"
               />
-            </v-col>
-          </v-row>
+            </div>
+          </div>
         </div>
 
         <v-btn
@@ -1268,8 +1528,125 @@ defineExpose({ resetForm, buildPayload });
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
+.dpf__item-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.dpf__item-food {
+  flex: 1 1 11rem;
+  min-width: min(100%, 10rem);
+}
+
+.dpf__item-num {
+  flex: 0 0 auto;
+}
+
+.dpf__item-qty {
+  width: 5.25rem;
+}
+
+.dpf__item-unit {
+  width: 6.25rem;
+}
+
+.dpf__item-macro {
+  width: 5.5rem;
+}
+
+.dpf__item-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 2rem;
+  min-height: 40px;
+  padding-top: 0.15rem;
+}
+
+.dpf__food-autofill {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  margin-inline-end: -2px;
+}
+
+.dpf__food-autofill :deep(.v-icon) {
+  font-size: 16px !important;
+}
+
+.dpf__item-num :deep(.v-field__input) {
+  font-size: 0.82rem;
+  min-height: 40px;
+  padding-inline: 8px !important;
+}
+
+.dpf__item-num :deep(input) {
+  text-align: center;
+}
+
+.dpf__food-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0.25rem 0 0.35rem;
+  max-height: 9rem;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgb(var(--v-theme-surface));
+}
+
+.dpf__food-suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  border: 0;
+  background: transparent;
+  color: var(--tf-on-surface, #e8eaed);
+  text-align: left;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.dpf__food-suggestion:hover,
+.dpf__food-suggestion:focus-visible {
+  background: rgba(0, 229, 255, 0.12);
+  outline: none;
+}
+
+.dpf__food-suggestion-name {
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.dpf__food-suggestion-src {
+  flex: 0 0 auto;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
 .dpf__item:last-of-type {
   border-bottom: none;
+}
+
+@media (max-width: 600px) {
+  .dpf__item-qty,
+  .dpf__item-unit,
+  .dpf__item-macro {
+    width: calc(33.333% - 0.3rem);
+    min-width: 4.75rem;
+  }
+
+  .dpf__item-food {
+    flex: 1 1 100%;
+  }
 }
 
 .dpf__footer {

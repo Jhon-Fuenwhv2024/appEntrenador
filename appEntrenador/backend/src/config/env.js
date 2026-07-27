@@ -78,6 +78,9 @@ const R2 = {
   endpoint: R2_ENDPOINT,
 };
 
+/** USDA FoodData Central API key (api.data.gov). Optional; OFF used as fallback. */
+const USDA_FDC_API_KEY = String(process.env.USDA_FDC_API_KEY || '').trim();
+
 module.exports = {
   JWT_SECRET: JWT_SECRET || 'trainfit-dev-only-change-me',
   JWT_EXPIRES_IN,
@@ -88,4 +91,5 @@ module.exports = {
   CORS_ORIGINS,
   R2,
   isR2Configured,
+  USDA_FDC_API_KEY,
 };

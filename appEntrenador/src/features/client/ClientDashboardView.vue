@@ -220,6 +220,7 @@ onMounted(async () => {
           <ClientDietView
             v-if="!loading"
             compact
+            :membership-blocked="membershipBlocked"
           />
         </div>
       </div>

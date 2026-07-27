@@ -204,6 +204,7 @@ onMounted(() => {
       :saving="saving"
       @submit="onSubmit"
       @cancel="cancelForm"
+      @notify="(payload) => emit('notify', payload)"
     />
 
     <template v-else>

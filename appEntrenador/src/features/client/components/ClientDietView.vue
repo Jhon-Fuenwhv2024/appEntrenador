@@ -4,7 +4,10 @@
  * Feature 057 jerarquía + Feature 064 resolución por fecha / strip semanal.
  */
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
-import { getApiErrorMessage } from '../../../shared/api/http.js';
+import {
+  getApiErrorMessage,
+  isMembershipBlockedError,
+} from '../../../shared/api/http.js';
 import { getMyDietPlan, getMyDietPlanWeek } from '../api/dietPlansApi.js';
 
 const props = defineProps({
@@ -22,7 +25,14 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /** Soft-lock por membresía vencida (Feature 040), desde el dashboard. */
+  membershipBlocked: {
+    type: Boolean,
+    default: false,
+  },
 });
+
+const MEMBERSHIP_BLOCKED_MSG = 'Membresía vencida — habla con tu entrenador';
 
 const DAYS = [
   'Lunes',
@@ -45,11 +55,16 @@ const DAY_SHORT = {
 
 const loading = shallowRef(false);
 const loadError = shallowRef('');
+const blockedByMembership = shallowRef(false);
 const plan = shallowRef(null);
 const weekPreview = shallowRef(null);
 const empty = shallowRef(false);
 const expandedIds = ref([]);
 const selectedDia = ref(null);
+
+const isLocked = computed(
+  () => props.membershipBlocked || blockedByMembership.value,
+);
 
 function todayYmd() {
   const d = new Date();
@@ -214,6 +229,7 @@ function applyPlan(value) {
   plan.value = value ?? null;
   empty.value = !plan.value;
   loadError.value = '';
+  blockedByMembership.value = false;
   loading.value = false;
   selectedDia.value = value?.resolved?.dia_semana || null;
   syncExpandedFromPlan();
@@ -224,12 +240,25 @@ async function loadWeek(date) {
     const response = await getMyDietPlanWeek(date);
     weekPreview.value = response.data?.data ?? null;
   } catch (error) {
+    if (isMembershipBlockedError(error)) {
+      blockedByMembership.value = true;
+    }
     console.error('Error cargando semana del plan:', error);
     weekPreview.value = null;
   }
 }
 
 async function loadPlan() {
+  if (props.membershipBlocked) {
+    loading.value = false;
+    loadError.value = '';
+    blockedByMembership.value = true;
+    plan.value = null;
+    weekPreview.value = null;
+    empty.value = false;
+    return;
+  }
+
   if (props.skipFetch) {
     applyPlan(props.initialPlan);
     if (props.initialPlan?.resolved?.date) {
@@ -241,6 +270,7 @@ async function loadPlan() {
   try {
     loading.value = true;
     loadError.value = '';
+    blockedByMembership.value = false;
     empty.value = false;
     const date = todayYmd();
     const response = await getMyDietPlan(date);
@@ -252,11 +282,17 @@ async function loadPlan() {
     }
   } catch (error) {
     console.error('Error cargando plan de dieta:', error);
-    loadError.value = getApiErrorMessage(error, 'No se pudo cargar tu plan de dieta');
     plan.value = null;
     weekPreview.value = null;
     empty.value = false;
     expandedIds.value = [];
+    if (isMembershipBlockedError(error)) {
+      blockedByMembership.value = true;
+      loadError.value = '';
+    } else {
+      blockedByMembership.value = false;
+      loadError.value = getApiErrorMessage(error, 'No se pudo cargar tu plan de dieta');
+    }
   } finally {
     loading.value = false;
   }
@@ -268,8 +304,17 @@ function selectStripDay(dia) {
 }
 
 watch(
-  () => [props.skipFetch, props.initialPlan],
+  () => [props.skipFetch, props.initialPlan, props.membershipBlocked],
   async () => {
+    if (props.membershipBlocked) {
+      blockedByMembership.value = true;
+      loadError.value = '';
+      plan.value = null;
+      weekPreview.value = null;
+      empty.value = false;
+      loading.value = false;
+      return;
+    }
     if (props.skipFetch) {
       applyPlan(props.initialPlan);
       if (props.initialPlan?.resolved?.date) {
@@ -287,16 +332,37 @@ onMounted(() => {
 <template>
   <section
     class="cdv"
-    :class="{ 'cdv--compact': compact }"
+    :class="{ 'cdv--compact': compact, 'cdv--locked': isLocked }"
     aria-label="Plan de dieta del día"
   >
     <div class="cdv__head">
       <h3 class="cdv__title">Mi plan de dieta</h3>
-      <p v-if="plan" class="cdv__plan-name">{{ plan.title }}</p>
-      <p class="cdv__subtitle">{{ headerSubtitle }}</p>
+      <p v-if="plan && !isLocked" class="cdv__plan-name">{{ plan.title }}</p>
+      <p class="cdv__subtitle">{{ isLocked ? 'Acceso pausado' : headerSubtitle }}</p>
     </div>
 
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-2" height="2" />
+
+    <div
+      v-else-if="isLocked"
+      class="cdv__locked"
+      role="status"
+      aria-live="polite"
+    >
+      <p class="cdv__locked-eyebrow">Bloqueado</p>
+      <p class="cdv__locked-msg">{{ MEMBERSHIP_BLOCKED_MSG }}</p>
+      <v-btn
+        color="error"
+        variant="tonal"
+        size="small"
+        rounded="lg"
+        disabled
+        prepend-icon="mdi-lock"
+        class="font-weight-bold"
+      >
+        Bloqueado
+      </v-btn>
+    </div>
 
     <v-alert v-else-if="loadError" type="error" variant="tonal" density="compact" class="mb-2">
       {{ loadError }}
@@ -481,6 +547,38 @@ onMounted(() => {
   margin: 0.35rem 0 0;
   font-size: 0.8rem;
   color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.cdv--locked {
+  border-color: rgba(239, 83, 80, 0.35);
+}
+
+.cdv__locked {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(239, 83, 80, 0.28);
+  background: rgba(239, 83, 80, 0.08);
+}
+
+.cdv__locked-eyebrow {
+  margin: 0;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ef5350;
+}
+
+.cdv__locked-msg {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--tf-on-surface, #e8eaed);
 }
 
 .cdv__strip {
