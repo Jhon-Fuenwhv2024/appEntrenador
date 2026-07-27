@@ -135,17 +135,21 @@ function cancelEdit() {
 
 function onFileChange(file) {
   const next = Array.isArray(file) ? file[0] : file;
-  fotoFile.value = next || null;
+  fotoFile.value = (typeof File !== 'undefined' && next instanceof File) ? next : null;
   if (previewObjectUrl.value) {
     URL.revokeObjectURL(previewObjectUrl.value);
     previewObjectUrl.value = '';
   }
-  if (next instanceof File) {
-    previewObjectUrl.value = URL.createObjectURL(next);
+  if (fotoFile.value) {
+    previewObjectUrl.value = URL.createObjectURL(fotoFile.value);
   }
 }
 
 function onSubmit() {
+  const rawFoto = fotoFile.value;
+  const safeFoto = (typeof File !== 'undefined' && rawFoto instanceof File)
+    ? rawFoto
+    : null;
   emit('save', {
     fields: {
       email: form.email,
@@ -155,7 +159,7 @@ function onSubmit() {
       lesiones: form.lesiones,
       objetivo: form.objetivo,
     },
-    fotoFile: fotoFile.value,
+    fotoFile: safeFoto,
     done: (ok) => {
       if (ok) editing.value = false;
     },

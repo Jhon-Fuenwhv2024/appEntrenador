@@ -29,7 +29,8 @@ export function buildProfileFormData(fields, fotoFile = null) {
     if (key === 'email' && !value.trim()) continue;
     formData.append(key, value);
   }
-  if (fotoFile) {
+  // v-file-input puede devolver [] al limpiar; no es un File y rompe multer (500).
+  if (typeof File !== 'undefined' && fotoFile instanceof File) {
     formData.append('foto', fotoFile);
   }
   return formData;

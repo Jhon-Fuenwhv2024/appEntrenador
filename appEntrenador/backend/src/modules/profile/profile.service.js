@@ -239,7 +239,14 @@ async function upsertProfile(actor, targetUserId, body, uploadedFile) {
     await connection.commit();
   } catch (error) {
     await connection.rollback();
-    throw error;
+    if (Number.isInteger(error.code) && error.code >= 400 && error.code < 600) {
+      throw error;
+    }
+    console.error('[profile] upsert DB error:', error.message, error.code, error.sqlMessage);
+    throw createHttpError(
+      error.sqlMessage || error.message || 'No se pudo guardar el perfil.',
+      500,
+    );
   } finally {
     connection.release();
   }
