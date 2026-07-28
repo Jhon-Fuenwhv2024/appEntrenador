@@ -184,14 +184,15 @@ Ver ADR-0004 y `docs/deploy-render.md` (sección R2).
 3. UI: fila compacta de 5 KPIs + hub (actividad mensual pequeña + acciones). El pill de perfil muestra `saas_plan` (FREE/PRO), no el rol.
 4. Definiciones de negocio: [ADR-0003](decisions/ADR-0003-trainer-dashboard-metrics.md).
 
-## Visualización de progreso / gráficas (Feature 027)
+## Visualización de progreso / gráficas (Feature 027 + 072)
 
-1. Cliente (pestaña **Gráficas** en Mi progreso) o trainer (pestaña **Gráficas** en la ficha) llama:
+1. Cliente en **Mi progreso** (`/client/progress`, single scroll Feature 072) o trainer (pestaña **Gráficas** en la ficha) llama:
    - `GET /progress/metrics/:clientId` → peso + IMC ASC.
    - `GET /progress/exercises/:clientId` → lista de ejercicios con logs; luego `?exerciseId=` / `?exerciseName=` → MAX(weight) por día.
 2. Ownership en service: client solo su id; trainer vía `getClientOwnedByTrainer`.
-3. UI: `ProgressChartsPanel` + `ProgressLineChart` (chart.js / vue-chartjs). Si hay menos de 2 puntos, se oculta el canvas y se muestra mensaje de datos insuficientes.
+3. UI: `ProgressChartsPanel` + `ProgressLineChart` (chart.js / vue-chartjs). En cliente, filtro **7/30/90** en frontend sobre las series ya cargadas; tendencia textual (sube/baja/estable). Si hay menos de 2 puntos, empty state motivador.
 4. Fuerza se agrupa por `exercise_name` (misma regla que Feature 019), no por `ejercicios.id` efímero.
+5. Hero cliente: `GET /me/consistency` (racha) + sesiones 7d + delta de peso desde `GET /me/body-composition` (último vs anterior).
 
 ## Mensajería interna SSE (Feature 034)
 

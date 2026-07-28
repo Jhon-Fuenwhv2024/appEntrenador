@@ -57,7 +57,7 @@ El backend monta módulos bajo `/api` desde `backend/src/server.js`.
 - `backend/src/modules/checkins/`: check-in semanal + fotos de progreso opcionales (Feature 033). Multer en `uploads/photos`.
 - `backend/src/modules/messages/`: chat interno trainer↔cliente vía REST + SSE in-memory (Feature 034). Sin Socket.io.
 - Frontend trainer: `LibraryView` es el hub (tabs Plantillas | Catálogo en `/trainer/library` y `/trainer/library/exercises`); ficha 360 / `TemplateFormDialog` usan autocomplete híbrido (`nombre` + `exercise_id`).
-- Frontend gráficas: `src/shared/components/ProgressLineChart.vue` + `ProgressChartsPanel.vue` (chart.js); pestaña en `ClientProgressView` y sección Gráficas de `Client360View`.
+- Frontend gráficas: `src/shared/components/ProgressLineChart.vue` + `ProgressChartsPanel.vue` (chart.js); **Mi progreso** (cliente) es single scroll con hero + tendencias 7/30/90 (Feature 072); Client 360 trainer mantiene pestaña Gráficas sin romper el panel compartido.
 
 Cada módulo sigue la forma `routes -> controller -> service`. Los services concentran consultas MySQL parametrizadas y los controllers traducen a respuestas JSON.
 

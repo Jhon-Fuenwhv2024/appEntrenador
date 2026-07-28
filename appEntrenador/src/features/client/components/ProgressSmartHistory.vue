@@ -5,7 +5,7 @@
 import { shallowRef } from 'vue';
 import WorkoutSessionHistoryList from '../../../shared/components/WorkoutSessionHistoryList.vue';
 
-defineProps({
+const props = defineProps({
   recentSessions: {
     type: Array,
     default: () => [],
@@ -18,32 +18,65 @@ defineProps({
     type: String,
     default: 'Sin entrenamientos aún. Completa una rutina desde Inicio.',
   },
+  title: {
+    type: String,
+    default: 'Historial',
+  },
+  hint: {
+    type: String,
+    default: 'Últimas 5 · resto por mes',
+  },
+  /** Si true, el padre ya muestra el título de sección. */
+  hideHead: {
+    type: Boolean,
+    default: false,
+  },
+  showRecent: {
+    type: Boolean,
+    default: true,
+  },
+  showByMonth: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 const openPanels = shallowRef([]);
+
+function hasContent() {
+  if (props.showRecent && props.recentSessions.length) return true;
+  if (props.showByMonth && props.sessionsByMonth.length) return true;
+  return false;
+}
 </script>
 
 <template>
-  <section class="smart-history" aria-label="Historial de entrenamientos">
-    <div class="smart-history__head">
-      <h2 class="smart-history__title">Historial</h2>
-      <span class="smart-history__hint">Últimas 5 · resto por mes</span>
+  <section class="smart-history" :aria-label="title">
+    <div v-if="!hideHead" class="smart-history__head">
+      <h2 class="smart-history__title">{{ title }}</h2>
+      <span class="smart-history__hint">{{ hint }}</span>
     </div>
 
-    <div v-if="!recentSessions.length" class="smart-history__empty">
+    <div v-if="!hasContent()" class="smart-history__empty">
       {{ emptyText }}
     </div>
 
     <template v-else>
-      <p class="smart-history__section-label">Recientes</p>
-      <WorkoutSessionHistoryList
-        :sessions="recentSessions"
-        compact
-        empty-text=""
-      />
+      <template v-if="showRecent && recentSessions.length">
+        <p v-if="showByMonth" class="smart-history__section-label">Recientes</p>
+        <WorkoutSessionHistoryList
+          :sessions="recentSessions"
+          compact
+          empty-text=""
+        />
+      </template>
 
-      <template v-if="sessionsByMonth.length">
-        <p class="smart-history__section-label smart-history__section-label--spaced">
+      <template v-if="showByMonth && sessionsByMonth.length">
+        <p
+          v-if="showRecent"
+          class="smart-history__section-label"
+          :class="{ 'smart-history__section-label--spaced': showRecent && recentSessions.length }"
+        >
           Anteriores
         </p>
         <v-expansion-panels
@@ -101,7 +134,7 @@ const openPanels = shallowRef([]);
   margin: 0;
   font-size: 0.88rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--tf-on-surface, #fff);
 }
 
 .smart-history__hint {
@@ -120,7 +153,7 @@ const openPanels = shallowRef([]);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #5e6673;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .smart-history__section-label--spaced {

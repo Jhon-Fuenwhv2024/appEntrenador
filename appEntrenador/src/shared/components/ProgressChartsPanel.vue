@@ -2,11 +2,18 @@
 /**
  * Panel de gráficas de progreso (actividad + métricas corporales + fuerza).
  * Usado en Mi Progreso (cliente) y ficha del alumno (trainer).
+ * Feature 072: filtro opcional 7/30/90 + contexto de tendencia.
  */
 import { computed, defineAsyncComponent, onMounted, shallowRef, watch } from 'vue';
 import { getApiErrorMessage } from '../api/http.js';
 import { getProgressExercises, getProgressMetrics } from '../api/progressApi.js';
 import { useProgressSessions } from '../../features/client/composables/useProgressSessions.js';
+import {
+  PROGRESS_RANGE_OPTIONS,
+  computeSeriesTrend,
+  filterAlignedSeriesByRange,
+  weeksForRange,
+} from '../../features/client/composables/useProgressRange.js';
 
 const ProgressLineChart = defineAsyncComponent(() => import('./ProgressLineChart.vue'));
 const ProgressBarChart = defineAsyncComponent(() => import('./ProgressBarChart.vue'));
@@ -26,33 +33,88 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  /**
+   * Días de rango. `null` = sin filtro (todas las series).
+   * Con `enableRangeFilter` el panel gestiona chips 7/30/90.
+   */
+  rangeDays: {
+    type: Number,
+    default: null,
+  },
+  /** Muestra chips 7/30/90 (cliente). Trainer: false por defecto. */
+  enableRangeFilter: {
+    type: Boolean,
+    default: false,
+  },
+  /** Oculta bloque de actividad si el padre ya muestra ProgressActivityBars. */
+  hideActivity: {
+    type: Boolean,
+    default: false,
+  },
 });
+
+const emit = defineEmits(['update:rangeDays']);
+
+const internalRange = shallowRef(props.enableRangeFilter ? (props.rangeDays || 30) : props.rangeDays);
+
+watch(() => props.rangeDays, (value) => {
+  if (props.enableRangeFilter) {
+    if (value === 7 || value === 30 || value === 90) {
+      internalRange.value = value;
+    }
+  } else {
+    internalRange.value = value;
+  }
+});
+
+const effectiveRangeDays = computed(() => {
+  if (props.enableRangeFilter) {
+    return internalRange.value || 30;
+  }
+  return props.rangeDays;
+});
+
+function selectRange(days) {
+  if (!props.enableRangeFilter) return;
+  internalRange.value = days;
+  emit('update:rangeDays', days);
+}
 
 const activityPeriod = shallowRef('week');
 const {
   weeklyActivity,
   monthlyActivity,
+  buildWeeklyActivity,
   completedCount,
   allSessionsByMonth,
 } = useProgressSessions(computed(() => props.sessions));
 
+const rangedWeeklyActivity = computed(() => {
+  if (!props.enableRangeFilter) return weeklyActivity.value;
+  return buildWeeklyActivity(weeksForRange(effectiveRangeDays.value));
+});
+
 const activityLabels = computed(() => (
   activityPeriod.value === 'week'
-    ? weeklyActivity.value.map((w) => w.label)
+    ? rangedWeeklyActivity.value.map((w) => w.label)
     : monthlyActivity.value.map((m) => m.label)
 ));
 
 const activityValues = computed(() => (
   activityPeriod.value === 'week'
-    ? weeklyActivity.value.map((w) => w.count)
+    ? rangedWeeklyActivity.value.map((w) => w.count)
     : monthlyActivity.value.map((m) => m.count)
 ));
 
-const activityHint = computed(() => (
-  activityPeriod.value === 'week'
-    ? 'Sesiones completadas por semana'
-    : 'Sesiones completadas por mes'
-));
+const activityHint = computed(() => {
+  if (activityPeriod.value === 'month') {
+    return 'Sesiones completadas por mes';
+  }
+  if (props.enableRangeFilter) {
+    return `Sesiones completadas · ${weeksForRange(effectiveRangeDays.value)} semanas`;
+  }
+  return 'Sesiones completadas por semana';
+});
 
 const loadingMetrics = shallowRef(true);
 const loadingExercises = shallowRef(false);
@@ -70,17 +132,45 @@ const selectedOption = computed(() => (
   exerciseOptions.value.find((o) => o.key === selectedKey.value) || null
 ));
 
+const filteredBody = computed(() => {
+  const filtered = filterAlignedSeriesByRange(
+    metrics.value.labels,
+    [metrics.value.weightKg, metrics.value.bmi],
+    effectiveRangeDays.value,
+  );
+  return {
+    labels: filtered.labels,
+    weightKg: filtered.seriesList[0] ?? [],
+    bmi: filtered.seriesList[1] ?? [],
+  };
+});
+
+const filteredStrength = computed(() => {
+  const filtered = filterAlignedSeriesByRange(
+    exerciseSeries.value.labels,
+    [exerciseSeries.value.maxWeight],
+    effectiveRangeDays.value,
+  );
+  return {
+    labels: filtered.labels,
+    maxWeight: filtered.seriesList[0] ?? [],
+  };
+});
+
+const bodyTrend = computed(() => computeSeriesTrend(filteredBody.value.weightKg));
+const strengthTrend = computed(() => computeSeriesTrend(filteredStrength.value.maxWeight));
+
 const bodyDatasets = computed(() => [
   {
     label: 'Peso (kg)',
-    data: metrics.value.weightKg,
+    data: filteredBody.value.weightKg,
     borderColor: '#00E5FF',
     backgroundColor: 'rgba(0, 229, 255, 0.15)',
     pointBackgroundColor: '#00E5FF',
   },
   {
     label: 'IMC',
-    data: metrics.value.bmi,
+    data: filteredBody.value.bmi,
     borderColor: '#00E676',
     backgroundColor: 'rgba(0, 230, 118, 0.12)',
     pointBackgroundColor: '#00E676',
@@ -92,12 +182,25 @@ const strengthDatasets = computed(() => [
     label: exerciseSeries.value.exerciseName
       ? `Máx. ${exerciseSeries.value.exerciseName} (kg)`
       : 'Peso máximo (kg)',
-    data: exerciseSeries.value.maxWeight,
+    data: filteredStrength.value.maxWeight,
     borderColor: '#00E5FF',
     backgroundColor: 'rgba(0, 229, 255, 0.15)',
     pointBackgroundColor: '#00E5FF',
   },
 ]);
+
+function trendIcon(direction) {
+  if (direction === 'up') return 'mdi-trending-up';
+  if (direction === 'down') return 'mdi-trending-down';
+  return 'mdi-approximately-equal';
+}
+
+function formatTrendDelta(delta, unit) {
+  if (delta == null) return '';
+  const rounded = Math.round(delta * 10) / 10;
+  const sign = rounded > 0 ? '+' : '';
+  return `${sign}${rounded} ${unit}`;
+}
 
 function optionKey(item) {
   if (item.exerciseId != null) {
@@ -207,7 +310,30 @@ defineExpose({ reloadAll });
 
 <template>
   <div class="progress-charts" :class="{ 'progress-charts--compact': compact }">
-    <section v-if="sessions.length || completedCount" class="progress-charts__block">
+    <div
+      v-if="enableRangeFilter"
+      class="progress-charts__range"
+      role="group"
+      aria-label="Rango de tendencias"
+    >
+      <button
+        v-for="opt in PROGRESS_RANGE_OPTIONS"
+        :key="opt.value"
+        type="button"
+        class="progress-charts__range-chip"
+        :class="{ 'progress-charts__range-chip--active': effectiveRangeDays === opt.value }"
+        :aria-pressed="effectiveRangeDays === opt.value"
+        :aria-label="`Tendencias últimos ${opt.label}`"
+        @click="selectRange(opt.value)"
+      >
+        {{ opt.label }}
+      </button>
+    </div>
+
+    <section
+      v-if="!hideActivity && (sessions.length || completedCount)"
+      class="progress-charts__block"
+    >
       <div class="progress-charts__head">
         <div>
           <h3 class="progress-charts__title">Actividad de entrenamiento</h3>
@@ -248,8 +374,21 @@ defineExpose({ reloadAll });
 
     <section class="progress-charts__block">
       <div class="progress-charts__head">
-        <h3 class="progress-charts__title">Evolución corporal</h3>
-        <span class="progress-charts__hint">Peso e IMC</span>
+        <div>
+          <h3 class="progress-charts__title">Evolución corporal</h3>
+          <span class="progress-charts__hint">Peso e IMC</span>
+        </div>
+        <span
+          v-if="bodyTrend"
+          class="progress-charts__trend"
+          :class="`progress-charts__trend--${bodyTrend.direction}`"
+        >
+          <v-icon :icon="trendIcon(bodyTrend.direction)" size="14" aria-hidden="true" />
+          {{ bodyTrend.label }}
+          <span class="progress-charts__trend-delta">
+            {{ formatTrendDelta(bodyTrend.delta, 'kg') }}
+          </span>
+        </span>
       </div>
 
       <v-progress-linear
@@ -273,16 +412,29 @@ defineExpose({ reloadAll });
       </v-alert>
       <ProgressLineChart
         v-else
-        :labels="metrics.labels"
+        :labels="filteredBody.labels"
         :datasets="bodyDatasets"
-        empty-text="Registra al menos dos mediciones para visualizar tu gráfica de progreso"
+        empty-text="Entrena y registra peso para ver tu evolución"
       />
     </section>
 
     <section class="progress-charts__block">
       <div class="progress-charts__head">
-        <h3 class="progress-charts__title">Evolución de fuerza</h3>
-        <span class="progress-charts__hint">Máximo del día</span>
+        <div>
+          <h3 class="progress-charts__title">Evolución de fuerza</h3>
+          <span class="progress-charts__hint">Máximo del día</span>
+        </div>
+        <span
+          v-if="strengthTrend"
+          class="progress-charts__trend"
+          :class="`progress-charts__trend--${strengthTrend.direction}`"
+        >
+          <v-icon :icon="trendIcon(strengthTrend.direction)" size="14" aria-hidden="true" />
+          {{ strengthTrend.label }}
+          <span class="progress-charts__trend-delta">
+            {{ formatTrendDelta(strengthTrend.delta, 'kg') }}
+          </span>
+        </span>
       </div>
 
       <v-select
@@ -340,9 +492,9 @@ defineExpose({ reloadAll });
         </v-alert>
         <ProgressLineChart
           v-else
-          :labels="exerciseSeries.labels"
+          :labels="filteredStrength.labels"
           :datasets="strengthDatasets"
-          empty-text="Registra al menos dos mediciones para visualizar tu gráfica de progreso"
+          empty-text="Entrena y registra peso para ver tu evolución"
         />
       </template>
     </section>
@@ -356,6 +508,41 @@ defineExpose({ reloadAll });
   gap: 1rem;
   width: 100%;
   min-width: 0;
+}
+
+.progress-charts__range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.progress-charts__range-chip {
+  min-height: 44px;
+  min-width: 72px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--tf-on-surface, #fff);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.progress-charts__range-chip:hover {
+  background: rgba(0, 229, 255, 0.1);
+  border-color: rgba(0, 229, 255, 0.35);
+}
+
+.progress-charts__range-chip:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: 2px;
+}
+
+.progress-charts__range-chip--active {
+  background: rgba(0, 229, 255, 0.16);
+  border-color: rgba(0, 229, 255, 0.55);
+  color: rgb(var(--v-theme-primary));
 }
 
 .progress-charts__block {
@@ -384,13 +571,43 @@ defineExpose({ reloadAll });
   font-size: 0.95rem;
   font-weight: 700;
   line-height: 1.2;
-  color: #fff;
+  color: var(--tf-on-surface, #fff);
 }
 
 .progress-charts__hint {
   display: block;
   margin-top: 2px;
   font-size: 0.68rem;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.progress-charts__trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--tf-on-surface, #fff);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.progress-charts__trend--up {
+  color: #00e676;
+}
+
+.progress-charts__trend--down {
+  color: #ffab40;
+}
+
+.progress-charts__trend--stable {
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.progress-charts__trend-delta {
+  font-weight: 600;
   color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
@@ -418,7 +635,7 @@ defineExpose({ reloadAll });
 }
 
 .progress-charts__month-chip strong {
-  color: #00e5ff;
+  color: rgb(var(--v-theme-primary));
   font-weight: 700;
 }
 

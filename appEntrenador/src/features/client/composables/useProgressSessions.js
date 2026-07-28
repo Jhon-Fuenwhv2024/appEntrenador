@@ -112,10 +112,11 @@ export function useProgressSessions(sessionsSource) {
 
   /**
    * Últimas N semanas (lunes–domingo): barras de actividad.
+   * @param {number} [weeks=12]
    * @returns {{ key: string, label: string, count: number, intensity: number }[]}
    */
-  const weeklyActivity = computed(() => {
-    const weeks = 12;
+  function buildWeeklyActivity(weeks = 12) {
+    const weekCount = Math.max(1, Number(weeks) || 12);
     const today = new Date();
     const thisWeekStart = startOfLocalWeek(today);
     const counts = new Map();
@@ -129,7 +130,7 @@ export function useProgressSessions(sessionsSource) {
     }
 
     const result = [];
-    for (let i = weeks - 1; i >= 0; i -= 1) {
+    for (let i = weekCount - 1; i >= 0; i -= 1) {
       const weekStart = addDays(thisWeekStart, -7 * i);
       const key = formatLocalDate(weekStart);
       const count = counts.get(key) || 0;
@@ -137,7 +138,10 @@ export function useProgressSessions(sessionsSource) {
       result.push({ key, label, count, intensity: Math.min(1, count / 4) });
     }
     return result;
-  });
+  }
+
+  /** Últimas 12 semanas (compat). */
+  const weeklyActivity = computed(() => buildWeeklyActivity(12));
 
   /** Actividad mensual (últimos 8 meses) para la pestaña Gráficas. */
   const monthlyActivity = computed(() => {
@@ -227,6 +231,7 @@ export function useProgressSessions(sessionsSource) {
     currentStreak,
     sessionsLast7Days,
     weeklyActivity,
+    buildWeeklyActivity,
     monthlyActivity,
     recentSessions,
     sessionsByMonth,

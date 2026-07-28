@@ -14,6 +14,11 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  /** Si true, el padre ya muestra el título de sección. */
+  hideHead: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const loading = shallowRef(false);
@@ -44,7 +49,7 @@ defineExpose({ reload: loadLogs });
 
 <template>
   <div class="bcr" :class="{ 'bcr--embedded': embedded }">
-    <div class="bcr__head">
+    <div v-if="!hideHead" class="bcr__head">
       <h2 class="bcr__title">Composición corporal</h2>
       <p class="bcr__hint">Solo lectura · registra tu entrenador</p>
     </div>

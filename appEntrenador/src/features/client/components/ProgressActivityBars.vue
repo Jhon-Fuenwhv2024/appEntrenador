@@ -11,6 +11,11 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /** Texto de contexto bajo el título (p. ej. "últimas 4 semanas"). */
+  hint: {
+    type: String,
+    default: '',
+  },
 });
 
 const maxCount = computed(() => {
@@ -20,6 +25,17 @@ const maxCount = computed(() => {
 
 const totalInWindow = computed(() => (
   props.weeks.reduce((sum, w) => sum + (Number(w.count) || 0), 0)
+));
+
+const weekCount = computed(() => Math.max(props.weeks.length, 1));
+
+const resolvedHint = computed(() => {
+  if (props.hint) return props.hint;
+  return `Sesiones completadas · últimas ${weekCount.value} semanas`;
+});
+
+const chartAriaLabel = computed(() => (
+  `${totalInWindow.value} sesiones en ${weekCount.value} semanas`
 ));
 
 function barHeight(count) {
@@ -33,7 +49,7 @@ function barHeight(count) {
     <div class="activity-bars__head">
       <div>
         <h2 class="activity-bars__title">Actividad</h2>
-        <p class="activity-bars__hint">Sesiones completadas · últimas 12 semanas</p>
+        <p class="activity-bars__hint">{{ resolvedHint }}</p>
       </div>
       <span class="activity-bars__total">
         {{ loading ? '—' : totalInWindow }}
@@ -44,7 +60,13 @@ function barHeight(count) {
       <v-progress-linear indeterminate color="primary" height="2" />
     </div>
 
-    <div v-else class="activity-bars__chart" role="img" :aria-label="`${totalInWindow} sesiones en 12 semanas`">
+    <div
+      v-else
+      class="activity-bars__chart"
+      role="img"
+      :aria-label="chartAriaLabel"
+      :style="{ gridTemplateColumns: `repeat(${weekCount}, minmax(0, 1fr))` }"
+    >
       <div
         v-for="week in weeks"
         :key="week.key"
@@ -84,7 +106,7 @@ function barHeight(count) {
   margin: 0;
   font-size: 0.88rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--tf-on-surface, #fff);
 }
 
 .activity-bars__hint {
@@ -102,7 +124,6 @@ function barHeight(count) {
 
 .activity-bars__chart {
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 4px;
   align-items: end;
   min-height: 88px;
@@ -138,7 +159,7 @@ function barHeight(count) {
 
 .activity-bars__label {
   font-size: 0.52rem;
-  color: #5e6673;
+  color: var(--tf-on-surface-muted, #a8b0bc);
   white-space: nowrap;
   overflow: hidden;
   max-width: 100%;

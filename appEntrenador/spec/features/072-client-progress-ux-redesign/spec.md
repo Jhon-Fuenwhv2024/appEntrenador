@@ -1,6 +1,6 @@
 # 072 · Rediseño UX “Mi progreso”
 
-**Estado:** especificado  
+**Estado:** implementado  
 **Depende de:** 021 (historial progreso), 027 (gráficas), 026 (body composition), 041 (PRs), 042 (rachas), 033 (check-in)  
 **Relacionada:** 038 (modo cliente inmersivo)
 
