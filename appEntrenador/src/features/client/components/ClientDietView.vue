@@ -4,11 +4,14 @@
  * Feature 057 jerarquía + Feature 064 resolución por fecha / strip semanal.
  */
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import {
   getApiErrorMessage,
   isMembershipBlockedError,
 } from '../../../shared/api/http.js';
 import { getMyDietPlan, getMyDietPlanWeek } from '../api/dietPlansApi.js';
+
+const router = useRouter();
 
 const props = defineProps({
   /** Respuesta ya cargada de GET /me/diet-plan (opcional). */
@@ -303,6 +306,10 @@ function selectStripDay(dia) {
   syncExpandedFromPlan();
 }
 
+function goShoppingList() {
+  router.push({ name: 'ClientShoppingList' });
+}
+
 watch(
   () => [props.skipFetch, props.initialPlan, props.membershipBlocked],
   async () => {
@@ -336,7 +343,19 @@ onMounted(() => {
     aria-label="Plan de dieta del día"
   >
     <div class="cdv__head">
-      <h3 class="cdv__title">Mi plan de dieta</h3>
+      <div class="cdv__head-row">
+        <h3 class="cdv__title">Mi plan de dieta</h3>
+        <button
+          v-if="plan && !isLocked"
+          type="button"
+          class="cdv__cart-btn"
+          aria-label="Abrir lista de compra"
+          title="Lista de compra"
+          @click="goShoppingList"
+        >
+          <v-icon icon="mdi-cart-outline" size="20" />
+        </button>
+      </div>
       <p v-if="plan && !isLocked" class="cdv__plan-name">{{ plan.title }}</p>
       <p class="cdv__subtitle">{{ isLocked ? 'Acceso pausado' : headerSubtitle }}</p>
     </div>
@@ -523,11 +542,44 @@ onMounted(() => {
   margin-bottom: 0.55rem;
 }
 
+.cdv__head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .cdv__title {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
   line-height: 1.2;
+}
+
+.cdv__cart-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: -4px -2px -4px 0;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  border-radius: 12px;
+  background: rgba(0, 229, 255, 0.1);
+  color: rgb(var(--v-theme-primary));
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.cdv__cart-btn:hover {
+  background: rgba(0, 229, 255, 0.18);
+  border-color: rgba(0, 229, 255, 0.55);
+}
+
+.cdv__cart-btn:focus-visible {
+  outline: var(--tf-focus-ring, 2px solid #00e5ff);
+  outline-offset: var(--tf-focus-offset, 2px);
 }
 
 .cdv__plan-name {

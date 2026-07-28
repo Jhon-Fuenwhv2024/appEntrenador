@@ -1202,7 +1202,41 @@ Plan activo del alumno con **día resuelto** según ciclo (`resolved` + `day`). 
 
 Preview de los 7 días de la semana del ciclo que contiene `date`.
 
-UI trainer: ficha 360 → Nutrición (`DietPlanPanel` / ciclo L–D). UI cliente: `ClientDietView` (057 + 064).
+### `GET /me/diet-plan/shopping-list` (client)
+
+Lista de compra agregada del **plan activo** (ciclo completo 2–4 semanas). Sin tabla nueva: deriva de `diet_plan_days` → meals → items. Agrega por `normalize(food_name)` + `unit`; clasifica por macro dominante (`protein` | `carbs` | `fats` | `other`). Si no hay plan: `"data": null`.
+
+```json
+{
+  "success": true,
+  "data": {
+    "plan": { "id": 1, "title": "Definición", "cycle_length_weeks": 4 },
+    "groups": [
+      {
+        "category": "protein",
+        "label": "Proteínas",
+        "items": [
+          {
+            "food_name": "Pechuga de pollo",
+            "unit": "g",
+            "quantity": 1400,
+            "calories": 2310,
+            "protein_g": 434,
+            "carbs_g": 0,
+            "fats_g": 50,
+            "category": "protein",
+            "occurrences": 14
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Checklist “comprado” solo en cliente (`localStorage`); no se persiste en servidor.
+
+UI cliente: botón carrito en `ClientDietView` → `/client/shopping-list` (`ClientShoppingListView`). UI trainer: ficha 360 → Nutrición (`DietPlanPanel` / ciclo L–D).
 
 ## Lookup nutricional de alimentos (Feature 069)
 

@@ -20,6 +20,14 @@ router.get(
   dietPlansController.getMineWeek,
 );
 
+/** Cliente: lista de compra agregada del plan activo (ciclo completo) */
+router.get(
+  '/me/diet-plan/shopping-list',
+  authenticate,
+  requireRole('client'),
+  dietPlansController.getMineShoppingList,
+);
+
 /** Entrenador: CRUD de planes de dieta */
 router.get(
   '/trainer/diets',

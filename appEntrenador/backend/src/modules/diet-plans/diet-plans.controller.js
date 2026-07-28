@@ -180,6 +180,22 @@ async function getMineWeek(req, res) {
   }
 }
 
+async function getMineShoppingList(req, res) {
+  try {
+    await membershipsService.assertClientMembershipAccess(req.user.id);
+    const shoppingList = await dietPlansService.getShoppingListForClient(
+      req.user.id,
+    );
+
+    return res.json({
+      success: true,
+      data: shoppingList,
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error obteniendo lista de compra:');
+  }
+}
+
 module.exports = {
   list,
   getById,
@@ -191,4 +207,5 @@ module.exports = {
   copyWeek,
   getMine,
   getMineWeek,
+  getMineShoppingList,
 };

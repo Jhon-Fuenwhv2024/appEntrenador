@@ -13,3 +13,8 @@ export function getMyDietPlanWeek(date) {
   if (date) params.date = date;
   return http.get('/me/diet-plan/week', { params });
 }
+
+/** GET /api/me/diet-plan/shopping-list — lista de compra del plan activo (071). */
+export function getMyShoppingList() {
+  return http.get('/me/diet-plan/shopping-list');
+}

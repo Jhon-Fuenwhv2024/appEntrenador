@@ -979,6 +979,149 @@ async function getActiveDietPlanForClient(clientId, dateYmd) {
   };
 }
 
+const SHOPPING_CATEGORY_ORDER = ['protein', 'carbs', 'fats', 'other'];
+const SHOPPING_CATEGORY_LABELS = {
+  protein: 'Proteínas',
+  carbs: 'Carbohidratos',
+  fats: 'Grasas',
+  other: 'Otros',
+};
+
+function shoppingItemKey(foodName, unit) {
+  const name = String(foodName || '').trim().toLowerCase();
+  const unitKey = String(unit || '').trim().toLowerCase();
+  return `${name}|${unitKey}`;
+}
+
+/** Macro dominante: P > C > G en empate; todos 0 → other. */
+function classifyDominantMacro(proteinG, carbsG, fatsG) {
+  const p = Number(proteinG) || 0;
+  const c = Number(carbsG) || 0;
+  const f = Number(fatsG) || 0;
+  if (p === 0 && c === 0 && f === 0) return 'other';
+  if (p >= c && p >= f) return 'protein';
+  if (c >= f) return 'carbs';
+  return 'fats';
+}
+
+/**
+ * Lista de compra agregada del plan activo (ciclo completo).
+ * Feature 071 — sin persistencia; solo lectura.
+ */
+async function getShoppingListForClient(clientId) {
+  const id = Number(clientId);
+  if (!Number.isInteger(id) || id < 1) {
+    throw createHttpError('Cliente inválido.', 400);
+  }
+
+  const [rows] = await db.query(
+    `SELECT ${PLAN_SELECT}
+     FROM diet_plans
+     WHERE client_id = ? AND is_active = 1
+     ORDER BY updated_at DESC, id DESC
+     LIMIT 1`,
+    [id],
+  );
+
+  if (!rows.length) {
+    return null;
+  }
+
+  const planRow = rows[0];
+  const planId = planRow.id;
+  const daysByPlan = await loadDaysWithMeals([planId]);
+  const days = daysByPlan.get(planId) || [];
+
+  /** @type {Map<string, {
+   *   food_name: string,
+   *   unit: string,
+   *   quantity: number,
+   *   calories: number,
+   *   protein_g: number,
+   *   carbs_g: number,
+   *   fats_g: number,
+   *   occurrences: number,
+   * }>} */
+  const aggregated = new Map();
+
+  for (const day of days) {
+    for (const meal of day.meals || []) {
+      for (const item of meal.items || []) {
+        const foodName = String(item.food_name || '').trim();
+        if (!foodName) continue;
+        const unit = String(item.unit || 'g').trim() || 'g';
+        const key = shoppingItemKey(foodName, unit);
+        const existing = aggregated.get(key);
+        if (existing) {
+          existing.quantity = roundMacro(existing.quantity + Number(item.quantity || 0));
+          addTotals(existing, item);
+          existing.occurrences += 1;
+        } else {
+          aggregated.set(key, {
+            food_name: foodName,
+            unit,
+            quantity: roundMacro(Number(item.quantity || 0)),
+            calories: roundMacro(Number(item.calories || 0)),
+            protein_g: roundMacro(Number(item.protein_g || 0)),
+            carbs_g: roundMacro(Number(item.carbs_g || 0)),
+            fats_g: roundMacro(Number(item.fats_g || 0)),
+            occurrences: 1,
+          });
+        }
+      }
+    }
+  }
+
+  const byCategory = {
+    protein: [],
+    carbs: [],
+    fats: [],
+    other: [],
+  };
+
+  for (const entry of aggregated.values()) {
+    const category = classifyDominantMacro(
+      entry.protein_g,
+      entry.carbs_g,
+      entry.fats_g,
+    );
+    byCategory[category].push({
+      food_name: entry.food_name,
+      unit: entry.unit,
+      quantity: entry.quantity,
+      calories: entry.calories,
+      protein_g: entry.protein_g,
+      carbs_g: entry.carbs_g,
+      fats_g: entry.fats_g,
+      category,
+      occurrences: entry.occurrences,
+    });
+  }
+
+  for (const cat of SHOPPING_CATEGORY_ORDER) {
+    byCategory[cat].sort((a, b) =>
+      a.food_name.localeCompare(b.food_name, 'es', { sensitivity: 'base' }),
+    );
+  }
+
+  const groups = SHOPPING_CATEGORY_ORDER
+    .filter((cat) => byCategory[cat].length > 0)
+    .map((cat) => ({
+      category: cat,
+      label: SHOPPING_CATEGORY_LABELS[cat],
+      items: byCategory[cat],
+    }));
+
+  return {
+    plan: {
+      id: planId,
+      title: planRow.title,
+      cycle_length_weeks: Number(planRow.cycle_length_weeks) || 4,
+    },
+    groups,
+  };
+}
+
 /**
  * Preview de la semana del ciclo que contiene `date`.
  */
@@ -1266,6 +1409,7 @@ module.exports = {
   activateDietPlan,
   getActiveDietPlanForClient,
   getActiveDietPlanWeekForClient,
+  getShoppingListForClient,
   copyDay,
   copyWeek,
   validateDietPlanPayload,
