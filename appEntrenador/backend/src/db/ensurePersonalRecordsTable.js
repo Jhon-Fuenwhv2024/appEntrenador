@@ -38,7 +38,8 @@ async function ensurePersonalRecordsTable() {
           'system',
           'pr_achieved',
           'streak_milestone',
-          'streak_at_risk'
+          'streak_at_risk',
+          'diet_updated'
         ) NOT NULL DEFAULT 'system'
     `);
   } catch (error) {

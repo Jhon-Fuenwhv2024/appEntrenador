@@ -99,12 +99,15 @@ async function assign(req, res) {
     );
 
     try {
-      await notificationService.createNotification(
-        routine.alumno_id,
-        'Nueva rutina asignada',
-        `Tu entrenador te asignó la rutina: ${routine.nombre_rutina}`,
-        'routine_assigned',
-      );
+      await notificationService.createNotification({
+        userId: routine.alumno_id,
+        title: 'Nueva rutina asignada',
+        message: `Tu entrenador te asignó la rutina: ${routine.nombre_rutina}`,
+        type: 'routine_assigned',
+        entityType: 'routine',
+        entityId: routine?.id ?? null,
+        actionUrl: routine?.id ? `/client/routine/${routine.id}` : '/dashboard',
+      });
     } catch (notifError) {
       console.error('Error enviando notificación (assign template):', notifError);
     }

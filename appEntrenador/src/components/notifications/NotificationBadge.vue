@@ -51,7 +51,7 @@
         </div>
         <p class="tf-notif-panel__empty-title">Sin novedades</p>
         <p class="tf-notif-panel__empty-desc">
-          Aquí verás alertas de rutinas y entrenamientos.
+          Aquí verás alertas de rutinas, dieta y progreso.
         </p>
       </div>
 
@@ -86,17 +86,79 @@
               aria-hidden="true"
             />
           </button>
+          <button
+            type="button"
+            class="tf-notif-panel__dismiss"
+            :aria-label="`Descartar notificación: ${notif.title}`"
+            @click.stop="handleDismiss(notif)"
+          >
+            <v-icon icon="mdi-close" size="16" />
+          </button>
         </li>
       </ul>
     </div>
   </v-menu>
+
+  <v-dialog
+    v-model="detailOpen"
+    max-width="440"
+    content-class="tf-overlay-menu tf-notif-detail-dialog"
+    scrim="rgba(0, 0, 0, 0.65)"
+  >
+    <div v-if="selectedNotif" class="tf-notif-detail" role="dialog" aria-modal="true">
+      <header class="tf-notif-detail__header">
+        <div
+          class="tf-notif-detail__icon"
+          :class="`tf-notif-panel__icon--${selectedNotif.type || 'system'}`"
+        >
+          <v-icon :icon="getIcon(selectedNotif.type)" size="28" />
+        </div>
+        <button
+          type="button"
+          class="tf-notif-detail__close"
+          aria-label="Cerrar notificación"
+          @click="closeDetail"
+        >
+          <v-icon icon="mdi-close" size="20" />
+        </button>
+      </header>
+
+      <h2 class="tf-notif-detail__title">{{ selectedNotif.title }}</h2>
+      <p class="tf-notif-detail__time">{{ formatDate(selectedNotif.created_at) }}</p>
+      <p class="tf-notif-detail__message">{{ selectedNotif.message }}</p>
+
+      <div class="tf-notif-detail__actions">
+        <v-btn
+          v-if="detailActionPath"
+          color="primary"
+          block
+          class="tf-notif-detail__cta"
+          @click="goToDetailAction"
+        >
+          Ver detalle
+        </v-btn>
+        <v-btn
+          variant="text"
+          block
+          class="tf-notif-detail__secondary"
+          @click="closeDetail"
+        >
+          Cerrar
+        </v-btn>
+      </div>
+    </div>
+  </v-dialog>
 </template>
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useNotifications } from '../../composables/useNotifications.js';
 
+const router = useRouter();
 const menu = ref(false);
+const detailOpen = ref(false);
+const selectedNotif = ref(null);
 const {
   notifications,
   unreadCount,
@@ -104,6 +166,7 @@ const {
   fetchNotifications,
   markAsRead,
   markAllAsRead,
+  deleteNotification,
 } = useNotifications();
 
 const badgeLabel = computed(() => {
@@ -119,6 +182,10 @@ const notificationAriaLabel = computed(() => {
   return `Notificaciones, ${count > 99 ? 'más de 99' : count} sin leer`;
 });
 
+const detailActionPath = computed(() =>
+  safeInternalPath(selectedNotif.value?.action_url),
+);
+
 onMounted(() => {
   fetchNotifications();
 });
@@ -127,16 +194,34 @@ watch(menu, (open) => {
   if (open) fetchNotifications();
 });
 
+watch(detailOpen, (open) => {
+  if (!open) selectedNotif.value = null;
+});
+
 const getIcon = (type) => {
   switch (type) {
     case 'routine_assigned':
       return 'mdi-clipboard-text-outline';
     case 'routine_completed':
       return 'mdi-check-circle-outline';
+    case 'diet_updated':
+      return 'mdi-food-apple';
+    case 'pr_achieved':
+      return 'mdi-trophy-outline';
+    case 'streak_milestone':
+      return 'mdi-fire';
     default:
       return 'mdi-information-outline';
   }
 };
+
+/** Solo paths internos relativos (evita open redirect). */
+function safeInternalPath(url) {
+  if (typeof url !== 'string') return null;
+  const path = url.trim();
+  if (!path.startsWith('/') || path.startsWith('//')) return null;
+  return path;
+}
 
 const formatDate = (dateString) => {
   const date = new Date(dateString);
@@ -148,10 +233,27 @@ const formatDate = (dateString) => {
   }).format(date);
 };
 
+const closeDetail = () => {
+  detailOpen.value = false;
+};
+
 const handleNotificationClick = async (notif) => {
   if (!notif.is_read) {
     await markAsRead(notif.id);
   }
+  selectedNotif.value = { ...notif, is_read: true };
+  menu.value = false;
+  detailOpen.value = true;
+};
+
+const goToDetailAction = () => {
+  const path = detailActionPath.value;
+  closeDetail();
+  if (path) router.push(path);
+};
+
+const handleDismiss = async (notif) => {
+  await deleteNotification(notif.id);
 };
 </script>
 
@@ -309,15 +411,19 @@ const handleNotificationClick = async (notif) => {
 }
 
 .tf-notif-panel__item {
+  position: relative;
   border-radius: 12px;
+  display: flex;
+  align-items: stretch;
 }
 
 .tf-notif-panel__item-btn {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 12px;
+  padding: 12px 36px 12px 12px;
   border: none;
   border-radius: 12px;
   background: transparent;
@@ -331,8 +437,41 @@ const handleNotificationClick = async (notif) => {
   background: rgba(0, 229, 255, 0.06);
 }
 
+.tf-notif-panel__item-btn:focus-visible {
+  outline: 2px solid #00e5ff;
+  outline-offset: -2px;
+}
+
 .tf-notif-panel__item--unread .tf-notif-panel__item-btn {
   background: rgba(0, 229, 255, 0.04);
+}
+
+.tf-notif-panel__dismiss {
+  position: absolute;
+  top: 8px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+  cursor: pointer;
+  padding: 0;
+  z-index: 1;
+}
+
+.tf-notif-panel__dismiss:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.tf-notif-panel__dismiss:focus-visible {
+  outline: 2px solid #00e5ff;
+  outline-offset: 1px;
 }
 
 .tf-notif-panel__icon {
@@ -355,6 +494,26 @@ const handleNotificationClick = async (notif) => {
 .tf-notif-panel__icon--routine_completed {
   background: rgba(0, 230, 118, 0.12);
   color: #00E676;
+}
+
+.tf-notif-panel__icon--diet_updated {
+  background: rgba(255, 167, 38, 0.14);
+  color: #ffa726;
+}
+
+.tf-notif-panel__icon--pr_achieved {
+  background: rgba(255, 213, 79, 0.14);
+  color: #ffd54f;
+}
+
+.tf-notif-panel__icon--streak_milestone {
+  background: rgba(255, 112, 67, 0.14);
+  color: #ff7043;
+}
+
+.tf-notif-panel__action:focus-visible {
+  outline: 2px solid #00e5ff;
+  outline-offset: 2px;
 }
 
 .tf-notif-panel__body {
@@ -401,5 +560,106 @@ const handleNotificationClick = async (notif) => {
   margin-top: 6px;
   border-radius: 50%;
   background: #00E5FF;
+}
+
+.tf-notif-detail-dialog {
+  border-radius: 20px !important;
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5) !important;
+}
+
+.tf-notif-detail {
+  padding: 24px 22px 18px;
+  background: #13161D;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  color: #ffffff;
+}
+
+.tf-notif-detail__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tf-notif-detail__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.tf-notif-detail__close {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--tf-on-surface-muted, #a8b0bc);
+  cursor: pointer;
+  padding: 0;
+}
+
+.tf-notif-detail__close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.tf-notif-detail__close:focus-visible {
+  outline: 2px solid #00e5ff;
+  outline-offset: 2px;
+}
+
+.tf-notif-detail__title {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+}
+
+.tf-notif-detail__time {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.tf-notif-detail__message {
+  margin: 0 0 22px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--tf-on-surface, #e8ecf1);
+  white-space: pre-wrap;
+}
+
+.tf-notif-detail__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tf-notif-detail__cta {
+  min-height: 44px;
+  font-weight: 700;
+}
+
+.tf-notif-detail__secondary {
+  min-height: 40px;
+  color: var(--tf-on-surface-muted, #a8b0bc) !important;
+}
+
+.tf-notif-detail__secondary:focus-visible {
+  outline: 2px solid #00e5ff;
+  outline-offset: 2px;
 }
 </style>

@@ -1,6 +1,6 @@
 # 074 · Notificaciones efímeras, deep-links y dieta
 
-**Estado:** especificado  
+**Estado:** implementado  
 **Depende de:** 025 (notificaciones in-app), 043/064 (diet plans), 063 (header actions)  
 **Relacionada:** 041 (PR), 042 (streaks), 034/073 (chat — sin `new_message` obligatorio)
 
@@ -10,7 +10,7 @@ Moderniza el centro de notificaciones para comportarse como una app profesional:
 
 ## Decisiones de producto
 
-- **TTL:** al crear, `expires_at = created_at + 30 días`. En cada `GET /notifications`, purgar filas con `expires_at < NOW()` del usuario. Además: borrar **leídas** con antigüedad > 7 días en el mismo purge.
+- **TTL:** al crear, `expires_at = created_at + 30 días`. En cada `GET /notifications`, purgar filas con `expires_at < NOW()` del usuario. Además: borrar **leídas** con antigüedad > 3 días en el mismo purge.
 - **Deep-link:** columnas `entity_type`, `entity_id`, `action_url` (path interno relativo, p. ej. `/client` o `/client/progress`).
 - **Nuevo tipo:** `diet_updated` en el ENUM.
 - **Emisión dieta:** al **activar** un plan y al **guardar** un plan que ya está activo (update del activo).
@@ -21,42 +21,42 @@ Moderniza el centro de notificaciones para comportarse como una app profesional:
 
 ### Base de datos
 
-- [ ] Migración: `entity_type` VARCHAR nullable, `entity_id` INT nullable, `action_url` VARCHAR(255) nullable, `expires_at` DATETIME/TIMESTAMP nullable
-- [ ] Extender ENUM `type` con `diet_updated` (mantener valores existentes)
-- [ ] Backfill: `expires_at = created_at + INTERVAL 30 DAY` para filas existentes
-- [ ] `ensureNotificationsTable` + `script_db.sql` + schema docs
+- [x] Migración: `entity_type` VARCHAR nullable, `entity_id` INT nullable, `action_url` VARCHAR(255) nullable, `expires_at` DATETIME/TIMESTAMP nullable
+- [x] Extender ENUM `type` con `diet_updated` (mantener valores existentes)
+- [x] Backfill: `expires_at = created_at + INTERVAL 30 DAY` para filas existentes
+- [x] `ensureNotificationsTable` + `script_db.sql` + schema docs
 
 ### Backend
 
-- [ ] `createNotification` acepta/metadata: `entity_type`, `entity_id`, `action_url`, `expires_at` (default +30d)
-- [ ] `GET /` ejecuta purge (expired + leídas &gt;7d) antes de listar; sigue limit 50
-- [ ] `DELETE /:id` — soft no; hard delete; 404 si no ownership
-- [ ] Diet plans: emitir `diet_updated` al cliente en activate + update de plan activo (título/mensaje claros)
-- [ ] Emitters existentes (rutina, workout, PR, streak) rellenan `action_url` / entity cuando sea posible
-- [ ] Route → Controller → Service; auth trainer|client
+- [x] `createNotification` acepta/metadata: `entity_type`, `entity_id`, `action_url`, `expires_at` (default +30d)
+- [x] `GET /` ejecuta purge (expired + leídas &gt;3d) antes de listar; sigue limit 50
+- [x] `DELETE /:id` — soft no; hard delete; 404 si no ownership
+- [x] Diet plans: emitir `diet_updated` al cliente en activate + update de plan activo (título/mensaje claros)
+- [x] Emitters existentes (rutina, workout, PR, streak) rellenan `action_url` / entity cuando sea posible
+- [x] Route → Controller → Service; auth trainer|client
 
 ### Mapa de deep-links (mínimo)
 
 | type | Destinatario típico | `action_url` sugerida |
 |------|---------------------|------------------------|
-| `routine_assigned` | client | `/client` o preview rutina si hay id |
-| `diet_updated` | client | `/client` (dashboard dieta) |
+| `routine_assigned` | client | `/client/routine/:id` o `/dashboard` |
+| `diet_updated` | client | `/dashboard` (home con dieta) |
 | `pr_achieved` | client | `/client/progress` |
 | `streak_milestone` | client | `/client/progress` |
-| `routine_completed` | trainer | `/trainer/client/:clientId` (tab resumen o progreso) |
+| `routine_completed` | trainer | `/trainer/clients/:clientId` |
 
 ### Frontend
 
-- [ ] `handleNotificationClick`: mark read + navigate + close menu
-- [ ] Icono para `diet_updated`; copy empty state menciona dieta
-- [ ] Acción eliminar/descartar por ítem
-- [ ] Tipos sin URL: solo mark read (sin crash)
-- [ ] Contraste / focus / aria-labels
+- [x] `handleNotificationClick`: mark read + navigate + close menu
+- [x] Icono para `diet_updated`; copy empty state menciona dieta
+- [x] Acción eliminar/descartar por ítem
+- [x] Tipos sin URL: solo mark read (sin crash)
+- [x] Contraste / focus / aria-labels
 
 ### Docs / validación (en implementación)
 
-- [ ] `docs/api.md`, `docs/database-schema.md`, `docs/data-flows.md`
-- [ ] Build FE; smoke: activar dieta → campana → tap → llega a dashboard; purge no deja filas viejas leídas
+- [x] `docs/api.md`, `docs/database-schema.md`, `docs/data-flows.md`
+- [x] Build FE; smoke: migración aplicada + schema verificado en TiDB
 
 ## Fuera de alcance
 

@@ -254,11 +254,13 @@ Migración: [`backend/db/migrations/020_personal_records.sql`](../backend/db/mig
 
 Migración: [`backend/db/migrations/021_client_streaks.sql`](../backend/db/migrations/021_client_streaks.sql). Boot: `ensureClientStreaksTable`.
 
-### `notifications` (Feature 025)
+### `notifications` (Feature 025 + 074)
 
-Alertas in-app N:1 con el usuario (`user_id` → `usuarios`). Tipos: `routine_assigned` | `routine_completed` | `system` | `pr_achieved` | `streak_milestone` | `streak_at_risk`. `is_read` booleano.
+Alertas in-app N:1 con el usuario (`user_id` → `usuarios`). Tipos: `routine_assigned` | `routine_completed` | `system` | `pr_achieved` | `streak_milestone` | `streak_at_risk` | `diet_updated`. `is_read` booleano.
 
-Migración: [`backend/db/migrations/011_notifications.sql`](../backend/db/migrations/011_notifications.sql). Al arrancar, `ensureNotificationsTable` también aplica `CREATE TABLE IF NOT EXISTS`.
+Metadata de navegación (074): `entity_type` (VARCHAR nullable), `entity_id` (INT nullable), `action_url` (VARCHAR 255, path relativo). Caducidad: `expires_at` (TIMESTAMP); al crear se setea `created_at + 30 días`. Purge en listado: filas con `expires_at < NOW()` o leídas con `created_at` > 3 días.
+
+Migraciones: [`011_notifications.sql`](../backend/db/migrations/011_notifications.sql), [`020_personal_records.sql`](../backend/db/migrations/020_personal_records.sql) (ENUM PR/streak), [`029_notifications_deeplink_ttl.sql`](../backend/db/migrations/029_notifications_deeplink_ttl.sql). Al arrancar, `ensureNotificationsTable` aplica `CREATE TABLE IF NOT EXISTS` + columnas/ENUM/backfill idempotentes.
 
 ```bash
 cd backend

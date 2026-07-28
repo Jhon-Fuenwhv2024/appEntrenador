@@ -2,6 +2,7 @@ const db = require('../../config/db');
 const clientsService = require('../clients/clients.service');
 const nutritionService = require('../nutrition/nutrition.service');
 const { assertClientWritableUnderPlan } = require('../../shared/saas/trainerSeats');
+const { notificationService } = require('../notifications/notifications.service');
 
 const TITLE_MAX = 150;
 const MEAL_NAME_MAX = 100;
@@ -703,6 +704,25 @@ async function syncNutritionTargetsIfActive(trainerId, plan) {
   }
 }
 
+/** Feature 074: avisa al cliente cuando hay plan nutricional activo asignado. */
+async function notifyDietUpdated(plan) {
+  if (!plan?.is_active || plan.client_id == null) return;
+
+  try {
+    await notificationService.createNotification({
+      userId: plan.client_id,
+      title: 'Plan nutricional actualizado',
+      message: `Tu entrenador actualizó «${plan.title}».`,
+      type: 'diet_updated',
+      entityType: 'diet_plan',
+      entityId: plan.id,
+      actionUrl: '/dashboard',
+    });
+  } catch (error) {
+    console.error('Error enviando notificación diet_updated:', error.message);
+  }
+}
+
 async function listDietPlans(trainerId, clientIdFilter) {
   const params = [trainerId];
   let sql = `
@@ -784,6 +804,9 @@ async function createDietPlan(trainerId, payload) {
 
   const plan = await getFullPlanById(planId);
   await syncNutritionTargetsIfActive(trainerId, plan);
+  if (plan.is_active) {
+    await notifyDietUpdated(plan);
+  }
   return plan;
 }
 
@@ -846,6 +869,10 @@ async function updateDietPlan(trainerId, planId, payload) {
 
   const plan = await getFullPlanById(planId);
   await syncNutritionTargetsIfActive(trainerId, plan);
+  // 074: notificar al guardar un plan activo (o al activarlo vía update)
+  if (plan.is_active && (existing.is_active || data.is_active)) {
+    await notifyDietUpdated(plan);
+  }
   return plan;
 }
 
@@ -899,6 +926,7 @@ async function activateDietPlan(trainerId, planId) {
 
   const fullPlan = await getFullPlanById(planId);
   await syncNutritionTargetsIfActive(trainerId, fullPlan);
+  await notifyDietUpdated(fullPlan);
   return fullPlan;
 }
 

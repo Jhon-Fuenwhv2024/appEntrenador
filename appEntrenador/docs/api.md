@@ -1026,16 +1026,21 @@ Con `?exerciseId=X` (o `?exerciseName=` si el id es nulo): `MAX(weight)` por dí
 }
 ```
 
-## Notificaciones in-app (Feature 025)
+## Notificaciones in-app (Feature 025 + 074)
 
-Campana en el dashboard (trainer y client). Eventos:
+Campana en el dashboard (trainer y client). Caducan a los **30 días** (`expires_at`). En cada `GET` se purgan expiradas y leídas con más de **3 días**. Deep-link vía `action_url` (path relativo generado solo en servidor).
 
-- Cliente: rutina creada / actualizada / plantilla asignada → `routine_assigned`
-- Trainer: alumno completa entrenamiento → `routine_completed`
+Eventos:
+
+- Cliente: rutina creada / actualizada / plantilla asignada → `routine_assigned` → preview o `/dashboard`
+- Cliente: plan nutricional activado o guardado activo → `diet_updated` → `/dashboard`
+- Cliente: PR / racha → `pr_achieved` / `streak_milestone` → `/client/progress`
+- Trainer: alumno completa entrenamiento → `routine_completed` → `/trainer/clients/:clientId`
+- Trainer: PR de alumno → `pr_achieved` → `/trainer/clients/:clientId`
 
 ### `GET /notifications`
 
-Lista las notificaciones del usuario autenticado (máx. 50) y el conteo de no leídas.
+Lista las notificaciones del usuario autenticado (máx. 50) y el conteo de no leídas. Ejecuta purge scoped a `req.user.id` antes de listar.
 
 ```json
 {
@@ -1044,11 +1049,15 @@ Lista las notificaciones del usuario autenticado (máx. 50) y el conteo de no le
     "notifications": [
       {
         "id": 1,
-        "title": "Nueva rutina asignada",
-        "message": "Tu entrenador ha creado la rutina: Full Body",
-        "type": "routine_assigned",
+        "title": "Plan nutricional actualizado",
+        "message": "Tu entrenador actualizó «Déficit suave».",
+        "type": "diet_updated",
+        "entity_type": "diet_plan",
+        "entity_id": 12,
+        "action_url": "/dashboard",
         "is_read": false,
-        "created_at": "2026-07-14T20:00:00.000Z"
+        "created_at": "2026-07-28T20:00:00.000Z",
+        "expires_at": "2026-08-27T20:00:00.000Z"
       }
     ],
     "unreadCount": 1
@@ -1063,6 +1072,10 @@ Marca una notificación propia como leída.
 ### `PUT /notifications/read-all`
 
 Marca todas las del usuario autenticado como leídas.
+
+### `DELETE /notifications/:id`
+
+Elimina (hard delete) una notificación propia. `404` si no existe o no pertenece al usuario.
 
 ## Nutrición / objetivos diarios (Feature 031)
 

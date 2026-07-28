@@ -210,3 +210,11 @@ Ver ADR-0004 y `docs/deploy-render.md` (sección R2).
 3. Inbox trainer (`TrainerInboxView`) fusiona el summary con la lista de alumnos: preview, hora relativa, badge por fila; orden: no leídos primero, luego alfabético / `lastMessageAt`.
 4. Al abrir un hilo, `GET /messages/:partnerId` marca leídos y `ChatThread` llama `refresh()` del summary para bajar el badge.
 5. No hay fan-out SSE global ni tipo `new_message` en campana (074); el descubrimiento es poll + badge/inbox.
+
+## Notificaciones efímeras y deep-links (Feature 074)
+
+1. Al crear una notificación el servidor setea `expires_at = now + 30d` y, cuando aplica, `entity_type` / `entity_id` / `action_url` (paths internos: `/dashboard`, `/client/progress`, `/client/routine/:id`, `/trainer/clients/:id`).
+2. `GET /notifications` ejecuta `purgeForUser(req.user.id)`: borra expiradas y leídas con más de 3 días; luego lista máx. 50 + `unreadCount`.
+3. Activar o guardar un plan de dieta activo emite `diet_updated` al `client_id` del plan.
+4. En UI (`NotificationBadge`): tap → mark read → dialog grande con detalle → CTA navega con `action_url` si es path relativo seguro; botón descartar → `DELETE /notifications/:id`.
+5. Tipos sin `action_url` solo se marcan leídos y se muestran en el dialog (sin crash).

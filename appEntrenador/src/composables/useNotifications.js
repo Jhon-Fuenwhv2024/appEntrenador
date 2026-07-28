@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue';
 import {
+  deleteNotification as deleteNotificationRequest,
   getNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
@@ -54,6 +55,24 @@ export function useNotifications() {
     }
   };
 
+  const deleteNotification = async (id) => {
+    try {
+      const response = await deleteNotificationRequest(id);
+      if (response.data?.success) {
+        const idx = notifications.value.findIndex((n) => n.id === id);
+        if (idx !== -1) {
+          const removed = notifications.value[idx];
+          notifications.value.splice(idx, 1);
+          if (!removed.is_read) {
+            unreadCount.value = Math.max(0, unreadCount.value - 1);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
+  };
+
   return {
     notifications: computed(() => notifications.value),
     unreadCount: computed(() => unreadCount.value),
@@ -61,5 +80,6 @@ export function useNotifications() {
     fetchNotifications,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
   };
 }

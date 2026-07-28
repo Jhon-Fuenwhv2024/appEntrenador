@@ -11,3 +11,7 @@ export function markNotificationAsRead(id) {
 export function markAllNotificationsAsRead() {
   return http.put('/notifications/read-all');
 }
+
+export function deleteNotification(id) {
+  return http.delete(`/notifications/${id}`);
+}

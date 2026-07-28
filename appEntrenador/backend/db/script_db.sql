@@ -231,7 +231,7 @@ CREATE TABLE body_composition_logs (
       FOREIGN KEY (recorded_by) REFERENCES usuarios(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
--- 13. NOTIFICACIONES IN-APP (Feature 025)
+-- 13. NOTIFICACIONES IN-APP (Feature 025 + 074)
 CREATE TABLE notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -243,12 +243,19 @@ CREATE TABLE notifications (
       'system',
       'pr_achieved',
       'streak_milestone',
-      'streak_at_risk'
+      'streak_at_risk',
+      'diet_updated'
     ) NOT NULL DEFAULT 'system',
+    entity_type VARCHAR(50) NULL,
+    entity_id INT NULL,
+    action_url VARCHAR(255) NULL,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NULL,
     INDEX idx_notifications_user (user_id),
     INDEX idx_notifications_unread (user_id, is_read),
+    INDEX idx_notifications_expires (user_id, expires_at),
+    INDEX idx_notifications_read_created (user_id, is_read, created_at),
     CONSTRAINT fk_notifications_user
       FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

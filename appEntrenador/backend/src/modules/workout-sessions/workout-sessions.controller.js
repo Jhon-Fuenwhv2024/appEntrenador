@@ -36,12 +36,15 @@ async function createMine(req, res) {
         const streakResult = await consistencyService.recalculateAfterSession(req.user.id, session);
         consistency = streakResult.consistency;
         if (streakResult.milestone) {
-          await notificationService.createNotification(
-            req.user.id,
-            '¡Racha de fuego!',
-            `Llevas ${streakResult.milestone} días consecutivos entrenando. Sigue así.`,
-            'streak_milestone',
-          );
+          await notificationService.createNotification({
+            userId: req.user.id,
+            title: '¡Racha de fuego!',
+            message: `Llevas ${streakResult.milestone} días consecutivos entrenando. Sigue así.`,
+            type: 'streak_milestone',
+            entityType: 'streak',
+            entityId: null,
+            actionUrl: '/client/progress',
+          });
         }
       } catch (streakError) {
         console.error('Error recalculando racha (create session):', streakError);
@@ -57,31 +60,40 @@ async function createMine(req, res) {
 
       if (trainerId && session.status === 'completed') {
         const clientName = req.user.nombre || 'Tu alumno';
-        await notificationService.createNotification(
-          trainerId,
-          'Entrenamiento completado',
-          `${clientName} ha completado la rutina: ${session.routine_name}`,
-          'routine_completed',
-        );
+        await notificationService.createNotification({
+          userId: trainerId,
+          title: 'Entrenamiento completado',
+          message: `${clientName} ha completado la rutina: ${session.routine_name}`,
+          type: 'routine_completed',
+          entityType: 'client',
+          entityId: req.user.id,
+          actionUrl: `/trainer/clients/${req.user.id}`,
+        });
       }
 
       if (newPrs.length > 0) {
         const names = newPrs.map((pr) => pr.exercise_name).slice(0, 3).join(', ');
         const more = newPrs.length > 3 ? ` (+${newPrs.length - 3})` : '';
-        await notificationService.createNotification(
-          req.user.id,
-          '¡Nuevo récord personal!',
-          `Superaste tu máximo en: ${names}${more}.`,
-          'pr_achieved',
-        );
+        await notificationService.createNotification({
+          userId: req.user.id,
+          title: '¡Nuevo récord personal!',
+          message: `Superaste tu máximo en: ${names}${more}.`,
+          type: 'pr_achieved',
+          entityType: 'personal_record',
+          entityId: newPrs[0]?.id ?? null,
+          actionUrl: '/client/progress',
+        });
         if (trainerId) {
           const clientName = req.user.nombre || 'Tu alumno';
-          await notificationService.createNotification(
-            trainerId,
-            'PR de alumno',
-            `${clientName} logró ${newPrs.length} PR(s): ${names}${more}.`,
-            'pr_achieved',
-          );
+          await notificationService.createNotification({
+            userId: trainerId,
+            title: 'PR de alumno',
+            message: `${clientName} logró ${newPrs.length} PR(s): ${names}${more}.`,
+            type: 'pr_achieved',
+            entityType: 'client',
+            entityId: req.user.id,
+            actionUrl: `/trainer/clients/${req.user.id}`,
+          });
         }
       }
     } catch (notifError) {

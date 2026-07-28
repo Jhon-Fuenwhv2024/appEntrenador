@@ -40,7 +40,7 @@ Migración `0XX_notifications_deeplink_ttl.sql`:
 [`notifications.service.js`](backend/src/modules/notifications/notifications.service.js):
 
 - `createNotification({ userId, title, message, type, entityType, entityId, actionUrl, expiresAt })`
-- `purgeForUser(userId)`: delete where `expires_at < NOW()` OR (`is_read = 1` AND `created_at < NOW() - 7 DAY`)
+- `purgeForUser(userId)`: delete where `expires_at < NOW()` OR (`is_read = 1` AND `created_at < NOW() - 3 DAY`)
 - `listForUser`: purge → select last 50 + unread count
 - `deleteOne(userId, id)`
 

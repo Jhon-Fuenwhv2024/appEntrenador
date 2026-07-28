@@ -9,5 +9,6 @@ router.use(authenticate, requireRole('trainer', 'client'));
 router.get('/', notificationsController.getNotifications);
 router.put('/read-all', notificationsController.markAllAsRead);
 router.put('/:id/read', notificationsController.markAsRead);
+router.delete('/:id', notificationsController.deleteNotification);
 
 module.exports = router;

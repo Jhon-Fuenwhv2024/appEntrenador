@@ -88,12 +88,15 @@ async function create(req, res) {
 
     // Notificar al cliente
     try {
-      await notificationService.createNotification(
-        clientId,
-        'Nueva rutina asignada',
-        `Tu entrenador ha creado la rutina: ${routine.nombre_rutina}`,
-        'routine_assigned'
-      );
+      await notificationService.createNotification({
+        userId: clientId,
+        title: 'Nueva rutina asignada',
+        message: `Tu entrenador ha creado la rutina: ${routine.nombre_rutina}`,
+        type: 'routine_assigned',
+        entityType: 'routine',
+        entityId: routine?.id ?? null,
+        actionUrl: routine?.id ? `/client/routine/${routine.id}` : '/dashboard',
+      });
     } catch (notifError) {
       console.error('Error enviando notificación (create routine):', notifError);
     }
@@ -119,12 +122,15 @@ async function update(req, res) {
 
     // Notificar al cliente
     try {
-      await notificationService.createNotification(
-        routine.alumno_id,
-        'Rutina actualizada',
-        `Tu entrenador ha actualizado la rutina: ${routine.nombre_rutina}`,
-        'routine_assigned'
-      );
+      await notificationService.createNotification({
+        userId: routine.alumno_id,
+        title: 'Rutina actualizada',
+        message: `Tu entrenador ha actualizado la rutina: ${routine.nombre_rutina}`,
+        type: 'routine_assigned',
+        entityType: 'routine',
+        entityId: routine?.id ?? null,
+        actionUrl: routine?.id ? `/client/routine/${routine.id}` : '/dashboard',
+      });
     } catch (notifError) {
       console.error('Error enviando notificación (update routine):', notifError);
     }
