@@ -202,3 +202,11 @@ Ver ADR-0004 y `docs/deploy-render.md` (sección R2).
 4. `POST /messages` persiste en MySQL; si el `receiver_id` tiene conexión SSE en el `Map` in-memory, el servidor hace `res.write('data: …\n\n')`.
 5. Al desmontar la vista, `eventSource.close()` elimina fugas; el backend limpia el Map en `req.on('close')`.
 6. Ownership estricto: client solo con su `trainer_id`; trainer solo con alumnos propios.
+
+## Indicadores de no leídos (Feature 073)
+
+1. `AppShell` usa `useUnreadMessages` → `GET /messages/unread-summary` (poll 45s + `visibilitychange`); `AppBottomNav` e inbox comparten el mismo estado.
+2. Badge numérico en tab Chat (móvil) y en el icono Mensajes de la sidebar desktop cuando `total > 0` (`n` / `99+`); `aria-label` incluye el contador.
+3. Inbox trainer (`TrainerInboxView`) fusiona el summary con la lista de alumnos: preview, hora relativa, badge por fila; orden: no leídos primero, luego alfabético / `lastMessageAt`.
+4. Al abrir un hilo, `GET /messages/:partnerId` marca leídos y `ChatThread` llama `refresh()` del summary para bajar el badge.
+5. No hay fan-out SSE global ni tipo `new_message` en campana (074); el descubrimiento es poll + badge/inbox.

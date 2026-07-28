@@ -55,10 +55,15 @@ function getConnectedCount() {
   return clients.size;
 }
 
+function isOnline(userId) {
+  return Boolean(clients.get(Number(userId)));
+}
+
 module.exports = {
   addClient,
   removeClient,
   getClient,
   sendToUser,
   getConnectedCount,
+  isOnline,
 };

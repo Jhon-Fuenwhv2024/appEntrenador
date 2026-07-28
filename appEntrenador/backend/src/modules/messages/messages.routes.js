@@ -18,6 +18,21 @@ router.get(
   messagesController.getPartner,
 );
 
+// Must be registered before /:partnerId so "unread-summary" is not treated as an id
+router.get(
+  '/unread-summary',
+  authenticate,
+  requireRole('trainer', 'client'),
+  messagesController.getUnreadSummary,
+);
+
+router.get(
+  '/presence/:partnerId',
+  authenticate,
+  requireRole('trainer', 'client'),
+  messagesController.getPartnerPresence,
+);
+
 router.get(
   '/:partnerId',
   authenticate,

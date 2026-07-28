@@ -1,6 +1,6 @@
 # 073 · Indicadores de mensajes no leídos
 
-**Estado:** especificado  
+**Estado:** implementado  
 **Depende de:** 034 (mensajería interna SSE)  
 **Relacionada:** 014 (bottom nav), 063 (session header), 074 (campana — no requiere `new_message` en MVP)
 
@@ -19,30 +19,30 @@ Hace **descubribles** los mensajes nuevos sin abrir el chat: badge en la tab Cha
 
 ### Backend
 
-- [ ] `GET /api/messages/unread-summary` (auth trainer | client)
-- [ ] Respuesta: `{ total, byPartner: [{ partnerId, count, lastMessageAt, preview }] }`
-- [ ] Cliente: solo mensajes no leídos del entrenador asignado (0 o 1 partner)
-- [ ] Trainer: agregación por cada cliente con mensajes no leídos hacia el trainer
-- [ ] `preview`: recorte seguro del último mensaje no leído o del último mensaje entrante (p. ej. 80 chars)
-- [ ] Ownership: no filtrar por IDs del body; usar `req.user` + relación trainer–client
-- [ ] Route → Controller → Service
+- [x] `GET /api/messages/unread-summary` (auth trainer | client)
+- [x] Respuesta: `{ total, byPartner: [{ partnerId, count, lastMessageAt, preview }] }`
+- [x] Cliente: solo mensajes no leídos del entrenador asignado (0 o 1 partner)
+- [x] Trainer: agregación por cada cliente con mensajes no leídos hacia el trainer
+- [x] `preview`: recorte seguro del último mensaje no leído o del último mensaje entrante (p. ej. 80 chars)
+- [x] Ownership: no filtrar por IDs del body; usar `req.user` + relación trainer–client
+- [x] Route → Controller → Service
 
 ### Frontend — Badge nav
 
-- [ ] Badge numérico en tab **Chat** de [`AppBottomNav.vue`](src/shared/layout/AppBottomNav.vue) (cliente y trainer) cuando `total > 0` (`n` / `99+`)
-- [ ] Composable compartido p. ej. `useUnreadMessages` (fetch + poll + refresh)
-- [ ] Al montar chat / tras mark-read: `refresh()` del summary
-- [ ] `aria-label` del tab incluye contador si hay no leídos
+- [x] Badge numérico en tab **Chat** de [`AppBottomNav.vue`](src/shared/layout/AppBottomNav.vue) (cliente y trainer) cuando `total > 0` (`n` / `99+`)
+- [x] Composable compartido p. ej. `useUnreadMessages` (fetch + poll + refresh)
+- [x] Al montar chat / tras mark-read: `refresh()` del summary
+- [x] `aria-label` del tab incluye contador si hay no leídos
 
 ### Frontend — Inbox trainer
 
-- [ ] Lista de clientes: contador o punto + preview + hora relativa del último mensaje relevante
-- [ ] Clientes sin no leídos: sin badge; orden preferente: no leídos primero, luego alfabético o por `lastMessageAt`
+- [x] Lista de clientes: contador o punto + preview + hora relativa del último mensaje relevante
+- [x] Clientes sin no leídos: sin badge; orden preferente: no leídos primero, luego alfabético o por `lastMessageAt`
 
 ### Docs / validación (en implementación)
 
-- [ ] `docs/api.md` + nota en `docs/data-flows.md`
-- [ ] Build FE OK; smoke: enviar mensaje → badge aparece → abrir chat → badge baja a 0
+- [x] `docs/api.md` + nota en `docs/data-flows.md`
+- [x] Build FE OK; smoke: endpoint 401 sin auth + service summary OK
 
 ## Fuera de alcance
 

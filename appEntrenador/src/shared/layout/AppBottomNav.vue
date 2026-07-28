@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useUnreadMessages } from '../../features/messaging/composables/useUnreadMessages.js';
 
 const props = defineProps({
   role: {
@@ -17,6 +18,9 @@ const props = defineProps({
 
 const route = useRoute();
 const router = useRouter();
+
+/** Poll starts in AppShell; here we only display + refresh on Chat route */
+const { total, badgeLabel, refresh } = useUnreadMessages({ autoStart: false });
 
 const trainerItems = [
   {
@@ -98,10 +102,26 @@ const resolvedActive = computed(() => {
   return '';
 });
 
+const itemAriaLabel = (item) => {
+  if (item.key !== 'messages') return item.label;
+  const count = Number(total.value) || 0;
+  if (count <= 0) return item.label;
+  if (count === 1) return `${item.label}, 1 mensaje sin leer`;
+  return `${item.label}, ${count > 99 ? 'más de 99' : count} mensajes sin leer`;
+};
+
 const go = (to) => {
   if (route.path === to) return;
   router.push(to);
 };
+
+/** Refresh badge when entering Chat route */
+watch(
+  () => resolvedActive.value,
+  (key) => {
+    if (key === 'messages') refresh();
+  },
+);
 </script>
 
 <template>
@@ -121,10 +141,20 @@ const go = (to) => {
       type="button"
       class="app-bottom-nav__item"
       :class="{ active: resolvedActive === item.key }"
+      :aria-label="itemAriaLabel(item)"
       :aria-current="resolvedActive === item.key ? 'page' : undefined"
       @click="go(item.to)"
     >
-      <v-icon :icon="item.icon" size="22" />
+      <span class="app-bottom-nav__icon-wrap">
+        <v-icon :icon="item.icon" size="22" />
+        <span
+          v-if="item.key === 'messages' && total > 0"
+          class="app-bottom-nav__badge"
+          aria-hidden="true"
+        >
+          {{ badgeLabel }}
+        </span>
+      </span>
       <span class="app-bottom-nav__label">{{ item.label }}</span>
     </button>
   </nav>

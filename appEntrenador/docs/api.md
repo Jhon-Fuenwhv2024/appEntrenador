@@ -1396,9 +1396,55 @@ Devuelve el entrenador asignado como único partner de chat.
 ```json
 {
   "success": true,
-  "data": { "id": 2, "nombre": "Coach", "username": "coach", "rol": "trainer" }
+  "data": {
+    "id": 2,
+    "nombre": "Coach",
+    "username": "coach",
+    "rol": "trainer",
+    "foto_url": "/uploads/avatars/2.webp"
+  }
 }
 ```
+
+### `GET /messages/unread-summary` (trainer | client) — Feature 073
+
+Resumen de DMs no leídos (`receiver_id = req.user.id` AND `is_read = FALSE`). Ownership: cliente solo su trainer asignado; trainer solo alumnos propios. Montado **antes** de `/:partnerId`.
+
+```json
+{
+  "success": true,
+  "data": {
+    "total": 3,
+    "byPartner": [
+      {
+        "partnerId": 12,
+        "count": 3,
+        "lastMessageAt": "2026-07-27T20:00:00.000Z",
+        "preview": "¿Puedes revisar mi…"
+      }
+    ]
+  },
+  "message": "Resumen de mensajes no leídos"
+}
+```
+
+- Cliente: `byPartner` longitud 0–1.
+- Trainer: un ítem por alumno con no leídos.
+- `preview`: hasta 80 caracteres del último mensaje no leído entrante.
+
+### `GET /messages/presence/:partnerId` (trainer | client)
+
+Presencia real del interlocutor: `isOnline = true` solo si tiene una conexión SSE abierta (stream de chat). Ownership igual que el resto del módulo.
+
+```json
+{
+  "success": true,
+  "data": { "partnerId": 12, "isOnline": true },
+  "message": "Presencia del contacto"
+}
+```
+
+También se incluye `is_online` en el `partner` de `GET /messages/:partnerId` y `GET /messages/partner`.
 
 ### `GET /messages/:partnerId` (trainer | client)
 
@@ -1408,7 +1454,13 @@ Historial cronológico. Marca `is_read = TRUE` los mensajes no leídos donde el 
 {
   "success": true,
   "data": {
-    "partner": { "id": 5, "nombre": "Alumno", "username": "alumno", "rol": "client" },
+    "partner": {
+      "id": 5,
+      "nombre": "Alumno",
+      "username": "alumno",
+      "rol": "client",
+      "foto_url": "/uploads/avatars/5.webp"
+    },
     "messages": [
       {
         "id": 1,

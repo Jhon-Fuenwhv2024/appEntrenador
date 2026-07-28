@@ -101,6 +101,34 @@ const messagesController = {
     }
   },
 
+  async getUnreadSummary(req, res) {
+    try {
+      const data = await messagesService.getUnreadSummary(req.user);
+      return res.json({
+        success: true,
+        data,
+        message: 'Resumen de mensajes no leídos',
+      });
+    } catch (error) {
+      console.error('Error getUnreadSummary:', error.message);
+      return sendError(res, error, 'No se pudo obtener el resumen de no leídos');
+    }
+  },
+
+  async getPartnerPresence(req, res) {
+    try {
+      const data = await messagesService.getPartnerPresence(req.user, req.params.partnerId);
+      return res.json({
+        success: true,
+        data,
+        message: 'Presencia del contacto',
+      });
+    } catch (error) {
+      console.error('Error getPartnerPresence:', error.message);
+      return sendError(res, error, 'No se pudo consultar la presencia');
+    }
+  },
+
   async getConversation(req, res) {
     try {
       const data = await messagesService.getConversation(req.user, req.params.partnerId);

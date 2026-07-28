@@ -16,6 +16,7 @@ const loading = shallowRef(true);
 const loadError = shallowRef('');
 const partnerId = shallowRef(null);
 const partnerName = shallowRef('');
+const partnerFotoUrl = shallowRef('');
 
 const loadPartner = async () => {
   loading.value = true;
@@ -26,9 +27,11 @@ const loadPartner = async () => {
     const partner = response.data?.data;
     partnerId.value = partner?.id ? Number(partner.id) : null;
     partnerName.value = partner?.nombre || 'Tu entrenador';
+    partnerFotoUrl.value = partner?.foto_url || '';
   } catch (error) {
     console.error('Error obteniendo entrenador para chat:', error);
     partnerId.value = null;
+    partnerFotoUrl.value = '';
     loadError.value = getApiErrorMessage(error, 'No se pudo cargar el chat con tu entrenador');
   } finally {
     loading.value = false;
@@ -65,6 +68,7 @@ onMounted(() => {
         v-else-if="partnerId"
         :partner-id="partnerId"
         :partner-name="partnerName"
+        :partner-foto-url="partnerFotoUrl"
       />
 
       <div v-else class="client-chat__state">
@@ -79,10 +83,11 @@ onMounted(() => {
   height: calc(100dvh - 4.5rem);
   max-height: calc(100dvh - 4.5rem);
   min-height: 20rem;
-  border-radius: 16px;
+  border-radius: 18px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgb(var(--v-theme-surface));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #0d1017;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
 }
 
 .client-chat__state {

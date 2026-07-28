@@ -75,6 +75,7 @@ async function getClientsForTrainer(trainerId) {
        u.id,
        u.nombre,
        u.username,
+       MAX(ai.foto_url) AS foto_url,
        COUNT(r.id) AS routines_count,
        cm.status AS membership_status,
        cm.period_start AS membership_period_start,
@@ -84,6 +85,7 @@ async function getClientsForTrainer(trainerId) {
      FROM usuarios u
      LEFT JOIN rutinas r ON r.alumno_id = u.id
      LEFT JOIN client_memberships cm ON cm.client_id = u.id
+     LEFT JOIN alumnos_info ai ON ai.user_id = u.id
      WHERE u.rol = 'client' AND u.trainer_id = ?
      GROUP BY
        u.id,
@@ -102,6 +104,7 @@ async function getClientsForTrainer(trainerId) {
     getSeatEditabilityContext,
   } = require('../../shared/saas/trainerSeats');
   const seatCtx = await getSeatEditabilityContext(trainerId);
+  const DEFAULT_AVATAR_MARKERS = new Set(['', 'default_avatar.png', 'null', 'undefined']);
 
   return clients.map((client) => {
     const routinesCount = Number(client.routines_count) || 0;
@@ -124,10 +127,20 @@ async function getClientsForTrainer(trainerId) {
       }, { includeNotes: false });
     }
 
+    const rawFoto = client.foto_url;
+    let fotoUrl = null;
+    if (rawFoto != null) {
+      const trimmed = String(rawFoto).trim();
+      if (trimmed && !DEFAULT_AVATAR_MARKERS.has(trimmed)) {
+        fotoUrl = trimmed;
+      }
+    }
+
     return {
       id: client.id,
       nombre: client.nombre,
       username: client.username,
+      foto_url: fotoUrl,
       routines_count: routinesCount,
       status: routinesCount > 0 ? 'Activo' : 'Sin plan',
       membership,
