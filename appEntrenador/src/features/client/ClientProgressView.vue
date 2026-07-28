@@ -61,7 +61,7 @@ const currentStreak = computed(() => (
 const activityWeeks = computed(() => buildWeeklyActivity(weeksForRange(rangeDays.value)));
 
 const activityHint = computed(() => (
-  `Sesiones completadas · últimas ${weeksForRange(rangeDays.value)} semanas`
+  `Por semana · últimas ${weeksForRange(rangeDays.value)} semanas`
 ));
 
 const progressSections = [

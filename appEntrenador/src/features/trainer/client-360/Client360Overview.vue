@@ -4,6 +4,7 @@
  * quick actions, session history, and null-safe PR slot (041).
  */
 import { computed } from 'vue';
+import { coerceDate } from '../../../shared/utils/localDate.js';
 import Client360RecentSessions from './Client360RecentSessions.vue';
 
 const props = defineProps({
@@ -55,8 +56,8 @@ const lastSessionDate = computed(() => {
     || lastSession.value?.started_at
     || lastSession.value?.created_at;
   if (!raw) return '';
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return '';
+  const date = coerceDate(raw);
+  if (!date) return '';
   return date.toLocaleString('es-ES', {
     day: 'numeric',
     month: 'short',
@@ -68,8 +69,8 @@ const lastSessionDate = computed(() => {
 const lastCheckinDate = computed(() => {
   const raw = lastCheckin.value?.created_at;
   if (!raw) return '';
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return String(raw).slice(0, 10);
+  const date = coerceDate(raw);
+  if (!date) return String(raw).slice(0, 10);
   return date.toLocaleDateString('es-ES', {
     day: 'numeric',
     month: 'short',

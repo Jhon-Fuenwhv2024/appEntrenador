@@ -5,6 +5,7 @@
  */
 import { computed } from 'vue';
 import { resolveAvatarSrc } from '../../../shared/utils/avatar.js';
+import { coerceDate, formatShortDayMonth } from '../../../shared/utils/localDate.js';
 
 const props = defineProps({
   client: {
@@ -55,13 +56,9 @@ const lastSessionLabel = computed(() => {
   const name = session.routine_name || 'Sesión';
   const raw = session.finished_at || session.started_at || session.created_at;
   if (!raw) return name;
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return name;
-  const formatted = date.toLocaleDateString('es-ES', {
-    day: 'numeric',
-    month: 'short',
-  });
-  return `${name} · ${formatted}`;
+  const date = coerceDate(raw);
+  if (!date) return name;
+  return `${name} · ${formatShortDayMonth(date)}`;
 });
 
 const consistencyLabel = computed(() => {

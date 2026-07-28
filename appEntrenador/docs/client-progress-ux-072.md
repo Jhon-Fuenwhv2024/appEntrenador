@@ -13,9 +13,11 @@ La vista cliente `/client/progress` deja de usar tabs **Resumen / Gráficas**. P
 
 Nav de anclas sticky horizontal: Resumen · Tendencias · Sesiones · Logros · Composición · Historial.
 
-## APIs
+## Actividad (barras semanales)
 
-Sin endpoints nuevos. Reutiliza `/me/workout-sessions`, `/me/consistency`, `/me/personal-records`, `/me/body-composition`, `/progress/metrics`, `/progress/exercises`. El rango 7/30/90 se filtra en cliente.
+Agrupa sesiones **completadas** por semana local (lunes–domingo). La etiqueta del eje X es el **último día ya transcurrido** de esa semana (domingo en semanas cerradas; **hoy** en la semana actual), no el lunes de inicio — así una sesión del martes 28 no aparece etiquetada como “27”. El tooltip muestra el rango completo (`Semana 27 jul – 28 jul`).
+
+Timestamps de sesión se interpretan en zona local del dispositivo (`coerceDate` / `formatLocalDate`); no usar `toISOString().slice(0, 10)` para el día civil.
 
 ## Trainer
 

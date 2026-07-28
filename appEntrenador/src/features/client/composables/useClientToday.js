@@ -26,7 +26,7 @@ function sessionMatchesLocalDate(session, localDate) {
   const raw = session?.finished_at || session?.created_at || session?.started_at;
   if (!raw) return false;
   try {
-    return formatLocalDate(new Date(raw)) === localDate;
+    return formatLocalDate(raw) === localDate;
   } catch {
     return false;
   }

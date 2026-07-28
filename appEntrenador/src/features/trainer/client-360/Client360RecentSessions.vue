@@ -5,6 +5,7 @@
  * Feature 066: columna Hoy incluye rutina programada (Pendiente) si no hay sesión.
  */
 import { computed, shallowRef } from 'vue';
+import { coerceDate, formatLocalDate } from '../../../shared/utils/localDate.js';
 
 const DAY_ORDER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -34,12 +35,11 @@ const showOlder = shallowRef(false);
 
 function localDayKey(value) {
   if (!value) return null;
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  try {
+    return formatLocalDate(coerceDate(value) || value);
+  } catch {
+    return null;
+  }
 }
 
 function sessionStamp(session) {
@@ -122,8 +122,8 @@ const hasOlder = computed(() => (
 
 function formatTime(value) {
   if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
+  const date = coerceDate(value);
+  if (!date) return '—';
   return date.toLocaleTimeString('es-ES', {
     hour: '2-digit',
     minute: '2-digit',
@@ -132,8 +132,8 @@ function formatTime(value) {
 
 function formatShortDate(value) {
   if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
+  const date = coerceDate(value);
+  if (!date) return '';
   return date.toLocaleDateString('es-ES', {
     weekday: 'short',
     day: 'numeric',

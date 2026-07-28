@@ -111,7 +111,7 @@ const activityHint = computed(() => {
     return 'Sesiones completadas por mes';
   }
   if (props.enableRangeFilter) {
-    return `Sesiones completadas · ${weeksForRange(effectiveRangeDays.value)} semanas`;
+    return `Por semana · ${weeksForRange(effectiveRangeDays.value)} semanas`;
   }
   return 'Sesiones completadas por semana';
 });

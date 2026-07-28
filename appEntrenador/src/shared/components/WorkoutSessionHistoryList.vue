@@ -5,6 +5,7 @@
  * Variante normal: cards (progreso cliente 021).
  */
 import { computed, shallowRef } from 'vue';
+import { coerceDate, formatLocalDate } from '../utils/localDate.js';
 
 const props = defineProps({
   sessions: {
@@ -44,19 +45,15 @@ const expandedId = shallowRef(null);
 
 function sessionDayKey(value) {
   if (!value) return 'unknown';
-  if (value instanceof Date) {
-    if (Number.isNaN(value.getTime())) return 'unknown';
-    const y = value.getFullYear();
-    const m = String(value.getMonth() + 1).padStart(2, '0');
-    const d = String(value.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+  try {
+    if (value instanceof Date) {
+      return formatLocalDate(value);
+    }
+    const key = formatLocalDate(coerceDate(value) || value);
+    return key || 'unknown';
+  } catch {
+    return 'unknown';
   }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'unknown';
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
 }
 
 function dayHeadingLabel(dayKey) {
@@ -99,8 +96,8 @@ const sessionGroups = computed(() => {
 
 function formatSessionDate(value, compact) {
   if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
+  const date = coerceDate(value);
+  if (!date) return String(value);
   if (compact) {
     return date.toLocaleString('es-ES', {
       day: '2-digit',
@@ -117,8 +114,8 @@ function formatSessionDate(value, compact) {
 
 function formatSessionTime(value) {
   if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
+  const date = coerceDate(value);
+  if (!date) return '—';
   return date.toLocaleTimeString('es-ES', {
     hour: '2-digit',
     minute: '2-digit',

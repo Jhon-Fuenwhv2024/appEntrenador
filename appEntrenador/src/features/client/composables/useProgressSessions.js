@@ -1,5 +1,9 @@
 import { computed } from 'vue';
-import { formatLocalDate } from '../../../shared/utils/localDate.js';
+import {
+  coerceDate,
+  formatLocalDate,
+  formatShortDayMonth,
+} from '../../../shared/utils/localDate.js';
 
 /** Agrupa y resume sesiones para Mi Progreso (cliente) y panel de gráficas. */
 
@@ -10,13 +14,15 @@ const MONTH_NAMES = [
 
 function sessionDate(session) {
   const raw = session?.finished_at || session?.created_at || session?.started_at;
-  if (!raw) return null;
-  const d = new Date(raw);
-  return Number.isNaN(d.getTime()) ? null : d;
+  return coerceDate(raw);
+}
+
+function startOfLocalDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
 function startOfLocalWeek(date) {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const d = startOfLocalDay(date);
   const day = d.getDay(); // 0 = domingo
   const offset = day === 0 ? -6 : 1 - day; // lunes
   d.setDate(d.getDate() + offset);
@@ -24,9 +30,30 @@ function startOfLocalWeek(date) {
 }
 
 function addDays(date, days) {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const d = startOfLocalDay(date);
   d.setDate(d.getDate() + days);
   return d;
+}
+
+/**
+ * Eje X de la barra semanal: último día ya transcurrido de esa semana.
+ * Semanas cerradas → domingo; semana actual → hoy (evita “27” cuando hoy es 28).
+ */
+function weekAxisDate(weekStart, today = new Date()) {
+  const weekEnd = addDays(weekStart, 6);
+  const todayStart = startOfLocalDay(today);
+  if (weekEnd.getTime() <= todayStart.getTime()) return weekEnd;
+  if (weekStart.getTime() > todayStart.getTime()) return weekStart;
+  return todayStart;
+}
+
+function weekRangeDetail(weekStart, today = new Date()) {
+  const weekEnd = addDays(weekStart, 6);
+  const todayStart = startOfLocalDay(today);
+  const visibleEnd = weekEnd.getTime() <= todayStart.getTime()
+    ? weekEnd
+    : todayStart;
+  return `Semana ${formatShortDayMonth(weekStart)} – ${formatShortDayMonth(visibleEnd)}`;
 }
 
 function monthKeyFromDate(date) {
@@ -112,8 +139,10 @@ export function useProgressSessions(sessionsSource) {
 
   /**
    * Últimas N semanas (lunes–domingo): barras de actividad.
+   * La etiqueta del eje es el último día transcurrido de la semana (hoy en la actual),
+   * no el lunes de inicio — evita confundir “27 jul” con la fecha de la sesión.
    * @param {number} [weeks=12]
-   * @returns {{ key: string, label: string, count: number, intensity: number }[]}
+   * @returns {{ key: string, label: string, detail: string, count: number, intensity: number }[]}
    */
   function buildWeeklyActivity(weeks = 12) {
     const weekCount = Math.max(1, Number(weeks) || 12);
@@ -134,8 +163,16 @@ export function useProgressSessions(sessionsSource) {
       const weekStart = addDays(thisWeekStart, -7 * i);
       const key = formatLocalDate(weekStart);
       const count = counts.get(key) || 0;
-      const label = weekStart.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-      result.push({ key, label, count, intensity: Math.min(1, count / 4) });
+      const axisDate = weekAxisDate(weekStart, today);
+      const label = formatShortDayMonth(axisDate);
+      const detail = weekRangeDetail(weekStart, today);
+      result.push({
+        key,
+        label,
+        detail,
+        count,
+        intensity: Math.min(1, count / 4),
+      });
     }
     return result;
   }

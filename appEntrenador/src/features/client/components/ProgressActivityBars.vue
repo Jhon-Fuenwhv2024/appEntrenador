@@ -31,12 +31,18 @@ const weekCount = computed(() => Math.max(props.weeks.length, 1));
 
 const resolvedHint = computed(() => {
   if (props.hint) return props.hint;
-  return `Sesiones completadas · últimas ${weekCount.value} semanas`;
+  return `Por semana · últimas ${weekCount.value} semanas`;
 });
 
 const chartAriaLabel = computed(() => (
   `${totalInWindow.value} sesiones en ${weekCount.value} semanas`
 ));
+
+function barTitle(week) {
+  const detail = week.detail || week.label;
+  const n = Number(week.count) || 0;
+  return `${detail}: ${n} ${n === 1 ? 'sesión' : 'sesiones'}`;
+}
 
 function barHeight(count) {
   const pct = Math.round(((Number(count) || 0) / maxCount.value) * 100);
@@ -77,7 +83,7 @@ function barHeight(count) {
             class="activity-bars__fill"
             :class="{ 'activity-bars__fill--empty': !week.count }"
             :style="{ height: barHeight(week.count) }"
-            :title="`${week.label}: ${week.count}`"
+            :title="barTitle(week)"
           />
         </div>
         <span class="activity-bars__label">{{ week.label }}</span>
