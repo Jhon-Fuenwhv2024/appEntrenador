@@ -429,10 +429,20 @@ onMounted(() => {
 .trainer-inbox__list {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   padding: 0.55rem;
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+}
+
+.trainer-inbox__list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .trainer-inbox__loading {

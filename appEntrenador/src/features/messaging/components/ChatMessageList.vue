@@ -131,6 +131,10 @@ defineExpose({ scrollToBottom });
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge/IE */
   padding: 1.1rem 1rem 1.25rem;
   display: flex;
   flex-direction: column;
@@ -138,6 +142,12 @@ defineExpose({ scrollToBottom });
   background-image:
     radial-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
   background-size: 18px 18px;
+}
+
+.chat-message-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none; /* Chrome / Safari / Edge */
 }
 
 .chat-message-list__empty {
