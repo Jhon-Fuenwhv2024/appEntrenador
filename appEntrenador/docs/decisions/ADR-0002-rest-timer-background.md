@@ -20,4 +20,5 @@ En iOS/Android Safari/Chrome, los timers (`setInterval` que resta 1s) se pausan 
 - El tiempo real de descanso es correcto aunque el usuario minimice el navegador.
 - El sonido puede no sonar *mientras* la app está suspendida (limitación del SO); al volver, se dispara si el descanso ya terminó.
 - Duración por ejercicio: el trainer define `rest_time_seconds` en rutinas/plantillas (0–900; default 90). El player lee ese campo; si es `0`, avanza de serie sin pantalla de descanso.
+- El descanso también corre **entre ejercicios**: tras la última serie de un ejercicio (o al cerrar una superserie completa) se usa el mismo timer antes del siguiente, con destino explícito (`restTarget`). Excepción Feature 029: dentro de una ronda de superserie (A1→B1) no hay descanso.
 - Feature **059**: `useTimer.adjust(deltaSeconds)` desplaza `targetEndTime` (±15 s en UI). Si el restante llega a ≤0, dispara la misma ruta de completado (alerta + avance). El anillo de progreso usa `restSecondsLeft / restDuration` (esta última también se ajusta en `useWorkoutSession.adjustRest`).

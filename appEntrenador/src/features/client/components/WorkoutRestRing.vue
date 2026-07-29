@@ -1,8 +1,12 @@
 <script setup>
 import { computed } from 'vue';
+import {
+  getExerciseMediaKind,
+  resolveExerciseMediaSrc,
+} from '../../../shared/utils/exerciseDisplay.js';
 
 /**
- * Feature 059 — Rest phase ring + ±15 / Skip + Up next.
+ * Feature 059 — Rest phase ring + ±15 / Skip + Up next (compact exercise preview).
  */
 const props = defineProps({
   formattedTime: {
@@ -37,10 +41,30 @@ const dashOffset = computed(() => {
 });
 
 const nextTitle = computed(() => props.nextPreview?.nombre || '');
+
 const nextSubtitle = computed(() => {
   if (!props.nextPreview) return '';
   return props.nextPreview.label || `Serie ${props.nextPreview.setNumber || ''}`;
 });
+
+const nextMetrics = computed(() => props.nextPreview?.metricsLabel || '');
+
+const thumbSrc = computed(() => {
+  const preview = props.nextPreview;
+  if (!preview) return null;
+  return resolveExerciseMediaSrc({
+    local_media_path: preview.local_media_path,
+    media_url: preview.media_url,
+  });
+});
+
+const thumbKind = computed(() => (
+  getExerciseMediaKind(thumbSrc.value, props.nextPreview?.media_type)
+));
+
+const showThumb = computed(() => (
+  thumbKind.value === 'gif' || thumbKind.value === 'image'
+));
 </script>
 
 <template>
@@ -84,10 +108,25 @@ const nextSubtitle = computed(() => {
       <span class="rest-ring__muted">({{ restDuration }}s)</span>.
     </p>
 
-    <div v-if="nextPreview" class="rest-ring__upnext">
-      <span class="rest-ring__upnext-label">Siguiente</span>
-      <span class="rest-ring__upnext-name">{{ nextTitle }}</span>
-      <span v-if="nextSubtitle" class="rest-ring__upnext-set">{{ nextSubtitle }}</span>
+    <div
+      v-if="nextPreview"
+      class="rest-ring__upnext"
+      :aria-label="`Siguiente: ${nextTitle}. ${nextSubtitle}. ${nextMetrics}`"
+    >
+      <img
+        v-if="showThumb && thumbSrc"
+        class="rest-ring__upnext-thumb"
+        :src="thumbSrc"
+        alt=""
+        width="48"
+        height="48"
+      >
+      <div class="rest-ring__upnext-body">
+        <span class="rest-ring__upnext-label">Siguiente</span>
+        <span class="rest-ring__upnext-name">{{ nextTitle }}</span>
+        <span v-if="nextSubtitle" class="rest-ring__upnext-set">{{ nextSubtitle }}</span>
+        <span v-if="nextMetrics" class="rest-ring__upnext-metrics">{{ nextMetrics }}</span>
+      </div>
     </div>
 
     <div class="rest-ring__controls">
@@ -180,15 +219,33 @@ const nextSubtitle = computed(() => {
 
 .rest-ring__upnext {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
   width: 100%;
-  padding: 12px 14px;
+  padding: 10px 12px;
   margin-bottom: 16px;
   border-radius: 14px;
   border: 1px solid rgba(0, 229, 255, 0.2);
   background: rgba(0, 229, 255, 0.06);
   text-align: left;
+}
+
+.rest-ring__upnext-thumb {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.rest-ring__upnext-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
 }
 
 .rest-ring__upnext-label {
@@ -200,16 +257,23 @@ const nextSubtitle = computed(() => {
 }
 
 .rest-ring__upnext-name {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #fff;
   overflow-wrap: anywhere;
+  line-height: 1.25;
 }
 
-.rest-ring__upnext-set {
-  font-size: 0.85rem;
+.rest-ring__upnext-set,
+.rest-ring__upnext-metrics {
+  font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
   color: var(--tf-on-surface-muted, #a8b0bc);
+  line-height: 1.3;
+}
+
+.rest-ring__upnext-metrics {
+  color: #C5CAD3;
 }
 
 .rest-ring__controls {
@@ -234,6 +298,12 @@ const nextSubtitle = computed(() => {
 
 .rest-ring__adj:active {
   transform: scale(0.98);
+}
+
+.rest-ring__adj:focus-visible,
+.rest-ring__skip:focus-visible {
+  outline: 2px solid #00E5FF;
+  outline-offset: 2px;
 }
 
 .rest-ring__skip {

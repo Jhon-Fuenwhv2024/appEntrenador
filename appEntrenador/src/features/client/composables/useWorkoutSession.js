@@ -64,6 +64,8 @@ function formatElapsed(totalSeconds) {
  * Rest countdown uses wall-clock timestamps (background-throttling resilient).
  * Feature 029: within a contiguous superset letter, rest starts only after the
  * last exercise in the group completes the current set round.
+ * Rest also runs after the last set of an exercise / group before the next exercise
+ * (unless rest_time_seconds is 0).
  * Feature 059: sets checklist, rest ±15, session elapsed, Up next preview.
  * @param {{ restSeconds?: number }} [options]
  */
@@ -80,8 +82,11 @@ export function useWorkoutSession(options = {}) {
   const startedAt = shallowRef(null);
   /** Duration used for the active / last rest (for UI ring + copy). */
   const restDuration = shallowRef(defaultRestSeconds);
-  /** After rest in a multi-exercise group, jump back to this index. */
-  const restReturnExerciseIndex = shallowRef(null);
+  /**
+   * Explicit destination after rest ends.
+   * @type {import('vue').ShallowRef<{ exerciseIndex: number, setIndex: number }|null>}
+   */
+  const restTarget = shallowRef(null);
   /** Wall-clock tick for session elapsed display (Feature 059). */
   const nowMs = shallowRef(Date.now());
   let elapsedTickId = null;
@@ -185,25 +190,33 @@ export function useWorkoutSession(options = {}) {
   const nextExercisePreview = computed(() => {
     if (phase.value !== 'resting') return null;
 
+    const target = restTarget.value;
+    if (!target) return null;
+
     const list = exercises.value;
-    const returnIndex = restReturnExerciseIndex.value;
-    const nextSetNumber = setIndex.value + 2;
-
-    if (returnIndex != null && returnIndex >= 0 && returnIndex < list.length) {
-      const ex = list[returnIndex];
-      return {
-        nombre: ex?.nombre || 'Siguiente',
-        setNumber: nextSetNumber,
-        label: `Serie ${nextSetNumber}`,
-      };
-    }
-
-    const ex = currentExercise.value;
+    const ex = list[target.exerciseIndex];
     if (!ex) return null;
+
+    const nextSetNumber = target.setIndex + 1;
+    const total = Number(ex.series) || 0;
+    const metrics = resolvePrefillMetrics(ex);
+    const metricsParts = [];
+    if (metrics.weight > 0) metricsParts.push(`${metrics.weight} kg`);
+    if (metrics.reps > 0) metricsParts.push(`${metrics.reps} reps`);
+
     return {
-      nombre: ex.nombre,
+      nombre: ex.nombre || 'Siguiente',
       setNumber: nextSetNumber,
-      label: `Serie ${nextSetNumber}`,
+      totalSets: total,
+      label: total > 0
+        ? `Serie ${nextSetNumber} de ${total}`
+        : `Serie ${nextSetNumber}`,
+      weight: metrics.weight,
+      reps: metrics.reps,
+      metricsLabel: metricsParts.join(' × ') || '',
+      media_type: ex.media_type ?? null,
+      media_url: ex.media_url ?? null,
+      local_media_path: ex.local_media_path ?? null,
     };
   });
 
@@ -230,20 +243,80 @@ export function useWorkoutSession(options = {}) {
     return defaultRestSeconds;
   }
 
-  function syncInputDefaults() {
-    const ex = currentExercise.value;
-    actualWeight.value = ex ? Number(ex.peso) || 0 : 0;
-    actualReps.value = ex ? Number(ex.repeticiones) || 0 : 0;
+  /**
+   * Last set logged this session for the given exercise (weight/reps carry-forward).
+   * @param {{ id?: number|null, nombre?: string }} ex
+   */
+  function findLastSessionLog(ex) {
+    if (!ex) return null;
+    const exerciseId = ex.id ?? null;
+    const exerciseName = ex.nombre;
+    for (let i = logs.value.length - 1; i >= 0; i -= 1) {
+      const entry = logs.value[i];
+      if (exerciseId != null && entry.exerciseId != null) {
+        if (Number(entry.exerciseId) === Number(exerciseId)) return entry;
+      } else if (entry.exerciseName === exerciseName) {
+        return entry;
+      }
+    }
+    return null;
   }
 
-  function advanceToNextSet() {
-    const returnIndex = restReturnExerciseIndex.value;
-    restReturnExerciseIndex.value = null;
+  /**
+   * Weight/reps that will prefill for an exercise (session log → prescribed).
+   * @param {{ id?: number|null, nombre?: string, peso?: number, repeticiones?: number }} ex
+   * @returns {{ weight: number, reps: number }}
+   */
+  function resolvePrefillMetrics(ex) {
+    if (!ex) return { weight: 0, reps: 0 };
+    const lastLog = findLastSessionLog(ex);
+    if (lastLog) {
+      return {
+        weight: Number(lastLog.weight) || 0,
+        reps: Number(lastLog.reps) || 0,
+      };
+    }
+    return {
+      weight: Number(ex.peso) || 0,
+      reps: Number(ex.repeticiones) || 0,
+    };
+  }
 
-    if (returnIndex != null && returnIndex >= 0 && returnIndex < exercises.value.length) {
-      exerciseIndex.value = returnIndex;
+  /**
+   * Prefill weight/reps: last set of this exercise in the session, else prescribed.
+   */
+  function syncInputDefaults() {
+    const ex = currentExercise.value;
+    if (!ex) {
+      actualWeight.value = 0;
+      actualReps.value = 0;
+      return;
     }
 
+    const metrics = resolvePrefillMetrics(ex);
+    actualWeight.value = metrics.weight;
+    actualReps.value = metrics.reps;
+  }
+
+  function goToExercise(nextIndex, nextSetIndex = 0) {
+    exerciseIndex.value = nextIndex;
+    setIndex.value = nextSetIndex;
+    phase.value = 'working';
+    syncInputDefaults();
+  }
+
+  function advanceAfterRest() {
+    const target = restTarget.value;
+    restTarget.value = null;
+
+    if (target
+      && target.exerciseIndex >= 0
+      && target.exerciseIndex < exercises.value.length) {
+      goToExercise(target.exerciseIndex, Math.max(0, Number(target.setIndex) || 0));
+      return;
+    }
+
+    // Fallback: next set on current exercise.
     setIndex.value += 1;
     phase.value = 'working';
     syncInputDefaults();
@@ -252,22 +325,28 @@ export function useWorkoutSession(options = {}) {
   function finishRest() {
     cancelTimer();
     if (phase.value !== 'resting') return;
-    advanceToNextSet();
+    advanceAfterRest();
   }
 
-  function startRest({ returnToExerciseIndex = null } = {}) {
-    restReturnExerciseIndex.value = returnToExerciseIndex;
+  /**
+   * @param {{ nextExerciseIndex: number, nextSetIndex: number }} target
+   */
+  function startRest({ nextExerciseIndex, nextSetIndex }) {
+    restTarget.value = {
+      exerciseIndex: nextExerciseIndex,
+      setIndex: nextSetIndex,
+    };
     const seconds = resolveRestSeconds();
     restDuration.value = seconds;
     if (seconds <= 0) {
-      advanceToNextSet();
+      advanceAfterRest();
       return;
     }
     phase.value = 'resting';
     startTimer(seconds, {
       onComplete: () => {
         if (phase.value !== 'resting') return;
-        advanceToNextSet();
+        advanceAfterRest();
       },
     });
   }
@@ -284,7 +363,7 @@ export function useWorkoutSession(options = {}) {
     logs.value = [];
     startedAt.value = new Date().toISOString();
     restDuration.value = defaultRestSeconds;
-    restReturnExerciseIndex.value = null;
+    restTarget.value = null;
     syncInputDefaults();
     startElapsedTick();
   }
@@ -306,13 +385,6 @@ export function useWorkoutSession(options = {}) {
     const nextDuration = Math.max(0, Number(restDuration.value) + delta);
     restDuration.value = nextDuration;
     adjustTimer(delta);
-  }
-
-  function goToExercise(nextIndex, nextSetIndex = 0) {
-    exerciseIndex.value = nextIndex;
-    setIndex.value = nextSetIndex;
-    phase.value = 'working';
-    syncInputDefaults();
   }
 
   function completeSet({ weight, reps } = {}) {
@@ -351,13 +423,19 @@ export function useWorkoutSession(options = {}) {
         .some((member) => setIndex.value + 1 < (Number(member.series) || 0));
 
       if (groupHasMoreSets) {
-        startRest({ returnToExerciseIndex: group.start });
+        startRest({
+          nextExerciseIndex: group.start,
+          nextSetIndex: setIndex.value + 1,
+        });
         return;
       }
 
       const nextIndex = group.end + 1;
       if (nextIndex < exercises.value.length) {
-        goToExercise(nextIndex, 0);
+        startRest({
+          nextExerciseIndex: nextIndex,
+          nextSetIndex: 0,
+        });
         return;
       }
 
@@ -366,14 +444,20 @@ export function useWorkoutSession(options = {}) {
       return;
     }
 
-    // Ungrouped / singleton: Feature 028 linear behavior.
+    // Ungrouped / singleton: Feature 028 linear behavior + inter-exercise rest.
     if (!isLastSetOfExercise.value) {
-      startRest();
+      startRest({
+        nextExerciseIndex: exerciseIndex.value,
+        nextSetIndex: setIndex.value + 1,
+      });
       return;
     }
 
     if (!isLastExercise.value) {
-      goToExercise(exerciseIndex.value + 1, 0);
+      startRest({
+        nextExerciseIndex: exerciseIndex.value + 1,
+        nextSetIndex: 0,
+      });
       return;
     }
 
@@ -393,7 +477,7 @@ export function useWorkoutSession(options = {}) {
     logs.value = [];
     startedAt.value = null;
     restDuration.value = defaultRestSeconds;
-    restReturnExerciseIndex.value = null;
+    restTarget.value = null;
   }
 
   onUnmounted(() => {

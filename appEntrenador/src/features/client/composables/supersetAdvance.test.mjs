@@ -1,5 +1,6 @@
 /**
  * Decision table for Feature 029 set advance / rest (mirrors useWorkoutSession.completeSet).
+ * Rest also runs after last set before the next exercise (linear + end of superserie group).
  * Run: node src/features/client/composables/supersetAdvance.test.mjs
  */
 
@@ -36,7 +37,7 @@ function resolveAdjacentSupersetGroup(exercises, index) {
 }
 
 /**
- * @returns {'nextInGroup'|'startRest'|'nextAfterGroup'|'restLinear'|'nextExercise'|'finished'}
+ * @returns {'nextInGroup'|'startRest'|'finished'}
  */
 function decideAfterCompleteSet(exercises, exerciseIndex, setIndex) {
   const group = resolveAdjacentSupersetGroup(exercises, exerciseIndex);
@@ -51,12 +52,12 @@ function decideAfterCompleteSet(exercises, exerciseIndex, setIndex) {
       .slice(group.start, group.end + 1)
       .some((member) => setIndex + 1 < (Number(member.series) || 0));
     if (groupHasMoreSets) return 'startRest';
-    if (group.end + 1 < exercises.length) return 'nextAfterGroup';
+    if (group.end + 1 < exercises.length) return 'startRest';
     return 'finished';
   }
 
-  if (!isLastSet) return 'restLinear';
-  if (!isLastExercise) return 'nextExercise';
+  if (!isLastSet) return 'startRest';
+  if (!isLastExercise) return 'startRest';
   return 'finished';
 }
 
@@ -81,14 +82,23 @@ const ss = [
 assert(decideAfterCompleteSet(ss, 0, 0) === 'nextInGroup', 'A1 set1 → nextInGroup');
 assert(decideAfterCompleteSet(ss, 1, 0) === 'startRest', 'A2 set1 → startRest');
 assert(decideAfterCompleteSet(ss, 0, 1) === 'nextInGroup', 'A1 set2 → nextInGroup');
-assert(decideAfterCompleteSet(ss, 1, 1) === 'nextAfterGroup', 'A2 set2 → Curl');
+assert(decideAfterCompleteSet(ss, 1, 1) === 'startRest', 'A2 set2 → rest before Curl');
 assert(decideAfterCompleteSet(ss, 2, 0) === 'finished', 'Curl done → finished');
 
 const wrong = [
   { nombre: '1A', series: 2, superset_letter: 'A' },
   { nombre: '1B', series: 2, superset_letter: 'B' },
 ];
-assert(decideAfterCompleteSet(wrong, 0, 0) === 'restLinear', 'A≠B: rest after first set (not superserie)');
+assert(decideAfterCompleteSet(wrong, 0, 0) === 'startRest', 'A≠B: rest after first set (not superserie)');
+assert(decideAfterCompleteSet(wrong, 0, 1) === 'startRest', 'A≠B: rest after last set before next exercise');
+
+const linear = [
+  { nombre: 'Squat', series: 2, superset_letter: null },
+  { nombre: 'Deadlift', series: 2, superset_letter: null },
+];
+assert(decideAfterCompleteSet(linear, 0, 0) === 'startRest', 'linear: mid set → startRest');
+assert(decideAfterCompleteSet(linear, 0, 1) === 'startRest', 'linear: last set → rest before next exercise');
+assert(decideAfterCompleteSet(linear, 1, 1) === 'finished', 'linear: last exercise last set → finished');
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
