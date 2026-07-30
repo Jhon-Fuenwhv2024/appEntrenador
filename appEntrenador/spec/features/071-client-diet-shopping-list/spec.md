@@ -13,7 +13,7 @@ Permite al **cliente** ver una **lista de compra agregada** a partir de todo el 
 - **Periodo:** todo el plan activo (todos los `diet_plan_days` con ítems), no solo la semana actual.
 - **Sin tabla nueva:** la lista se deriva en lectura del plan activo.
 - **Clasificación:** macro dominante por ítem (`protein_g` / `carbs_g` / `fats_g`); empate → P > C > G; los tres en 0 → grupo “Otros”.
-- **Agregación:** misma clave = `normalize(food_name)` + `unit` (case-insensitive, trim); sumar `quantity` y macros.
+- **Agregación:** misma clave = nombre normalizado + `unit` (case-insensitive, trim, colapsar espacios, quitar sufijos finales `(S1)`…`(Sn)`); sumar `quantity` y macros. No fusionar productos con nombre base distinto (ej. `Atún` ≠ `Atún en agua`).
 - **Checklist comprado:** solo en cliente (localStorage por `planId`); no persistir en servidor en este MVP.
 - **Ubicación UI:** botón carrito en el header de `ClientDietView` → ruta `/client/shopping-list` (`ClientShoppingListView`).
 
@@ -23,7 +23,7 @@ Permite al **cliente** ver una **lista de compra agregada** a partir de todo el 
 
 - [ ] `GET /api/me/diet-plan/shopping-list` (rol `client`, auth vía `req.user`)
 - [ ] Resuelve el plan **activo** del cliente; si no hay plan → `{ success: true, data: null }` o empty con mensaje claro
-- [ ] Recorre todos los días/meals/items del ciclo; agrega por `food_name` + `unit`
+- [ ] Recorre todos los días/meals/items del ciclo; agrega por nombre normalizado (sin `(Sn)`) + `unit`
 - [ ] Cada ítem incluye: `food_name`, `unit`, `quantity`, `calories`, `protein_g`, `carbs_g`, `fats_g`, `category` (`protein` | `carbs` | `fats` | `other`), `occurrences` (cuántas líneas se fusionaron)
 - [ ] Respuesta agrupa por categoría: `{ plan: { id, title, cycle_length_weeks }, groups: [{ category, label, items[] }] }`
 - [ ] Route → Controller → Service; SQL parametrizado; ownership del cliente

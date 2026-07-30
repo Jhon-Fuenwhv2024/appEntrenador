@@ -1015,8 +1015,20 @@ const SHOPPING_CATEGORY_LABELS = {
   other: 'Otros',
 };
 
+/**
+ * Nombre de compra: quita sufijos de semana/segmento `(S1)`…`(Sn)` y colapsa espacios.
+ * No fusiona productos distintos (ej. Atún ≠ Atún en agua).
+ */
+function normalizeShoppingFoodName(foodName) {
+  return String(foodName || '')
+    .trim()
+    .replace(/\s*\([Ss]\d+\)\s*$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function shoppingItemKey(foodName, unit) {
-  const name = String(foodName || '').trim().toLowerCase();
+  const name = normalizeShoppingFoodName(foodName).toLowerCase();
   const unitKey = String(unit || '').trim().toLowerCase();
   return `${name}|${unitKey}`;
 }
@@ -1075,7 +1087,7 @@ async function getShoppingListForClient(clientId) {
   for (const day of days) {
     for (const meal of day.meals || []) {
       for (const item of meal.items || []) {
-        const foodName = String(item.food_name || '').trim();
+        const foodName = normalizeShoppingFoodName(item.food_name);
         if (!foodName) continue;
         const unit = String(item.unit || 'g').trim() || 'g';
         const key = shoppingItemKey(foodName, unit);

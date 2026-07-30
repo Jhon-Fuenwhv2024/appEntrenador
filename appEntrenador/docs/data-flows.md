@@ -100,7 +100,7 @@ Ver ADR-0004 y `docs/deploy-render.md` (sección R2).
 6. Duplicar día/semana: en el form (estado local) y endpoints `POST .../copy-day` | `copy-week`.
 7. Feature **057**: jerarquía comida/productos en `ClientDietView` se mantiene sobre el día resuelto.
 8. Feature **069**: al escribir un alimento en `DietPlanForm`, blur/debounce o botón “Autocompletar” llama `GET /trainer/foods/lookup` (USDA → OFF) y rellena kcal/P/C/G si estaban en 0; reescala con `per_100g` al cambiar cantidad en g/ml.
-9. Feature **071**: `GET /me/diet-plan/shopping-list` agrega todos los ítems del ciclo por nombre+unidad, clasifica por macro dominante y alimenta `ClientShoppingListView` (`/client/shopping-list`).
+9. Feature **071**: `GET /me/diet-plan/shopping-list` agrega todos los ítems del ciclo por nombre normalizado (quita `(Sn)`) + unidad, clasifica por macro dominante y alimenta `ClientShoppingListView` (`/client/shopping-list`).
 
 ## Plantillas → deep copy al alumno (Feature 018)
 

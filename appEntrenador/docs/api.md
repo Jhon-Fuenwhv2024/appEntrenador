@@ -1217,7 +1217,7 @@ Preview de los 7 días de la semana del ciclo que contiene `date`.
 
 ### `GET /me/diet-plan/shopping-list` (client)
 
-Lista de compra agregada del **plan activo** (ciclo completo 2–4 semanas). Sin tabla nueva: deriva de `diet_plan_days` → meals → items. Agrega por `normalize(food_name)` + `unit`; clasifica por macro dominante (`protein` | `carbs` | `fats` | `other`). Si no hay plan: `"data": null`.
+Lista de compra agregada del **plan activo** (ciclo completo 2–4 semanas). Sin tabla nueva: deriva de `diet_plan_days` → meals → items. Agrega por nombre normalizado + `unit`: trim, colapsa espacios y quita sufijos de semana/segmento `(S1)`…`(Sn)` (case-insensitive) antes de la clave; clasifica por macro dominante (`protein` | `carbs` | `fats` | `other`). No fusiona productos con nombre base distinto (ej. `Atún` ≠ `Atún en agua`). Si no hay plan: `"data": null`.
 
 ```json
 {
