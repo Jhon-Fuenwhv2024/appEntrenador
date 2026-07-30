@@ -16,6 +16,12 @@ function normalizeFotoUrl(value) {
   return trimmed;
 }
 
+function normalizeTelefono(value) {
+  if (value == null) return null;
+  const trimmed = String(value).trim();
+  return trimmed || null;
+}
+
 function mapPartner(row, { isOnline = false } = {}) {
   return {
     id: Number(row.id),
@@ -23,6 +29,7 @@ function mapPartner(row, { isOnline = false } = {}) {
     username: row.username,
     rol: row.rol,
     foto_url: normalizeFotoUrl(row.foto_url),
+    telefono: normalizeTelefono(row.telefono),
     is_online: Boolean(isOnline),
   };
 }
@@ -60,7 +67,8 @@ async function assertCanMessage(actor, partnerId) {
        u.username,
        u.rol,
        u.trainer_id,
-       COALESCE(ti.foto_url, ai.foto_url) AS foto_url
+       COALESCE(ti.foto_url, ai.foto_url) AS foto_url,
+       COALESCE(ti.telefono, ai.telefono) AS telefono
      FROM usuarios u
      LEFT JOIN trainers_info ti ON ti.user_id = u.id AND u.rol = 'trainer'
      LEFT JOIN alumnos_info ai ON ai.user_id = u.id AND u.rol = 'client'
@@ -112,7 +120,7 @@ async function getDefaultPartner(actor) {
   }
 
   const [rows] = await db.query(
-    `SELECT t.id, t.nombre, t.username, t.rol, ti.foto_url
+    `SELECT t.id, t.nombre, t.username, t.rol, ti.foto_url, ti.telefono
      FROM usuarios c
      INNER JOIN usuarios t ON t.id = c.trainer_id AND t.rol = 'trainer'
      LEFT JOIN trainers_info ti ON ti.user_id = t.id

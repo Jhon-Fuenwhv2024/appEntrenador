@@ -22,7 +22,11 @@ export function isMembershipExpiringSoon(membership) {
 
 /** Progreso visual 0–1 respecto a un mes de ~30 días. */
 export function getMembershipProgress(membership) {
-  const days = membership?.days_remaining == null
+  if (!membership) return 0;
+  const status = String(membership.status || '').toLowerCase();
+  if (status === 'expired' || isMembershipAccessBlocked(membership)) return 0;
+
+  const days = membership.days_remaining == null
     ? null
     : Number(membership.days_remaining);
   if (days == null || !Number.isFinite(days)) return 0;

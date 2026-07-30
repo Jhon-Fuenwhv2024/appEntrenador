@@ -1,17 +1,21 @@
 <script setup>
 /**
- * Resumen compacto pero completo de membresía / pago en Mi Perfil (Feature 040).
+ * Resumen compacto de membresía / pago en Mi Perfil (Feature 040).
+ * CTA renovar (chat + WhatsApp) solo cuando el plan está por vencer (≤7 días).
  */
-import { computed } from 'vue';
+import { computed, shallowRef, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import {
   formatMembershipDate,
   normalizeMembershipPeriod,
 } from '../../../shared/membership/period.js';
+import { getChatPartner } from '../../messaging/api/messagesApi.js';
 import {
   getMembershipHomeState,
-  getMembershipProgress,
   isMembershipAccessBlocked,
+  isMembershipExpiringSoon,
 } from '../utils/membershipUi.js';
+import { buildWhatsAppUrl } from '../utils/whatsapp.js';
 
 const props = defineProps({
   membership: {
@@ -19,6 +23,11 @@ const props = defineProps({
     default: null,
   },
 });
+
+const router = useRouter();
+const trainerPhone = shallowRef(null);
+const trainerName = shallowRef('');
+const contactLoading = shallowRef(false);
 
 const normalized = computed(() => normalizeMembershipPeriod(props.membership));
 const state = computed(() => getMembershipHomeState(normalized.value, false));
@@ -36,6 +45,7 @@ const paymentLabel = computed(() => {
 const paymentTone = computed(() => {
   const m = normalized.value;
   if (!m?.status) return 'muted';
+  if (state.value?.blocked) return 'danger';
   const status = String(m.status).toLowerCase();
   if (status === 'owing') return 'warn';
   if (status === 'expired') return 'danger';
@@ -43,14 +53,24 @@ const paymentTone = computed(() => {
   return 'muted';
 });
 
+/** Usa estado unificado: vencida/bloqueada → 0 días (no el calendario). */
 const daysText = computed(() => {
+  const s = state.value;
+  if (s?.blocked) {
+    return s.unit ? `${s.headline} ${s.unit}` : String(s.headline ?? '0 días');
+  }
+  if (s?.headline != null && s.headline !== '—') {
+    return s.unit ? `${s.headline} ${s.unit}` : String(s.headline);
+  }
   const days = normalized.value?.days_remaining;
   if (days == null || !Number.isFinite(Number(days))) return '—';
   const n = Math.max(0, Number(days));
   return n === 1 ? '1 día' : `${n} días`;
 });
 
-const accessBlocked = computed(() => isMembershipAccessBlocked(normalized.value));
+const accessBlocked = computed(() => (
+  state.value?.blocked || isMembershipAccessBlocked(normalized.value)
+));
 
 const accessLabel = computed(() => {
   if (!normalized.value) return '—';
@@ -59,14 +79,69 @@ const accessLabel = computed(() => {
   return 'Permitido';
 });
 
-const progressPct = computed(() => (
-  Math.round(getMembershipProgress(normalized.value) * 100)
-));
+const progressPct = computed(() => {
+  const s = state.value;
+  if (s) return Math.round((s.progress ?? 0) * 100);
+  return 0;
+});
 
 const empty = computed(() => !normalized.value?.status);
 
 const startLabel = computed(() => formatMembershipDate(normalized.value?.period_start));
 const endLabel = computed(() => formatMembershipDate(normalized.value?.period_end));
+
+/** Solo plan activo a ≤7 días del vencimiento. */
+const showRenewCta = computed(() => isMembershipExpiringSoon(normalized.value));
+
+/** Aviso de texto sin botones (vencida / pago pendiente). */
+const showStatusNote = computed(() => {
+  if (showRenewCta.value) return false;
+  return paymentTone.value === 'warn' || paymentTone.value === 'danger';
+});
+
+const whatsappUrl = computed(() => buildWhatsAppUrl(
+  trainerPhone.value,
+  'Hola, quiero renovar mi membresía en Trainfit.',
+));
+
+const renewSubtitle = computed(() => {
+  const days = normalized.value?.days_remaining;
+  const n = days == null ? null : Math.max(0, Number(days));
+  if (n === 0) return 'Tu plan vence hoy. Contáctalo para renovar.';
+  if (n === 1) return 'Tu plan vence mañana. Contáctalo para renovar.';
+  if (n != null && Number.isFinite(n)) {
+    return `Tu plan vence en ${n} días. Contáctalo para renovar.`;
+  }
+  return 'Contáctalo para renovar a tiempo.';
+});
+
+async function loadTrainerContact() {
+  contactLoading.value = true;
+  try {
+    const response = await getChatPartner();
+    const partner = response.data?.data ?? null;
+    trainerPhone.value = partner?.telefono ?? null;
+    trainerName.value = partner?.nombre || 'tu entrenador';
+  } catch (error) {
+    console.warn('No se pudo cargar contacto del entrenador:', error);
+    trainerPhone.value = null;
+    trainerName.value = 'tu entrenador';
+  } finally {
+    contactLoading.value = false;
+  }
+}
+
+function goToChat() {
+  router.push({ name: 'ClientMessages' });
+}
+
+watch(
+  showRenewCta,
+  (show) => {
+    if (show) loadTrainerContact();
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -120,11 +195,55 @@ const endLabel = computed(() => formatMembershipDate(normalized.value?.period_en
       </dl>
 
       <p
-        v-if="paymentTone === 'warn' || paymentTone === 'danger'"
+        v-if="showStatusNote"
         class="pmc__note"
       >
         Habla con tu entrenador para renovar o regularizar el pago.
       </p>
+
+      <div
+        v-if="showRenewCta"
+        class="pmc__renew"
+        role="region"
+        aria-label="Renovar membresía"
+      >
+        <div class="pmc__renew-copy">
+          <p class="pmc__renew-kicker">Por vencer</p>
+          <p class="pmc__renew-title">Habla con {{ trainerName || 'tu entrenador' }}</p>
+          <p class="pmc__renew-sub">{{ renewSubtitle }}</p>
+        </div>
+
+        <div class="pmc__renew-actions">
+          <button
+            type="button"
+            class="pmc__pill pmc__pill--chat"
+            aria-label="Abrir chat con tu entrenador"
+            @click="goToChat"
+          >
+            <v-icon icon="mdi-message-text-outline" size="18" aria-hidden="true" />
+            <span>Chat</span>
+          </button>
+
+          <a
+            v-if="whatsappUrl"
+            :href="whatsappUrl"
+            class="pmc__pill pmc__pill--wa"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Abrir WhatsApp con el número de tu entrenador"
+          >
+            <v-icon icon="mdi-whatsapp" size="18" aria-hidden="true" />
+            <span>WhatsApp</span>
+          </a>
+
+          <p
+            v-else-if="!contactLoading"
+            class="pmc__renew-hint"
+          >
+            WhatsApp no disponible: tu entrenador aún no agregó teléfono en su perfil.
+          </p>
+        </div>
+      </div>
     </template>
   </section>
 </template>
@@ -292,4 +411,106 @@ const endLabel = computed(() => formatMembershipDate(normalized.value?.period_en
   border: 1px solid rgba(255, 176, 32, 0.18);
 }
 
+/* CTA renovar — solo “por vencer” */
+.pmc__renew {
+  margin-top: 0.9rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(255, 176, 32, 0.1) 0%, rgba(0, 229, 255, 0.04) 100%);
+  border: 1px solid rgba(255, 176, 32, 0.22);
+}
+
+.pmc__renew-copy {
+  margin-bottom: 0.75rem;
+}
+
+.pmc__renew-kicker {
+  margin: 0;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ffc857;
+}
+
+.pmc__renew-title {
+  margin: 0.28rem 0 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--tf-on-surface, #ffffff);
+  line-height: 1.25;
+}
+
+.pmc__renew-sub {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.pmc__renew-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pmc__pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 40px;
+  min-width: 44px;
+  padding: 0 0.95rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+
+.pmc__pill:focus-visible {
+  outline: var(--tf-focus-ring, 2px solid #00e5ff);
+  outline-offset: var(--tf-focus-offset, 2px);
+}
+
+.pmc__pill:active {
+  transform: scale(0.98);
+}
+
+.pmc__pill--chat {
+  color: var(--tf-on-primary, #0b0d12);
+  background: var(--tf-primary, #00e5ff);
+  border-color: transparent;
+}
+
+.pmc__pill--chat:hover {
+  background: #33ebff;
+}
+
+.pmc__pill--wa {
+  color: #e8f8ef;
+  background: rgba(37, 211, 102, 0.14);
+  border-color: rgba(37, 211, 102, 0.42);
+}
+
+.pmc__pill--wa:hover {
+  background: rgba(37, 211, 102, 0.22);
+  border-color: rgba(37, 211, 102, 0.55);
+}
+
+.pmc__renew-hint {
+  margin: 0;
+  flex: 1 1 100%;
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
 </style>

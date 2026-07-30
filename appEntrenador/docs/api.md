@@ -1489,10 +1489,14 @@ Devuelve el entrenador asignado como único partner de chat.
     "nombre": "Coach",
     "username": "coach",
     "rol": "trainer",
-    "foto_url": "/uploads/avatars/2.webp"
+    "foto_url": "/uploads/avatars/2.webp",
+    "telefono": "+57 300 123 4567",
+    "is_online": false
   }
 }
 ```
+
+`telefono` viene de `trainers_info` (puede ser `null` si el entrenador no lo configuró). El cliente lo usa para CTA de WhatsApp al renovar membresía.
 
 ### `GET /messages/unread-summary` (trainer | client) — Feature 073
 
