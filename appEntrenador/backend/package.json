@@ -16,6 +16,7 @@
     "db:create-trainers-info": "node scripts/createTrainersInfoTable.js",
     "db:create-body-composition": "node scripts/createBodyCompositionTable.js",
     "db:create-notifications": "node scripts/createNotificationsTable.js",
+    "vapid:generate": "node scripts/generateVapidKeys.js",
     "db:create-nutrition-targets": "node scripts/createNutritionTargetsTable.js",
     "db:add-rest-time": "node scripts/addRestTimeSeconds.js",
     "db:add-superset-letter": "node scripts/addSupersetLetter.js",
@@ -51,6 +52,7 @@
     "multer": "^2.2.0",
     "mysql2": "^3.22.5",
     "nodemailer": "^9.0.3",
-    "resend": "^6.17.2"
+    "resend": "^6.17.2",
+    "web-push": "^3.6.7"
   }
 }

@@ -47,6 +47,7 @@
 43. **061 · Rediseño Programación (trainer)** — Vista semanal L–D, builder bajo demanda, assign plantilla desde ficha 360, duplicar día. Spec: `061-trainer-programming-redesign`.
 44. **062 · Accesibilidad visual (baja visión)** — WCAG 2.2 AA visual: ADR-0002, regla Cursor, tokens muted/focus, auditoría + fixes P0/P1. Spec: `062-visual-accessibility-low-vision`.
 45. **063 · Session header actions** — Cluster compartido campana + menú de cuenta (logout con confirmación) cliente/trainer; badge numérico. Spec: `063-session-header-actions`.
+46. **051 · PWA + notificaciones push** — App instalable + Web Push (VAPID); fan-out desde in-app + chat. Spec: `051-pwa-push-notifications`.
 
 ## Siguiente (Epic Fitness)
 
@@ -73,7 +74,7 @@ Orden sugerido tras cerrar el Epic Fitness (035 → 043 → 044 → 045):
 | **048** | Suite tests API/E2E críticos | Login, ownership, guardar sesión, soft-lock membresía |
 | **049** | Deploy producción | Checklist go-live; alinear a **Coolify + VPS** (histórico citaba Netlify). Media durable = **068** |
 | **050** | Pagos SaaS automatizados (037 Fase 2) | Stripe/pasarela + portal facturación; FREE/PRO hoy es manual vía SuperAdmin |
-| **051** | PWA + notificaciones push | Retención móvil; hoy solo in-app (025) |
+| **051** | PWA + notificaciones push | **Hecho** — `051-pwa-push-notifications` |
 | **052** | Informe semanal automático al trainer | Resumen alumnos (entrenos, rachas en riesgo, membresías por vencer) |
 | **053** | Nutrición fase 2: registro diario de comida | 031 macros + **043** planes; diario/adherencia |
 | **054** | Comparador de fotos de progreso | 033 sube fotos; side-by-side / timeline visual |

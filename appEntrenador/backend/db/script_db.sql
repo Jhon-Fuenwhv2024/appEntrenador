@@ -362,6 +362,22 @@ CREATE TABLE messages (
       FOREIGN KEY (receiver_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- 17b. WEB PUSH SUBSCRIPTIONS (Feature 051 — PWA)
+CREATE TABLE push_subscriptions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    endpoint VARCHAR(512) NOT NULL,
+    p256dh VARCHAR(255) NOT NULL,
+    auth VARCHAR(255) NOT NULL,
+    user_agent VARCHAR(512) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_push_subscriptions_endpoint (endpoint),
+    INDEX idx_push_subscriptions_user (user_id),
+    CONSTRAINT fk_push_subscriptions_user
+      FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- 18. MEMBRESÍA / CONTROL DE PAGO DEL ALUMNO (Feature 040)
 -- days_remaining se calcula en service (DATEDIFF), no es columna.
 CREATE TABLE client_memberships (

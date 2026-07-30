@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const { PORT, CORS_ORIGINS, NODE_ENV, isR2Configured } = require('./config/env');
+const { PORT, CORS_ORIGINS, NODE_ENV, isR2Configured, isVapidConfigured } = require('./config/env');
 const authRoutes = require('./modules/auth/auth.routes');
 const invitesRoutes = require('./modules/invites/invites.routes');
 const clientsRoutes = require('./modules/clients/clients.routes');
@@ -26,9 +26,11 @@ const consistencyRoutes = require('./modules/consistency/consistency.routes');
 const dietPlansRoutes = require('./modules/diet-plans/diet-plans.routes');
 const foodLookupRoutes = require('./modules/food-lookup/food-lookup.routes');
 const adminExercisesRoutes = require('./modules/admin-exercises/admin-exercises.routes');
+const pushRoutes = require('./modules/push/push.routes');
 const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
 const { ensurePhotosDir } = require('./middleware/uploadProgressPhotos');
 const { ensureNotificationsTable } = require('./db/ensureNotificationsTable');
+const { ensurePushSubscriptionsTable } = require('./db/ensurePushSubscriptionsTable');
 const { ensureHabitsTables } = require('./db/ensureHabitsTables');
 const { ensureCheckinsTables } = require('./db/ensureCheckinsTables');
 const { ensureMessagesTable } = require('./db/ensureMessagesTable');
@@ -128,6 +130,7 @@ app.use('/api', accountRoutes);
 app.use('/api', bodyCompositionRoutes);
 app.use('/api', progressRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/push', pushRoutes);
 app.use('/api', nutritionRoutes);
 app.use('/api', habitsRoutes);
 app.use('/api', checkinsRoutes);
@@ -157,6 +160,12 @@ async function start() {
     await ensureNotificationsTable();
   } catch (error) {
     console.error('No se pudo asegurar la tabla notifications:', error.message);
+  }
+
+  try {
+    await ensurePushSubscriptionsTable();
+  } catch (error) {
+    console.error('No se pudo asegurar la tabla push_subscriptions:', error.message);
   }
 
   try {
@@ -225,6 +234,11 @@ async function start() {
       isR2Configured
         ? '[exercises] R2 configurado — GIFs en Cloudflare R2'
         : '[exercises] R2 no configurado — GIFs en disco local',
+    );
+    console.log(
+      isVapidConfigured
+        ? '[push] VAPID configurado — Web Push habilitado'
+        : '[push] VAPID no configurado — Web Push deshabilitado (ver scripts/generateVapidKeys.js)',
     );
   });
 }

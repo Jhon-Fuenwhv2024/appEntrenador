@@ -17,6 +17,7 @@ import AppShell from '../../shared/layout/AppShell.vue';
 import SessionHeaderActions from '../../shared/layout/SessionHeaderActions.vue';
 import ChangePasswordForm from '../../shared/components/ChangePasswordForm.vue';
 import ProfileFormCard from '../../shared/components/ProfileFormCard.vue';
+import PushOptInCard from '../../shared/components/PushOptInCard.vue';
 import { getMyMembership } from './api/membershipApi.js';
 import ClientProfileMembershipCard from './components/ClientProfileMembershipCard.vue';
 
@@ -157,6 +158,8 @@ onMounted(() => {
             :saving="saving"
             @save="onSave"
           />
+
+          <PushOptInCard @notify="notify" />
 
           <ChangePasswordForm
             :saving="savingPassword"

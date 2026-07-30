@@ -16,6 +16,7 @@ import { useSessionAccount } from '../../shared/composables/useSessionAccount.js
 import AppShell from '../../shared/layout/AppShell.vue';
 import SessionHeaderActions from '../../shared/layout/SessionHeaderActions.vue';
 import ChangePasswordForm from '../../shared/components/ChangePasswordForm.vue';
+import PushOptInCard from '../../shared/components/PushOptInCard.vue';
 import TrainerAccountCard from '../../shared/components/TrainerAccountCard.vue';
 import TrainerSaasPlanCard from '../saas/components/TrainerSaasPlanCard.vue';
 
@@ -138,6 +139,10 @@ onMounted(() => {
             :account="account"
             :saving="savingProfile"
             @save="onSaveProfile"
+          />
+          <PushOptInCard
+            class="mb-4"
+            @notify="notify"
           />
           <ChangePasswordForm
             class="mb-4"

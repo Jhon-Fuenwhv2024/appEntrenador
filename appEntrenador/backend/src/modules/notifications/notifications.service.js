@@ -24,6 +24,11 @@ function mapNotificationRow(row) {
   };
 }
 
+function getPushService() {
+  // Lazy require avoids circular init issues if push ever imports notifications.
+  return require('../push/push.service').pushService;
+}
+
 const notificationService = {
   /**
    * Hard-delete expired rows and old read notifications for one user.
@@ -139,6 +144,18 @@ const notificationService = {
         expires,
       ],
     );
+
+    try {
+      getPushService().notifyUserAsync(userId, {
+        title,
+        body: message,
+        actionUrl,
+        type,
+      });
+    } catch (error) {
+      console.warn('[notifications] push fan-out:', error.message);
+    }
+
     return result.insertId;
   },
 };

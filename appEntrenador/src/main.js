@@ -13,6 +13,17 @@ if (favicon) {
   favicon.href = APP_FAVICON
 }
 
+// Feature 051 — register service worker for PWA + push (autoUpdate).
+if ('serviceWorker' in navigator) {
+  import('virtual:pwa-register')
+    .then(({ registerSW }) => {
+      registerSW({ immediate: true })
+    })
+    .catch((error) => {
+      console.warn('[pwa] registerSW failed:', error)
+    })
+}
+
 const app = createApp(App)
 
 app.use(vuetify)

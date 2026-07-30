@@ -80,6 +80,17 @@ SMTP_PASS=<api-key>
 SMTP_FROM=Trainfit <onboarding@resend.dev>
 ```
 
+Web Push VAPID (Feature 051 — obligatorio para notificaciones del sistema):
+
+```
+# Generar: cd backend && npm run vapid:generate
+VAPID_PUBLIC_KEY=<public>
+VAPID_PRIVATE_KEY=<private>
+VAPID_SUBJECT=mailto:noreply@tudominio.com
+```
+
+El front (Cloudflare) debe servir el service worker y el manifest en el **mismo origen** HTTPS de la SPA. Push se envía desde Render; no requiere servir el SW desde el API.
+
 ## Frontend (Cloudflare)
 
 En el build del Worker/Pages:

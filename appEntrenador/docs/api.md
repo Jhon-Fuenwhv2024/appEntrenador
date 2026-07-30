@@ -1082,6 +1082,43 @@ Marca todas las del usuario autenticado como leídas.
 
 Elimina (hard delete) una notificación propia. `404` si no existe o no pertenece al usuario.
 
+## Web Push / PWA (Feature 051)
+
+Suscripciones Web Push por dispositivo (`push_subscriptions`). Requiere VAPID en el servidor. Auth: `trainer` | `client`. Ownership siempre `req.user.id`.
+
+Tras `createNotification`, el servidor intenta push (fire-and-forget). Los DMs también envían push al receptor **sin** crear fila in-app.
+
+### `GET /push/vapid-public-key`
+
+Devuelve la clave pública VAPID para `pushManager.subscribe`.
+
+```json
+{
+  "success": true,
+  "data": { "publicKey": "B…", "enabled": true }
+}
+```
+
+Sin VAPID: `503` `{ "success": false, "error": "…", "code": 503 }`.
+
+### `POST /push/subscriptions`
+
+Upsert por `endpoint` (UNIQUE). Body:
+
+```json
+{
+  "endpoint": "https://fcm.googleapis.com/fcm/send/…",
+  "keys": { "p256dh": "…", "auth": "…" },
+  "userAgent": "optional"
+}
+```
+
+`201` + `{ "success": true, "data": { "endpoint": "…" } }`.
+
+### `DELETE /push/subscriptions`
+
+Body `{ "endpoint": "…" }`. Solo borra si pertenece al usuario. `404` si no existe.
+
 ## Nutrición / objetivos diarios (Feature 031)
 
 Tabla `nutrition_targets` (relación 1:1 con el cliente vía `UNIQUE(client_id)`). Macros y calorías en enteros positivos.

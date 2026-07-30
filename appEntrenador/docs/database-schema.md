@@ -268,6 +268,12 @@ npm run db:create-notifications
 # o: node scripts/createNotificationsTable.js
 ```
 
+### `push_subscriptions` (Feature 051)
+
+Suscripciones Web Push N:1 con el usuario (`user_id` → `usuarios`). Campos: `endpoint` (UNIQUE VARCHAR 512), `p256dh`, `auth`, `user_agent` opcional, `created_at` / `updated_at`. Un usuario puede tener varios dispositivos.
+
+Migración: [`030_push_subscriptions.sql`](../backend/db/migrations/030_push_subscriptions.sql). Boot: `ensurePushSubscriptionsTable`. Generar VAPID: `npm run vapid:generate` en `backend/`.
+
 ### `nutrition_targets` (Feature 031)
 
 Objetivo nutricional diario 1:1 con el cliente (`UNIQUE client_id`). Campos: `calories`, `protein_g`, `carbs_g`, `fats_g` (INT positivos). `trainer_id` = entrenador que asignó.

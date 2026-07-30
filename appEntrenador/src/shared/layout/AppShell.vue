@@ -2,13 +2,15 @@
 /**
  * Authenticated app shell: desktop sidebar rail + mobile bottom nav.
  * Unread badge on Chat (Feature 073) via shared useUnreadMessages.
+ * Soft prompt Web Push (Feature 051).
  */
-import { computed } from 'vue';
+import { computed, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import AppLogo from '../../components/AppLogo.vue';
 import { useUnreadMessages } from '../../features/messaging/composables/useUnreadMessages.js';
 import { clearSession, getSessionUser } from '../auth/session.js';
 import { clearSessionAccountCache } from '../composables/useSessionAccount.js';
+import PushSoftPrompt from '../components/PushSoftPrompt.vue';
 import AppBottomNav from './AppBottomNav.vue';
 
 const props = defineProps({
@@ -35,6 +37,18 @@ const router = useRouter();
 const { total, badgeLabel } = useUnreadMessages({ autoStart: true });
 
 const isSuperAdmin = computed(() => getSessionUser()?.is_superadmin === true);
+
+const snackbar = reactive({
+  show: false,
+  text: '',
+  color: 'success',
+});
+
+function onPushNotify(text, color = 'success') {
+  snackbar.show = true;
+  snackbar.text = text;
+  snackbar.color = color;
+}
 
 const messagesAriaLabel = computed(() => {
   const count = Number(total.value) || 0;
@@ -215,12 +229,17 @@ const go = (path) => {
     </nav>
 
     <div class="shell-body">
+      <PushSoftPrompt @notify="onPushNotify" />
       <slot />
     </div>
 
     <slot name="aside" />
 
     <AppBottomNav :role="role" :active="active" />
+
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3200">
+      {{ snackbar.text }}
+    </v-snackbar>
   </div>
 </template>
 

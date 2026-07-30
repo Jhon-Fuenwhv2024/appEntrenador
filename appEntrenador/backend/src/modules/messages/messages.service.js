@@ -5,6 +5,10 @@ const sseManager = require('./sseManager');
 const MAX_CONTENT_LENGTH = 4000;
 const DEFAULT_AVATAR_MARKERS = new Set(['', 'default_avatar.png', 'null', 'undefined']);
 
+function getPushService() {
+  return require('../push/push.service').pushService;
+}
+
 function normalizeFotoUrl(value) {
   if (value == null) return null;
   const trimmed = String(value).trim();
@@ -195,6 +199,24 @@ async function sendMessage(actor, { receiverId, content }) {
   const message = mapMessageRow(rows[0]);
 
   sseManager.sendToUser(partner.id, message);
+
+  try {
+    const preview = truncatePreview(rawContent);
+    const actionUrl =
+      partner.rol === 'trainer' ? '/trainer/messages' : '/client/messages';
+    const senderName =
+      typeof actor.nombre === 'string' && actor.nombre.trim()
+        ? actor.nombre.trim()
+        : 'Trainfit';
+    getPushService().notifyUserAsync(partner.id, {
+      title: `Mensaje de ${senderName}`,
+      body: preview || 'Nuevo mensaje',
+      actionUrl,
+      type: 'chat_message',
+    });
+  } catch (error) {
+    console.warn('[messages] push fan-out:', error.message);
+  }
 
   return message;
 }

@@ -226,3 +226,12 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 3. Activar o guardar un plan de dieta activo emite `diet_updated` al `client_id` del plan.
 4. En UI (`NotificationBadge`): tap → mark read → dialog grande con detalle → CTA navega con `action_url` si es path relativo seguro; botón descartar → `DELETE /notifications/:id`.
 5. Tipos sin `action_url` solo se marcan leídos y se muestran en el dialog (sin crash).
+
+## PWA + Web Push (Feature 051)
+
+1. El front registra service worker (`vite-plugin-pwa` / `src/sw.js`) y expone manifest instalable.
+2. Opt-in (soft-prompt o toggle en perfil/ajustes) → permiso del navegador → `pushManager.subscribe(VAPID)` → `POST /api/push/subscriptions`.
+3. `createNotification` inserta in-app y llama `pushService.notifyUserAsync` con `title` / `body` / `actionUrl` / `type`.
+4. `sendMessage` (chat) hace push al receptor con deep-link `/client/messages` o `/trainer/messages` (sin fila en `notifications`).
+5. SW: evento `push` → `showNotification`; `notificationclick` abre path relativo seguro.
+6. Endpoints 404/410 se borran de `push_subscriptions`. Sin VAPID en env, el envío se omite (API de subscribe responde 503 en clave pública).

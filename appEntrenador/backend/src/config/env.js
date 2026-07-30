@@ -81,6 +81,20 @@ const R2 = {
 /** USDA FoodData Central API key (api.data.gov). Optional; OFF used as fallback. */
 const USDA_FDC_API_KEY = String(process.env.USDA_FDC_API_KEY || '').trim();
 
+/** Web Push VAPID (Feature 051). All three required to enable sending. */
+const VAPID_PUBLIC_KEY = String(process.env.VAPID_PUBLIC_KEY || '').trim();
+const VAPID_PRIVATE_KEY = String(process.env.VAPID_PRIVATE_KEY || '').trim();
+const VAPID_SUBJECT = String(process.env.VAPID_SUBJECT || '').trim()
+  || 'mailto:noreply@trainfit.local';
+
+const isVapidConfigured = Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
+
+const VAPID = {
+  publicKey: VAPID_PUBLIC_KEY,
+  privateKey: VAPID_PRIVATE_KEY,
+  subject: VAPID_SUBJECT,
+};
+
 module.exports = {
   JWT_SECRET: JWT_SECRET || 'trainfit-dev-only-change-me',
   JWT_EXPIRES_IN,
@@ -92,4 +106,6 @@ module.exports = {
   R2,
   isR2Configured,
   USDA_FDC_API_KEY,
+  VAPID,
+  isVapidConfigured,
 };
