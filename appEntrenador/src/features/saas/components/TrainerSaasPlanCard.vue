@@ -54,70 +54,76 @@ const statusTone = computed(() => {
 const statusText = computed(() => {
   if (isExpired.value) return 'Vencido';
   if (effectiveLabel.value === 'PRO') return 'Activo';
-  return 'Plan gratuito';
+  return 'Gratis';
+});
+
+const headline = computed(() => {
+  if (isExpired.value) return 'PRO vencido';
+  if (effectiveLabel.value === 'PRO') return 'Plan PRO';
+  return 'Plan FREE';
 });
 
 const bodyText = computed(() => {
   if (isExpired.value) {
-    return 'Tu PRO ya no está activo. Puedes seguir entrando y chateando con todos tus alumnos, pero solo editas los 3 primeros (por orden de alta). Renueva con soporte para recuperar acceso completo.';
+    return 'Puedes seguir entrando y chateando con todos tus alumnos, pero solo editas los 3 primeros. Renueva con soporte para recuperar acceso completo.';
   }
   if (effectiveLabel.value === 'PRO') {
-    return 'Tienes beneficios PRO: alumnos ilimitados y edición completa de tu roster.';
+    return 'Alumnos ilimitados y edición completa de tu roster.';
   }
-  return 'En FREE puedes gestionar hasta 3 alumnos editables. Si tienes más, el resto queda en solo lectura hasta que pases a PRO.';
+  return 'Hasta 3 alumnos editables. Si tienes más, el resto queda en solo lectura hasta pasar a PRO.';
 });
 </script>
 
 <template>
   <section
     v-if="account"
-    class="saas-plan-card"
+    class="saas-plan"
+    :class="`saas-plan--${statusTone}`"
     aria-labelledby="saas-plan-title"
   >
-    <header class="saas-plan-card__head">
-      <div class="saas-plan-card__titles">
-        <p class="saas-plan-card__eyebrow">Suscripción</p>
-        <h2 id="saas-plan-title" class="saas-plan-card__title">
-          Plan Trainfit
-        </h2>
+    <div class="saas-plan__top">
+      <div>
+        <p class="saas-plan__eyebrow">Suscripción Trainfit</p>
+        <p id="saas-plan-title" class="saas-plan__headline">
+          <strong>{{ headline }}</strong>
+        </p>
       </div>
       <span
-        class="saas-plan-card__status"
-        :class="`saas-plan-card__status--${statusTone}`"
+        class="saas-plan__badge"
+        :class="`saas-plan__badge--${statusTone}`"
       >
-        <span class="saas-plan-card__status-dot" aria-hidden="true" />
         {{ statusText }}
       </span>
-    </header>
+    </div>
 
-    <dl class="saas-plan-card__facts">
-      <div class="saas-plan-card__fact">
-        <dt>Plan contratado</dt>
+    <dl class="saas-plan__meta">
+      <div>
+        <dt>Contratado</dt>
         <dd>{{ planLabel }}</dd>
       </div>
-      <div class="saas-plan-card__fact">
-        <dt>Plan efectivo</dt>
+      <div>
+        <dt>Efectivo</dt>
         <dd>{{ effectiveLabel }}</dd>
       </div>
-      <div class="saas-plan-card__fact">
-        <dt>Vencimiento</dt>
-        <dd :class="{ 'saas-plan-card__dd--danger': isExpired }">
+      <div>
+        <dt>Vence</dt>
+        <dd :class="{ 'saas-plan__dd--danger': isExpired }">
           {{ expirationLabel }}
         </dd>
       </div>
-      <div class="saas-plan-card__fact">
-        <dt>Alumnos editables</dt>
-        <dd>{{ effectiveLabel === 'PRO' ? 'Ilimitados' : '3 (cupo FREE)' }}</dd>
+      <div>
+        <dt>Alumnos</dt>
+        <dd>{{ effectiveLabel === 'PRO' ? 'Ilimitados' : '3 editables' }}</dd>
       </div>
     </dl>
 
-    <p class="saas-plan-card__body">
+    <p class="saas-plan__body">
       {{ bodyText }}
     </p>
 
     <p
       v-if="isExpired || effectiveLabel === 'FREE'"
-      class="saas-plan-card__support"
+      class="saas-plan__note"
     >
       Para renovar o subir a PRO, contacta soporte.
     </p>
@@ -125,127 +131,126 @@ const bodyText = computed(() => {
 </template>
 
 <style scoped>
-.saas-plan-card {
-  background: #13161d;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+.saas-plan {
+  padding: 1.05rem 1.1rem 1rem;
   border-radius: 16px;
-  padding: 1rem 1.1rem 1.15rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%),
+    #151820;
 }
 
-.saas-plan-card__head {
+.saas-plan--warn,
+.saas-plan--danger {
+  border-color: rgba(255, 92, 92, 0.28);
+}
+
+.saas-plan__top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 0.9rem;
 }
 
-.saas-plan-card__eyebrow {
-  margin: 0 0 0.15rem;
-  font-size: 0.68rem;
-  font-weight: 600;
+.saas-plan__eyebrow {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.saas-plan__headline {
+  margin: 0.35rem 0 0;
+  font-size: 0.95rem;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+  line-height: 1.25;
+}
+
+.saas-plan__headline strong {
+  color: var(--tf-on-surface, #ffffff);
+  font-weight: 700;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+}
+
+.saas-plan__badge {
+  flex-shrink: 0;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.saas-plan__badge--ok {
+  color: var(--tf-on-primary, #0b0d12);
+  background: var(--tf-primary, #00e5ff);
+}
+
+.saas-plan__badge--danger {
+  color: #fff;
+  background: #e53935;
+}
+
+.saas-plan__badge--muted {
+  color: #c5cad3;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.saas-plan__meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1rem;
+  margin: 0.9rem 0 0;
+  padding: 0.85rem 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.saas-plan__meta dt {
+  margin: 0;
+  font-size: 0.625rem;
+  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
-.saas-plan-card__title {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--tf-on-surface, #e8eaed);
-}
-
-.saas-plan-card__status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  flex-shrink: 0;
-  margin-top: 0.15rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.saas-plan-card__status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-
-.saas-plan-card__status--ok {
-  color: #7dffa8;
-}
-
-.saas-plan-card__status--ok .saas-plan-card__status-dot {
-  background: #00e5a0;
-  box-shadow: 0 0 8px rgba(0, 229, 160, 0.45);
-}
-
-.saas-plan-card__status--danger {
-  color: #ff8a80;
-}
-
-.saas-plan-card__status--danger .saas-plan-card__status-dot {
-  background: #ff5c5c;
-  box-shadow: 0 0 8px rgba(255, 92, 92, 0.45);
-}
-
-.saas-plan-card__status--muted {
-  color: var(--tf-on-surface-muted, #a8b0bc);
-}
-
-.saas-plan-card__status--muted .saas-plan-card__status-dot {
-  background: #a8b0bc;
-}
-
-.saas-plan-card__facts {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.65rem 0.85rem;
-  margin: 0 0 0.85rem;
-}
-
-.saas-plan-card__fact {
-  min-width: 0;
-}
-
-.saas-plan-card__fact dt {
-  margin: 0 0 0.12rem;
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--tf-on-surface-muted, #a8b0bc);
-}
-
-.saas-plan-card__fact dd {
-  margin: 0;
-  font-size: 0.88rem;
+.saas-plan__meta dd {
+  margin: 0.2rem 0 0;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--tf-on-surface, #e8eaed);
+  line-height: 1.25;
 }
 
-.saas-plan-card__dd--danger {
-  color: #ff8a80;
+.saas-plan__dd--danger {
+  color: #ff8a80 !important;
 }
 
-.saas-plan-card__body,
-.saas-plan-card__support {
-  margin: 0;
-  font-size: 0.8rem;
+.saas-plan__body {
+  margin: 0.85rem 0 0;
+  font-size: 0.8125rem;
   line-height: 1.45;
   color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
-.saas-plan-card__support {
-  margin-top: 0.55rem;
+.saas-plan__note {
+  margin: 0.75rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  line-height: 1.4;
   font-weight: 600;
-  color: var(--tf-on-surface, #e8eaed);
+  color: var(--tf-on-surface, #e8ecf1);
+  background: rgba(255, 176, 32, 0.08);
+  border: 1px solid rgba(255, 176, 32, 0.18);
 }
 
 @media (max-width: 420px) {
-  .saas-plan-card__facts {
+  .saas-plan__meta {
     grid-template-columns: 1fr;
   }
 }
