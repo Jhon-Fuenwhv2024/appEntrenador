@@ -12,7 +12,13 @@ export default defineConfig({
       filename: 'sw.js',
       registerType: 'autoUpdate',
       injectRegister: false,
-      includeAssets: ['favicon.ico', 'pwa-192x192.png', 'pwa-512x512.png'],
+      includeAssets: [
+        'favicon.ico',
+        'pwa-192x192.png',
+        'pwa-512x512.png',
+        'pwa-badge-96.png',
+        'apple-touch-icon.png',
+      ],
       manifest: {
         name: 'Trainfit',
         short_name: 'Trainfit',

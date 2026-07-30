@@ -41,7 +41,9 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(data.title || 'Trainfit', {
       body: data.body || '',
       icon: '/pwa-192x192.png',
-      badge: '/pwa-192x192.png',
+      badge: '/pwa-badge-96.png',
+      tag: data.type || 'trainfit',
+      renotify: true,
       data: {
         actionUrl: data.actionUrl || '/',
         type: data.type || 'system',
