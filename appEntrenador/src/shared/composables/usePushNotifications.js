@@ -1,5 +1,6 @@
 /**
  * Web Push + PWA registration (Feature 051).
+ * Binds the browser push endpoint to the currently logged-in Trainfit user.
  */
 import { computed, readonly, shallowRef } from 'vue';
 import {
@@ -8,6 +9,11 @@ import {
   savePushSubscription,
 } from '../api/pushApi.js';
 import { getApiErrorMessage } from '../api/http.js';
+import { getSessionUser } from '../auth/session.js';
+import {
+  clearPushUserId,
+  setPushUserId,
+} from '../push/pushUserStore.js';
 
 const PROMPT_DISMISS_KEY = 'tf_push_prompt_dismissed';
 
@@ -21,6 +27,7 @@ const lastError = shallowRef('');
 const registration = shallowRef(null);
 
 let registerPromise = null;
+let bindInFlight = null;
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -102,9 +109,57 @@ async function checkServerEnabled() {
   }
 }
 
+/**
+ * Re-associate the existing browser subscription with the current session user.
+ * Safe to call on every AppShell mount / login.
+ */
+async function bindSubscriptionToCurrentUser() {
+  if (!isPushSupported()) return false;
+  if (bindInFlight) return bindInFlight;
+
+  bindInFlight = (async () => {
+    const user = getSessionUser();
+    if (!user?.id) return false;
+
+    permission.value = Notification.permission;
+    if (Notification.permission !== 'granted') {
+      await setPushUserId(user.id);
+      return false;
+    }
+
+    const publicKey = await checkServerEnabled();
+    if (!publicKey) return false;
+
+    const reg = await ensureServiceWorker();
+    if (!reg) return false;
+
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      subscribed.value = false;
+      await setPushUserId(user.id);
+      return false;
+    }
+
+    await savePushSubscription(subscriptionToPayload(sub));
+    await setPushUserId(user.id);
+    subscribed.value = true;
+    return true;
+  })().finally(() => {
+    bindInFlight = null;
+  });
+
+  return bindInFlight;
+}
+
 async function enablePush() {
   if (!isPushSupported()) {
     lastError.value = 'Este navegador no soporta notificaciones push.';
+    return false;
+  }
+
+  const user = getSessionUser();
+  if (!user?.id) {
+    lastError.value = 'Debes iniciar sesión para activar push.';
     return false;
   }
 
@@ -140,6 +195,7 @@ async function enablePush() {
     }
 
     await savePushSubscription(subscriptionToPayload(sub));
+    await setPushUserId(user.id);
     subscribed.value = true;
     localStorage.setItem(PROMPT_DISMISS_KEY, '1');
     return true;
@@ -166,11 +222,11 @@ async function disablePush() {
       try {
         await deletePushSubscription(endpoint);
       } catch (error) {
-        // Still unsubscribe locally even if API fails (e.g. already deleted).
         console.warn('[push] delete subscription API:', error);
       }
       await sub.unsubscribe();
     }
+    await clearPushUserId();
     subscribed.value = false;
     return true;
   } catch (error) {
@@ -179,6 +235,37 @@ async function disablePush() {
     return false;
   } finally {
     busy.value = false;
+  }
+}
+
+/**
+ * On logout: remove this device endpoint from the current user in the API
+ * and clear the SW user binding. Keeps browser permission (can re-enable later).
+ */
+async function unbindOnLogout() {
+  try {
+    if (!isPushSupported()) {
+      await clearPushUserId();
+      return;
+    }
+    const reg = registration.value || (await navigator.serviceWorker.getRegistration());
+    const sub = await reg?.pushManager?.getSubscription();
+    if (sub?.endpoint) {
+      try {
+        await deletePushSubscription(sub.endpoint);
+      } catch (error) {
+        console.warn('[push] unbindOnLogout API:', error);
+      }
+    }
+    await clearPushUserId();
+    subscribed.value = false;
+  } catch (error) {
+    console.warn('[push] unbindOnLogout:', error);
+    try {
+      await clearPushUserId();
+    } catch {
+      // ignore
+    }
   }
 }
 
@@ -222,8 +309,10 @@ export function usePushNotifications() {
     ensureServiceWorker,
     refreshSubscriptionState,
     checkServerEnabled,
+    bindSubscriptionToCurrentUser,
     enablePush,
     disablePush,
+    unbindOnLogout,
     dismissPrompt,
     isPromptDismissed,
   };

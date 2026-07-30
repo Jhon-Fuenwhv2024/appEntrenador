@@ -54,7 +54,7 @@ const pushService = {
     const p256dh = typeof keys?.p256dh === 'string' ? keys.p256dh.trim() : '';
     const auth = typeof keys?.auth === 'string' ? keys.auth.trim() : '';
 
-    if (!ep || ep.length > 512) {
+    if (!ep || ep.length > 2048) {
       const err = new Error('Endpoint de suscripción inválido.');
       err.status = 400;
       throw err;
@@ -101,11 +101,15 @@ const pushService = {
   },
 
   async listByUser(userId) {
+    const id = Number(userId);
+    if (!Number.isInteger(id) || id < 1) {
+      return [];
+    }
     const [rows] = await db.query(
       `SELECT id, user_id, endpoint, p256dh, auth, user_agent
        FROM push_subscriptions
        WHERE user_id = ?`,
-      [userId],
+      [id],
     );
     return rows.map(mapSubscriptionRow);
   },
@@ -123,12 +127,18 @@ const pushService = {
       return { sent: 0, removed: 0, skipped: true };
     }
 
+    const id = Number(userId);
+    if (!Number.isInteger(id) || id < 1) {
+      console.warn('[push] sendPushToUser: userId inválido', userId);
+      return { sent: 0, removed: 0, skipped: true };
+    }
+
     const safeTitle = String(title || 'Trainfit').slice(0, 100);
     const safeBody = String(body || '').slice(0, 500);
     const safeUrl = sanitizeActionUrl(actionUrl);
     const safeType = String(type || 'system').slice(0, 50);
 
-    const subscriptions = await this.listByUser(userId);
+    const subscriptions = await this.listByUser(id);
     if (!subscriptions.length) {
       return { sent: 0, removed: 0, skipped: false };
     }
@@ -138,6 +148,7 @@ const pushService = {
       body: safeBody,
       actionUrl: safeUrl,
       type: safeType,
+      userId: id,
     });
 
     let sent = 0;
@@ -145,6 +156,11 @@ const pushService = {
 
     await Promise.all(
       subscriptions.map(async (sub) => {
+        // Defense: never deliver a row that belongs to another user.
+        if (Number(sub.user_id) !== id) {
+          console.warn('[push] skipping mismatched subscription row', sub.id);
+          return;
+        }
         try {
           await webpush.sendNotification(
             {
@@ -174,8 +190,9 @@ const pushService = {
    * Fire-and-forget wrapper used by notification / chat emitters.
    */
   notifyUserAsync(userId, payload) {
+    const id = Number(userId);
     Promise.resolve()
-      .then(() => this.sendPushToUser(userId, payload))
+      .then(() => this.sendPushToUser(id, payload))
       .catch((error) => {
         console.warn('[push] notifyUserAsync:', error.message);
       });

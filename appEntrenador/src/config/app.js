@@ -1,4 +1,4 @@
-import appLogo from '../assets/logo/trainfit-icon.png';
+import appLogo from '../assets/logo/logo.ico';
 
 export const APP_NAME = 'Trainfit';
 export const APP_DESCRIPTION = 'Tu plataforma de entrenamiento y nutrición personalizada';

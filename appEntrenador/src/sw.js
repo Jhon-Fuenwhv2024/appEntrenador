@@ -7,49 +7,98 @@ clientsClaim()
 cleanupOutdatedCaches()
 precacheAndRoute(self.__WB_MANIFEST)
 
+const PUSH_DB = 'trainfit-push'
+const PUSH_STORE = 'session'
+const PUSH_KEY = 'pushUserId'
+
 function isSafeActionUrl(url) {
   return typeof url === 'string' && url.startsWith('/') && !url.startsWith('//')
 }
 
-self.addEventListener('push', (event) => {
-  let data = {
-    title: 'Trainfit',
-    body: 'Tienes una nueva notificación',
-    actionUrl: '/',
-    type: 'system',
-  }
-
-  try {
-    if (event.data) {
-      const parsed = event.data.json()
-      data = {
-        ...data,
-        ...parsed,
-        actionUrl: isSafeActionUrl(parsed?.actionUrl) ? parsed.actionUrl : '/',
+function openPushDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(PUSH_DB, 1)
+    request.onerror = () => reject(request.error || new Error('idb open failed'))
+    request.onsuccess = () => resolve(request.result)
+    request.onupgradeneeded = () => {
+      const db = request.result
+      if (!db.objectStoreNames.contains(PUSH_STORE)) {
+        db.createObjectStore(PUSH_STORE)
       }
     }
-  } catch {
-    try {
-      const text = event.data?.text()
-      if (text) data.body = text
-    } catch {
-      // keep defaults
-    }
-  }
+  })
+}
 
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Trainfit', {
+async function readBoundUserId() {
+  try {
+    const db = await openPushDb()
+    const value = await new Promise((resolve, reject) => {
+      const tx = db.transaction(PUSH_STORE, 'readonly')
+      tx.onerror = () => reject(tx.error)
+      const req = tx.objectStore(PUSH_STORE).get(PUSH_KEY)
+      req.onsuccess = () => resolve(req.result)
+    })
+    db.close()
+    const id = Number(value)
+    return Number.isInteger(id) && id > 0 ? id : null
+  } catch {
+    return null
+  }
+}
+
+self.addEventListener('push', (event) => {
+  event.waitUntil((async () => {
+    let data = {
+      title: 'Trainfit',
+      body: 'Tienes una nueva notificación',
+      actionUrl: '/',
+      type: 'system',
+      userId: null,
+    }
+
+    try {
+      if (event.data) {
+        const parsed = event.data.json()
+        data = {
+          ...data,
+          ...parsed,
+          actionUrl: isSafeActionUrl(parsed?.actionUrl) ? parsed.actionUrl : '/',
+          userId: parsed?.userId != null ? Number(parsed.userId) : null,
+        }
+      }
+    } catch {
+      try {
+        const text = event.data?.text()
+        if (text) data.body = text
+      } catch {
+        // keep defaults
+      }
+    }
+
+    // Only show if this device is bound to the intended Trainfit user (or unbound).
+    const boundUserId = await readBoundUserId()
+    const targetUserId = Number.isInteger(data.userId) && data.userId > 0
+      ? data.userId
+      : null
+
+    if (boundUserId && targetUserId && boundUserId !== targetUserId) {
+      console.info('[sw] push suppressed: bound', boundUserId, 'target', targetUserId)
+      return
+    }
+
+    await self.registration.showNotification(data.title || 'Trainfit', {
       body: data.body || '',
       icon: '/pwa-192x192.png',
       badge: '/pwa-badge-96.png',
-      tag: data.type || 'trainfit',
+      tag: `${data.type || 'trainfit'}-${targetUserId || 'x'}`,
       renotify: true,
       data: {
         actionUrl: data.actionUrl || '/',
         type: data.type || 'system',
+        userId: targetUserId,
       },
-    }),
-  )
+    })
+  })())
 })
 
 self.addEventListener('notificationclick', (event) => {

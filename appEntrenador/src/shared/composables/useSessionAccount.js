@@ -2,6 +2,7 @@ import { computed, onMounted, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { getMyAccount } from '../api/accountApi.js';
 import { clearSession, getSessionUser } from '../auth/session.js';
+import { usePushNotifications } from './usePushNotifications.js';
 import { resolveEffectiveSaasPlan, toDateOnlyString } from '../saas/effectivePlan.js';
 import { resolveAvatarSrc } from '../utils/avatar.js';
 
@@ -224,9 +225,17 @@ export function useSessionAccount(options = {}) {
   }
 
   function logout() {
-    clearSessionAccountCache();
-    clearSession();
-    router.push('/');
+    const { unbindOnLogout } = usePushNotifications();
+    Promise.resolve()
+      .then(() => unbindOnLogout())
+      .catch((error) => {
+        console.warn('[push] logout unbind:', error);
+      })
+      .finally(() => {
+        clearSessionAccountCache();
+        clearSession();
+        router.push('/');
+      });
   }
 
   function goToProfile() {

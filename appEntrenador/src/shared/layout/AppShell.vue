@@ -4,12 +4,13 @@
  * Unread badge on Chat (Feature 073) via shared useUnreadMessages.
  * Soft prompt Web Push (Feature 051).
  */
-import { computed, reactive } from 'vue';
+import { computed, onMounted, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import AppLogo from '../../components/AppLogo.vue';
 import { useUnreadMessages } from '../../features/messaging/composables/useUnreadMessages.js';
 import { clearSession, getSessionUser } from '../auth/session.js';
 import { clearSessionAccountCache } from '../composables/useSessionAccount.js';
+import { usePushNotifications } from '../composables/usePushNotifications.js';
 import PushSoftPrompt from '../components/PushSoftPrompt.vue';
 import AppBottomNav from './AppBottomNav.vue';
 
@@ -38,6 +39,8 @@ const { total, badgeLabel } = useUnreadMessages({ autoStart: true });
 
 const isSuperAdmin = computed(() => getSessionUser()?.is_superadmin === true);
 
+const { bindSubscriptionToCurrentUser, unbindOnLogout } = usePushNotifications();
+
 const snackbar = reactive({
   show: false,
   text: '',
@@ -57,7 +60,12 @@ const messagesAriaLabel = computed(() => {
   return `Mensajes, ${count > 99 ? 'más de 99' : count} sin leer`;
 });
 
-const handleLogout = () => {
+const handleLogout = async () => {
+  try {
+    await unbindOnLogout();
+  } catch (error) {
+    console.warn('[push] logout unbind:', error);
+  }
   clearSessionAccountCache();
   clearSession();
   router.push('/');
@@ -67,6 +75,12 @@ const go = (path) => {
   if (router.currentRoute.value.path === path) return;
   router.push(path);
 };
+
+onMounted(() => {
+  bindSubscriptionToCurrentUser().catch((error) => {
+    console.warn('[push] bind on shell mount:', error);
+  });
+});
 </script>
 
 <template>

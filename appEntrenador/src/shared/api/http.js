@@ -2,6 +2,7 @@ import axios from 'axios';
 import { resolveApiBaseUrl, resolveApiOrigin } from '../../config/api.js';
 import { clearSession, getAuthToken } from '../auth/session.js';
 import { clearSessionAccountCache } from '../composables/useSessionAccount.js';
+import { clearPushUserId } from '../push/pushUserStore.js';
 
 const API_BASE_URL = resolveApiBaseUrl();
 
@@ -42,6 +43,7 @@ http.interceptors.response.use(
     if (status === 401) {
       clearSessionAccountCache();
       clearSession();
+      clearPushUserId().catch(() => {});
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/registro')) {
         const onLogin = window.location.pathname === '/' || window.location.pathname === '';
         if (!onLogin) {

@@ -198,17 +198,18 @@ async function sendMessage(actor, { receiverId, content }) {
 
   const message = mapMessageRow(rows[0]);
 
-  sseManager.sendToUser(partner.id, message);
+  sseManager.sendToUser(Number(partner.id), message);
 
   try {
     const preview = truncatePreview(rawContent);
+    const receiverIdNum = Number(partner.id);
     const actionUrl =
       partner.rol === 'trainer' ? '/trainer/messages' : '/client/messages';
     const senderName =
       typeof actor.nombre === 'string' && actor.nombre.trim()
         ? actor.nombre.trim()
         : 'Trainfit';
-    getPushService().notifyUserAsync(partner.id, {
+    getPushService().notifyUserAsync(receiverIdNum, {
       title: `Mensaje de ${senderName}`,
       body: preview || 'Nuevo mensaje',
       actionUrl,
