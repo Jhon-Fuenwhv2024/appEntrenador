@@ -254,19 +254,28 @@ Migración: [`backend/db/migrations/020_personal_records.sql`](../backend/db/mig
 
 Migración: [`backend/db/migrations/021_client_streaks.sql`](../backend/db/migrations/021_client_streaks.sql). Boot: `ensureClientStreaksTable`.
 
-### `notifications` (Feature 025 + 074)
+### `notifications` (Feature 025 + 074 + 075)
 
-Alertas in-app N:1 con el usuario (`user_id` → `usuarios`). Tipos: `routine_assigned` | `routine_completed` | `system` | `pr_achieved` | `streak_milestone` | `streak_at_risk` | `diet_updated`. `is_read` booleano.
+Alertas in-app N:1 con el usuario (`user_id` → `usuarios`). Tipos: `routine_assigned` | `routine_completed` | `system` | `pr_achieved` | `streak_milestone` | `streak_at_risk` | `diet_updated` | `workout_reminder` | `membership_expiring` | `membership_expired`. `is_read` booleano.
 
 Metadata de navegación (074): `entity_type` (VARCHAR nullable), `entity_id` (INT nullable), `action_url` (VARCHAR 255, path relativo). Caducidad: `expires_at` (TIMESTAMP); al crear se setea `created_at + 30 días`. Purge en listado: filas con `expires_at < NOW()` o leídas con `created_at` > 3 días.
 
-Migraciones: [`011_notifications.sql`](../backend/db/migrations/011_notifications.sql), [`020_personal_records.sql`](../backend/db/migrations/020_personal_records.sql) (ENUM PR/streak), [`029_notifications_deeplink_ttl.sql`](../backend/db/migrations/029_notifications_deeplink_ttl.sql). Al arrancar, `ensureNotificationsTable` aplica `CREATE TABLE IF NOT EXISTS` + columnas/ENUM/backfill idempotentes.
+Migraciones: [`011_notifications.sql`](../backend/db/migrations/011_notifications.sql), [`020_personal_records.sql`](../backend/db/migrations/020_personal_records.sql) (ENUM PR/streak), [`029_notifications_deeplink_ttl.sql`](../backend/db/migrations/029_notifications_deeplink_ttl.sql), [`031_notification_settings_dedupe.sql`](../backend/db/migrations/031_notification_settings_dedupe.sql) (ENUM jobs + settings/dedupe). Al arrancar, `ensureNotificationsTable` + `ensureNotificationJobsTables`.
 
 ```bash
 cd backend
 npm run db:create-notifications
 # o: node scripts/createNotificationsTable.js
 ```
+
+### `client_notification_settings` / `notification_dedupe` (Feature 075)
+
+- `client_notification_settings` 1:1 con cliente: `workout_reminder_enabled` (default TRUE), `workout_reminder_hour` (0–23, default 8), `timezone` (default `America/Bogota`), `updated_at`.
+- `notification_dedupe`: `user_id` + `dedupe_key` UNIQUE — evita reenviar el mismo aviso el mismo día civil.
+
+Jobs cada 60s en `server.js` (`notificationJobsService.runTick`): recordatorio de rutina del día, avisos de membresía 7/3/1/vencida (cliente + trainer), `streak_at_risk` si racha &gt; 0 y sin entreno ayer (TZ local).
+
+Migración: [`031_notification_settings_dedupe.sql`](../backend/db/migrations/031_notification_settings_dedupe.sql). Boot: `ensureNotificationJobsTables`.
 
 ### `push_subscriptions` (Feature 051)
 

@@ -227,6 +227,15 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 4. En UI (`NotificationBadge`): tap → mark read → dialog grande con detalle → CTA navega con `action_url` si es path relativo seguro; botón descartar → `DELETE /notifications/:id`.
 5. Tipos sin `action_url` solo se marcan leídos y se muestran en el dialog (sin crash).
 
+## Jobs de recordatorio / membresía / racha (Feature 075)
+
+1. Al arrancar, `ensureNotificationJobsTables` crea `client_notification_settings` y `notification_dedupe`; el ENUM de `notifications` se amplía en `ensureNotificationsTable`.
+2. Tras `listen`, un tick inmediato (~5s) y luego cada 60s llama `notificationJobsService.runTick()` (errores logueados; no tumba el proceso).
+3. **Workout reminder:** si el alumno tiene reminder enabled y la hora local (TZ de settings) coincide (ventana primeros 5 min), dedupe `workout_reminder:YYYY-MM-DD`; si hay rutina del `dia_semana` local y no hay sesión completed hoy → `workout_reminder` + push.
+4. **Membresía:** a las 09:00 locales, si `days_remaining` ∈ {7,3,1} y `active` → `membership_expiring`; si `expired` o días &lt; 0 → `membership_expired`. También notifica al `trainer_id` con dedupe `membership_trainer:…`.
+5. **streak_at_risk:** a las 09:00 locales, si `current_streak > 0` y no hubo workout completed ayer (fecha civil local) → una vez al día.
+6. Preferencias alumno: `GET|PUT /api/me/notification-settings` (solo rol `client`).
+
 ## PWA + Web Push (Feature 051)
 
 1. El front registra service worker (`vite-plugin-pwa` / `src/sw.js`) y expone manifest instalable.

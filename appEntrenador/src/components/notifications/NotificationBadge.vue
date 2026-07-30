@@ -51,7 +51,7 @@
         </div>
         <p class="tf-notif-panel__empty-title">Sin novedades</p>
         <p class="tf-notif-panel__empty-desc">
-          Aquí verás alertas de rutinas, dieta y progreso.
+          Aquí verás alertas de rutinas, dieta, progreso, recordatorios, membresía y rachas.
         </p>
       </div>
 
@@ -76,7 +76,7 @@
             <div class="tf-notif-panel__body">
               <div class="tf-notif-panel__row">
                 <span class="tf-notif-panel__item-title">{{ notif.title }}</span>
-                <span class="tf-notif-panel__time">{{ formatDate(notif.created_at) }}</span>
+                <span class="tf-notif-panel__time">{{ formatRelativeTime(notif.created_at) }}</span>
               </div>
               <p class="tf-notif-panel__message">{{ notif.message }}</p>
             </div>
@@ -124,7 +124,7 @@
       </header>
 
       <h2 class="tf-notif-detail__title">{{ selectedNotif.title }}</h2>
-      <p class="tf-notif-detail__time">{{ formatDate(selectedNotif.created_at) }}</p>
+      <p class="tf-notif-detail__time">{{ formatRelativeTime(selectedNotif.created_at) }}</p>
       <p class="tf-notif-detail__message">{{ selectedNotif.message }}</p>
 
       <div class="tf-notif-detail__actions">
@@ -210,6 +210,13 @@ const getIcon = (type) => {
       return 'mdi-trophy-outline';
     case 'streak_milestone':
       return 'mdi-fire';
+    case 'workout_reminder':
+      return 'mdi-dumbbell';
+    case 'membership_expiring':
+    case 'membership_expired':
+      return 'mdi-card-account-details-outline';
+    case 'streak_at_risk':
+      return 'mdi-fire-alert';
     default:
       return 'mdi-information-outline';
   }
@@ -223,13 +230,27 @@ function safeInternalPath(url) {
   return path;
 }
 
-const formatDate = (dateString) => {
+/** Relative time: Ahora / hace N min / ayer / short date. */
+const formatRelativeTime = (dateString) => {
   const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+
+  if (diffMin < 1) return 'Ahora';
+  if (diffMin < 60) return `hace ${diffMin} min`;
+
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfYesterday = new Date(startOfToday);
+  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+
+  if (date >= startOfYesterday && date < startOfToday) return 'ayer';
+
   return new Intl.DateTimeFormat('es-ES', {
-    month: 'short',
     day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    month: 'short',
   }).format(date);
 };
 
@@ -260,8 +281,8 @@ const handleDismiss = async (notif) => {
 <style scoped>
 .notification-btn {
   position: relative;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: #13161D;
@@ -315,8 +336,8 @@ const handleDismiss = async (notif) => {
 }
 
 .tf-notif-panel {
-  width: min(340px, calc(100vw - 24px));
-  max-height: 420px;
+  width: min(360px, calc(100vw - 24px));
+  max-height: 440px;
   display: flex;
   flex-direction: column;
   background: #13161D;
@@ -332,14 +353,15 @@ const handleDismiss = async (notif) => {
   gap: 12px;
   padding: 16px 16px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .tf-notif-panel__title {
   margin: 0;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 650;
   letter-spacing: 0.01em;
-  color: #ffffff;
+  color: var(--tf-on-surface, #e8ecf1);
   line-height: 1.3;
 }
 
@@ -358,7 +380,9 @@ const handleDismiss = async (notif) => {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  padding: 4px 0;
+  padding: 8px 4px;
+  min-height: 36px;
+  border-radius: 8px;
 }
 
 .tf-notif-panel__action:hover {
@@ -371,14 +395,14 @@ const handleDismiss = async (notif) => {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 32px 24px;
+  padding: 36px 28px;
   text-align: center;
 }
 
 .tf-notif-panel__empty-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
@@ -391,23 +415,23 @@ const handleDismiss = async (notif) => {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--tf-on-surface, #e8ecf1);
 }
 
 .tf-notif-panel__empty-desc {
   margin: 0;
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.5;
   color: var(--tf-on-surface-muted, #a8b0bc);
-  max-width: 220px;
+  max-width: 260px;
 }
 
 .tf-notif-panel__list {
   list-style: none;
   margin: 0;
-  padding: 6px;
+  padding: 8px;
   overflow-y: auto;
-  max-height: 340px;
+  max-height: 360px;
 }
 
 .tf-notif-panel__item {
@@ -423,7 +447,7 @@ const handleDismiss = async (notif) => {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 12px 36px 12px 12px;
+  padding: 12px 40px 12px 12px;
   border: none;
   border-radius: 12px;
   background: transparent;
@@ -431,6 +455,7 @@ const handleDismiss = async (notif) => {
   text-align: left;
   cursor: pointer;
   transition: background 0.2s ease;
+  min-height: 56px;
 }
 
 .tf-notif-panel__item-btn:hover {
@@ -443,15 +468,15 @@ const handleDismiss = async (notif) => {
 }
 
 .tf-notif-panel__item--unread .tf-notif-panel__item-btn {
-  background: rgba(0, 229, 255, 0.04);
+  background: rgba(0, 229, 255, 0.05);
 }
 
 .tf-notif-panel__dismiss {
   position: absolute;
-  top: 8px;
+  top: 6px;
   right: 6px;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -466,7 +491,7 @@ const handleDismiss = async (notif) => {
 
 .tf-notif-panel__dismiss:hover {
   background: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
+  color: var(--tf-on-surface, #e8ecf1);
 }
 
 .tf-notif-panel__dismiss:focus-visible {
@@ -476,9 +501,9 @@ const handleDismiss = async (notif) => {
 
 .tf-notif-panel__icon {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -511,6 +536,22 @@ const handleDismiss = async (notif) => {
   color: #ff7043;
 }
 
+.tf-notif-panel__icon--workout_reminder {
+  background: rgba(0, 229, 255, 0.14);
+  color: #00E5FF;
+}
+
+.tf-notif-panel__icon--membership_expiring,
+.tf-notif-panel__icon--membership_expired {
+  background: rgba(171, 71, 188, 0.16);
+  color: #ce93d8;
+}
+
+.tf-notif-panel__icon--streak_at_risk {
+  background: rgba(239, 83, 80, 0.16);
+  color: #ef5350;
+}
+
 .tf-notif-panel__action:focus-visible {
   outline: 2px solid #00e5ff;
   outline-offset: 2px;
@@ -526,13 +567,13 @@ const handleDismiss = async (notif) => {
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 
 .tf-notif-panel__item-title {
   font-size: 13px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--tf-on-surface, #e8ecf1);
   line-height: 1.3;
 }
 
@@ -545,7 +586,7 @@ const handleDismiss = async (notif) => {
 .tf-notif-panel__message {
   margin: 0;
   font-size: 12px;
-  line-height: 1.4;
+  line-height: 1.45;
   color: var(--tf-on-surface-muted, #a8b0bc);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -555,8 +596,8 @@ const handleDismiss = async (notif) => {
 
 .tf-notif-panel__unread-dot {
   flex-shrink: 0;
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   margin-top: 6px;
   border-radius: 50%;
   background: #00E5FF;
@@ -573,7 +614,7 @@ const handleDismiss = async (notif) => {
   background: #13161D;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
-  color: #ffffff;
+  color: var(--tf-on-surface, #e8ecf1);
 }
 
 .tf-notif-detail__header {
@@ -596,8 +637,8 @@ const handleDismiss = async (notif) => {
 }
 
 .tf-notif-detail__close {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -611,7 +652,7 @@ const handleDismiss = async (notif) => {
 
 .tf-notif-detail__close:hover {
   background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  color: var(--tf-on-surface, #e8ecf1);
 }
 
 .tf-notif-detail__close:focus-visible {
@@ -625,7 +666,7 @@ const handleDismiss = async (notif) => {
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: 0.01em;
-  color: #ffffff;
+  color: var(--tf-on-surface, #e8ecf1);
 }
 
 .tf-notif-detail__time {
@@ -654,7 +695,7 @@ const handleDismiss = async (notif) => {
 }
 
 .tf-notif-detail__secondary {
-  min-height: 40px;
+  min-height: 44px;
   color: var(--tf-on-surface-muted, #a8b0bc) !important;
 }
 

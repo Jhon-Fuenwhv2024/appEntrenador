@@ -131,74 +131,76 @@ const endLabel = computed(() => formatMembershipDate(normalized.value?.period_en
 
 <style scoped>
 .pmc {
-  padding: 0.7rem 0.8rem 0.75rem;
-  border-radius: 12px;
+  padding: 1.05rem 1.1rem 1rem;
+  border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%),
+    #151820;
 }
 
 .pmc--ok {
-  border-color: rgba(0, 229, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .pmc--warn {
-  border-color: rgba(255, 176, 32, 0.28);
+  border-color: rgba(255, 176, 32, 0.22);
 }
 
 .pmc--danger {
-  border-color: rgba(255, 92, 92, 0.3);
+  border-color: rgba(255, 92, 92, 0.28);
 }
 
 .pmc__top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .pmc__eyebrow {
   margin: 0;
-  font-size: 0.6rem;
-  font-weight: 800;
+  font-size: 0.6875rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .pmc__days {
-  margin: 0.15rem 0 0;
-  font-size: 0.92rem;
-  color: #c5cad3;
-  line-height: 1.2;
+  margin: 0.35rem 0 0;
+  font-size: 0.95rem;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+  line-height: 1.25;
 }
 
 .pmc__days strong {
-  color: #fff;
-  font-weight: 800;
-  font-size: 1.05rem;
+  color: var(--tf-on-surface, #ffffff);
+  font-weight: 700;
+  font-size: 1.35rem;
   letter-spacing: -0.02em;
 }
 
 .pmc__days-muted {
-  margin-left: 0.3rem;
-  font-size: 0.75rem;
-  font-weight: 600;
+  margin-left: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
   color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .pmc__badge {
   flex-shrink: 0;
-  padding: 0.14rem 0.45rem;
+  padding: 0.28rem 0.6rem;
   border-radius: 999px;
-  font-size: 0.58rem;
-  font-weight: 800;
+  font-size: 0.625rem;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .pmc__badge--ok {
-  color: #0b0d12;
-  background: #00e5ff;
+  color: var(--tf-on-primary, #0b0d12);
+  background: var(--tf-primary, #00e5ff);
 }
 
 .pmc__badge--warn {
@@ -217,15 +219,15 @@ const endLabel = computed(() => formatMembershipDate(normalized.value?.period_en
 }
 
 .pmc__empty {
-  margin: 0.4rem 0 0;
-  font-size: 0.72rem;
-  line-height: 1.35;
+  margin: 0.55rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
   color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .pmc__track {
-  margin-top: 0.45rem;
-  height: 3px;
+  margin-top: 0.75rem;
+  height: 4px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
@@ -238,7 +240,7 @@ const endLabel = computed(() => formatMembershipDate(normalized.value?.period_en
 }
 
 .pmc--ok .pmc__track-fill {
-  background: #00e5ff;
+  background: var(--tf-primary, #00e5ff);
 }
 
 .pmc--warn .pmc__track-fill {
@@ -252,25 +254,27 @@ const endLabel = computed(() => formatMembershipDate(normalized.value?.period_en
 .pmc__meta {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.35rem 0.65rem;
-  margin: 0.55rem 0 0;
+  gap: 0.75rem 1rem;
+  margin: 0.9rem 0 0;
+  padding: 0.85rem 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .pmc__meta dt {
   margin: 0;
-  font-size: 0.58rem;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .pmc__meta dd {
-  margin: 0.08rem 0 0;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #e8eaed;
-  line-height: 1.2;
+  margin: 0.2rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--tf-on-surface, #e8eaed);
+  line-height: 1.25;
 }
 
 .pmc__dd--danger {
@@ -278,9 +282,14 @@ const endLabel = computed(() => formatMembershipDate(normalized.value?.period_en
 }
 
 .pmc__note {
-  margin: 0.5rem 0 0;
-  font-size: 0.7rem;
-  line-height: 1.3;
-  color: #ffc857;
+  margin: 0.85rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--tf-on-surface, #e8ecf1);
+  background: rgba(255, 176, 32, 0.08);
+  border: 1px solid rgba(255, 176, 32, 0.18);
 }
+
 </style>

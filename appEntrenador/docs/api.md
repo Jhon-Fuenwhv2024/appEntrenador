@@ -1040,8 +1040,33 @@ Eventos:
 - Cliente: rutina creada / actualizada / plantilla asignada → `routine_assigned` → preview o `/dashboard`
 - Cliente: plan nutricional activado o guardado activo → `diet_updated` → `/dashboard`
 - Cliente: PR / racha → `pr_achieved` / `streak_milestone` → `/client/progress`
+- Cliente: recordatorio de entreno (job 075) → `workout_reminder` → `/dashboard`
+- Cliente: membresía 7/3/1 días o vencida (job 075) → `membership_expiring` / `membership_expired` → `/dashboard`
+- Cliente: racha en riesgo (job 075) → `streak_at_risk` → `/client/progress`
 - Trainer: alumno completa entrenamiento → `routine_completed` → `/trainer/clients/:clientId`
 - Trainer: PR de alumno → `pr_achieved` → `/trainer/clients/:clientId`
+- Trainer: membresía de alumno por vencer/vencida (job 075) → `membership_expiring` / `membership_expired` → `/trainer/clients`
+
+### Preferencias de recordatorio (Feature 075)
+
+Auth: solo `client`. Upsert en `client_notification_settings` (defaults: enabled, hora 8, `America/Bogota`).
+
+### `GET /me/notification-settings`
+
+```json
+{
+  "success": true,
+  "data": {
+    "workout_reminder_enabled": true,
+    "workout_reminder_hour": 8,
+    "timezone": "America/Bogota"
+  }
+}
+```
+
+### `PUT /me/notification-settings`
+
+Body parcial o completo: `workout_reminder_enabled` (bool), `workout_reminder_hour` (0–23), `timezone` (IANA válida).
 
 ### `GET /notifications`
 

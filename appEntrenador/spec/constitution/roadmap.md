@@ -48,6 +48,7 @@
 44. **062 · Accesibilidad visual (baja visión)** — WCAG 2.2 AA visual: ADR-0002, regla Cursor, tokens muted/focus, auditoría + fixes P0/P1. Spec: `062-visual-accessibility-low-vision`.
 45. **063 · Session header actions** — Cluster compartido campana + menú de cuenta (logout con confirmación) cliente/trainer; badge numérico. Spec: `063-session-header-actions`.
 46. **051 · PWA + notificaciones push** — App instalable + Web Push (VAPID); fan-out desde in-app + chat. Spec: `051-pwa-push-notifications`.
+47. **075 · Notificaciones: UX + recordatorio + membresía + racha** — Rediseño campana/push UI, guía iOS, recordatorio de entrenamiento, avisos membresía, `streak_at_risk`. Spec: `075-notifications-reminders-membership-streak`.
 
 ## Siguiente (Epic Fitness)
 

@@ -7,12 +7,15 @@ const NOTIFICATION_TYPES_ENUM = `
   'pr_achieved',
   'streak_milestone',
   'streak_at_risk',
-  'diet_updated'
+  'diet_updated',
+  'workout_reminder',
+  'membership_expiring',
+  'membership_expired'
 `;
 
 /**
  * Asegura la tabla notifications en DBs ya existentes (script_db.sql no se re-ejecuta).
- * Feature 025 + 041/042 + 074 (deep-links / TTL / diet_updated).
+ * Feature 025 + 041/042 + 074 (deep-links / TTL / diet_updated) + 075 (jobs).
  */
 async function ensureNotificationsTable() {
   await db.query(`

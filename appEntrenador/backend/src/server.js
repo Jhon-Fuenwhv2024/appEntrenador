@@ -27,9 +27,12 @@ const dietPlansRoutes = require('./modules/diet-plans/diet-plans.routes');
 const foodLookupRoutes = require('./modules/food-lookup/food-lookup.routes');
 const adminExercisesRoutes = require('./modules/admin-exercises/admin-exercises.routes');
 const pushRoutes = require('./modules/push/push.routes');
+const notificationSettingsRoutes = require('./modules/notification-jobs/notification-settings.routes');
+const notificationJobsService = require('./modules/notification-jobs/notification-jobs.service');
 const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
 const { ensurePhotosDir } = require('./middleware/uploadProgressPhotos');
 const { ensureNotificationsTable } = require('./db/ensureNotificationsTable');
+const { ensureNotificationJobsTables } = require('./db/ensureNotificationJobsTables');
 const { ensurePushSubscriptionsTable } = require('./db/ensurePushSubscriptionsTable');
 const { ensureHabitsTables } = require('./db/ensureHabitsTables');
 const { ensureCheckinsTables } = require('./db/ensureCheckinsTables');
@@ -131,6 +134,7 @@ app.use('/api', bodyCompositionRoutes);
 app.use('/api', progressRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api', notificationSettingsRoutes);
 app.use('/api', nutritionRoutes);
 app.use('/api', habitsRoutes);
 app.use('/api', checkinsRoutes);
@@ -160,6 +164,12 @@ async function start() {
     await ensureNotificationsTable();
   } catch (error) {
     console.error('No se pudo asegurar la tabla notifications:', error.message);
+  }
+
+  try {
+    await ensureNotificationJobsTables();
+  } catch (error) {
+    console.error('No se pudo asegurar tablas notification-jobs:', error.message);
   }
 
   try {
@@ -240,6 +250,16 @@ async function start() {
         ? '[push] VAPID configurado — Web Push habilitado'
         : '[push] VAPID no configurado — Web Push deshabilitado (ver scripts/generateVapidKeys.js)',
     );
+
+    // Feature 075: jobs de recordatorio / membresía / racha (no tumbar el server).
+    const runNotificationTickSafe = () => {
+      notificationJobsService.runTick().catch((error) => {
+        console.error('[notification-jobs] tick falló:', error.message);
+      });
+    };
+    setTimeout(runNotificationTickSafe, 5_000);
+    setInterval(runNotificationTickSafe, 60_000);
+    console.log('[notification-jobs] tick cada 60s (primer tick en 5s)');
   });
 }
 

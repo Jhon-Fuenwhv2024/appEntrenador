@@ -39,7 +39,10 @@ async function ensurePersonalRecordsTable() {
           'pr_achieved',
           'streak_milestone',
           'streak_at_risk',
-          'diet_updated'
+          'diet_updated',
+          'workout_reminder',
+          'membership_expiring',
+          'membership_expired'
         ) NOT NULL DEFAULT 'system'
     `);
   } catch (error) {

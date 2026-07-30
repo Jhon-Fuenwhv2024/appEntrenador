@@ -387,11 +387,11 @@ function onSubmit() {
 <style scoped>
 .profile-panel {
   width: 100%;
-  border-radius: 18px;
+  border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background:
-    radial-gradient(120% 80% at 0% 0%, rgba(0, 229, 255, 0.08), transparent 55%),
-    rgba(255, 255, 255, 0.03);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%),
+    #151820;
   overflow: hidden;
 }
 
@@ -467,10 +467,11 @@ function onSubmit() {
 
 .profile-view__eyebrow {
   margin: 0 0 2px;
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #00E5FF;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .profile-view__name,

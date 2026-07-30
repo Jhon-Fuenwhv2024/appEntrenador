@@ -1,6 +1,7 @@
 <script setup>
 /**
- * Client "Mi Perfil" — identidad/datos (ProfileFormCard) + membresía al final.
+ * Client "Mi Perfil" — identidad → membresía → avisos → seguridad.
+ * Orden según patrones de account settings (status crítico antes que preferencias).
  */
 import { onMounted, reactive, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
@@ -122,7 +123,7 @@ onMounted(() => {
         <div class="header-left">
           <h1 class="header-title">Mi Perfil</h1>
           <p class="header-greeting text-medium-emphasis">
-            Tus datos y foto para tu entrenador
+            Cuenta, plan y preferencias
           </p>
         </div>
         <div class="header-right">
@@ -152,21 +153,45 @@ onMounted(() => {
         </v-alert>
 
         <template v-else>
-          <ProfileFormCard
-            title="Mi perfil"
-            :profile="profile"
-            :saving="saving"
-            @save="onSave"
-          />
+          <!-- 1. Identidad -->
+          <section class="tf-profile-section" aria-labelledby="tf-sec-account">
+            <h2 id="tf-sec-account" class="tf-profile-section__label">
+              Cuenta
+            </h2>
+            <ProfileFormCard
+              title="Mi perfil"
+              :profile="profile"
+              :saving="saving"
+              @save="onSave"
+            />
+          </section>
 
-          <PushOptInCard @notify="notify" />
+          <!-- 2. Membresía (status crítico, antes que preferencias) -->
+          <section class="tf-profile-section" aria-labelledby="tf-sec-plan">
+            <h2 id="tf-sec-plan" class="tf-profile-section__label">
+              Plan
+            </h2>
+            <ClientProfileMembershipCard :membership="membership" />
+          </section>
 
-          <ChangePasswordForm
-            :saving="savingPassword"
-            @submit="onChangePassword"
-          />
+          <!-- 3. Preferencias / notificaciones -->
+          <section class="tf-profile-section" aria-labelledby="tf-sec-prefs">
+            <h2 id="tf-sec-prefs" class="tf-profile-section__label">
+              Preferencias
+            </h2>
+            <PushOptInCard show-workout-reminder @notify="notify" />
+          </section>
 
-          <ClientProfileMembershipCard :membership="membership" />
+          <!-- 4. Seguridad al final -->
+          <section class="tf-profile-section" aria-labelledby="tf-sec-security">
+            <h2 id="tf-sec-security" class="tf-profile-section__label">
+              Seguridad
+            </h2>
+            <ChangePasswordForm
+              :saving="savingPassword"
+              @submit="onChangePassword"
+            />
+          </section>
         </template>
       </div>
     </main>
@@ -182,10 +207,26 @@ onMounted(() => {
   width: 100%;
   max-width: 560px;
   margin: 0 auto;
-  padding: 0 1rem 1.5rem;
+  padding: 0 1rem 1.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1.35rem;
+}
+
+.tf-profile-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.tf-profile-section__label {
+  margin: 0;
+  padding: 0 0.15rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 @media (min-width: 960px) {

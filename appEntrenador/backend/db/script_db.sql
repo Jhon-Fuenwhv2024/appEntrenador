@@ -231,7 +231,7 @@ CREATE TABLE body_composition_logs (
       FOREIGN KEY (recorded_by) REFERENCES usuarios(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
--- 13. NOTIFICACIONES IN-APP (Feature 025 + 074)
+-- 13. NOTIFICACIONES IN-APP (Feature 025 + 074 + 075)
 CREATE TABLE notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -244,7 +244,10 @@ CREATE TABLE notifications (
       'pr_achieved',
       'streak_milestone',
       'streak_at_risk',
-      'diet_updated'
+      'diet_updated',
+      'workout_reminder',
+      'membership_expiring',
+      'membership_expired'
     ) NOT NULL DEFAULT 'system',
     entity_type VARCHAR(50) NULL,
     entity_id INT NULL,
@@ -257,6 +260,31 @@ CREATE TABLE notifications (
     INDEX idx_notifications_expires (user_id, expires_at),
     INDEX idx_notifications_read_created (user_id, is_read, created_at),
     CONSTRAINT fk_notifications_user
+      FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 13b. PREFERENCIAS + DEDUPE DE JOBS (Feature 075)
+CREATE TABLE client_notification_settings (
+    client_id INT NOT NULL,
+    workout_reminder_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    workout_reminder_hour TINYINT NOT NULL DEFAULT 8,
+    timezone VARCHAR(64) NOT NULL DEFAULT 'America/Bogota',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (client_id),
+    CONSTRAINT fk_client_notification_settings_client
+      FOREIGN KEY (client_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    CONSTRAINT chk_client_notification_settings_hour
+      CHECK (workout_reminder_hour >= 0 AND workout_reminder_hour <= 23)
+) ENGINE=InnoDB;
+
+CREATE TABLE notification_dedupe (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    dedupe_key VARCHAR(80) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_notification_dedupe_user_key (user_id, dedupe_key),
+    INDEX idx_notification_dedupe_created (created_at),
+    CONSTRAINT fk_notification_dedupe_user
       FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
