@@ -23,11 +23,14 @@ One-shot: `npm run db:add-exercises-i18n`.
 
 ## Static serving
 
-```js
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
-```
+`GET {API_ORIGIN}/uploads/exercises/exercise_{id}.gif` (público, fuera de `/api`).
 
-Archivos en `backend/public/uploads/exercises/` (gitignored; `.gitkeep`).
+- **Sin R2:** `express.static` sobre `backend/public/uploads/exercises/` (gitignored; `.gitkeep`).
+- **Con R2** ([ADR-0005](decisions/ADR-0005-r2-exercise-gifs-trial.md)): Express hace proxy desde el prefijo `exercises/` del bucket; si el objeto falta, fallback a disco local.
+
+La DB solo guarda `local_media_path` (ruta relativa); **no** binarios en TiDB.
+
+El catálogo Fitcron (~750 GIFs) ya está en R2 (`exercises/…`, ADR-0005). Sin R2, se sirve desde `backend/public/uploads/exercises/`.
 
 Si una rutina muestra “Sin demo visual”, falta vínculo a un ejercicio **con GIF local** (`local_media_path`).
 Texto libre o catálogo wrkout sin GIF no sirve. Reparar:
@@ -76,6 +79,7 @@ Resultado esperado: ~752 ejercicios globales con GIF local.
 3. Match → UPDATE + descarga si falta archivo.
 4. Sin match + `--import-missing` → INSERT global + descarga.
 5. Path: `/uploads/exercises/exercise_{id}.gif`.
+6. Si R2 está configurado, tras guardar en disco también sube a `exercises/exercise_{id}.gif` (ADR-0005).
 
 ### Cleanup
 

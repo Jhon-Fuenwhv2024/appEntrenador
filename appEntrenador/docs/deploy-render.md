@@ -98,13 +98,13 @@ Importa el esquema con `backend/db/script_db.sql` (ya aplicado en el cluster del
 
 ## Notas
 
-- Disco efímero: fotos de progreso y ejercicios en `public/uploads` se pierden al redeploy. **Avatares** pueden ir a Cloudflare R2 (ver abajo) y sobreviven.
+- Disco efímero: fotos de progreso en `public/uploads` se pierden al redeploy. **Avatares** y **GIFs de ejercicios** pueden ir a Cloudflare R2 (ver abajo) y sobreviven.
 - Free tier: cold start tras inactividad (~30–60 s).
 - Verifica: `GET https://<servicio>.onrender.com/health` → `{ "success": true, "message": "ok" }`.
 
-## Avatares en Cloudflare R2 (trial)
+## Avatares y GIFs de ejercicios en Cloudflare R2 (trial)
 
-Persistencia de **solo fotos de perfil** mientras el API esté en Render. Detalle: [`docs/decisions/ADR-0004-r2-avatars-trial.md`](decisions/ADR-0004-r2-avatars-trial.md).
+Persistencia de **fotos de perfil** y **GIFs del catálogo** mientras el API esté en Render. Detalle: [`docs/decisions/ADR-0004-r2-avatars-trial.md`](decisions/ADR-0004-r2-avatars-trial.md), [`docs/decisions/ADR-0005-r2-exercise-gifs-trial.md`](decisions/ADR-0005-r2-exercise-gifs-trial.md).
 
 ### Setup (una vez)
 
@@ -122,9 +122,12 @@ R2_BUCKET=trainfit-avatars
 
 (`R2_ENDPOINT` es opcional; por defecto `https://{ACCOUNT_ID}.r2.cloudflarestorage.com`.)
 
-5. Redeploy del API. En logs debe aparecer: `[avatars] R2 configurado — fotos de perfil en Cloudflare R2`.
-6. **Re-sube** la foto de perfil en la app (las que solo estaban en disco de Render ya no existen).
+5. Redeploy del API. En logs debe aparecer:
+   - `[avatars] R2 configurado — fotos de perfil en Cloudflare R2`
+   - `[exercises] R2 configurado — GIFs en Cloudflare R2`
+6. **Avatares:** re-sube la foto de perfil en la app (las que solo estaban en disco de Render ya no existen).
+7. **GIFs de ejercicios:** el catálogo (~750 GIFs) ya se subió al prefijo `exercises/` del bucket (trial). Nuevos GIFs del scraper se suben solos si R2 está configurado.
 
 ### Coste
 
-Free tier permanente de R2 (Standard): 10 GB + ops incluidas; egress gratis. Solo avatares de prueba → uso esperado **$0**. Vigila Usage en el dashboard R2.
+Free tier permanente de R2 (Standard): 10 GB + ops incluidas; egress gratis. Catálogo (~636 MB) + avatares de prueba → uso esperado **$0**. Vigila Usage en el dashboard R2.

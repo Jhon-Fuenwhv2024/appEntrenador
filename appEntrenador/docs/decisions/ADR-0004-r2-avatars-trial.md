@@ -17,7 +17,7 @@ La feature **068** (MinIO/S3 en Coolify) cubrirá todo el media en producción V
 2. Multer usa **memoryStorage** si R2 está activo; **diskStorage** si no (dev local).
 3. La DB sigue guardando solo la ruta lógica `/uploads/avatars/user_{id}.{ext}` (sin URL pública de R2).
 4. El serve sigue pasando por Express con **JWT** (`Bearer` o `?token=`): proxy `GetObject` desde R2. Bucket **privado** (no público, no custom domain).
-5. Fotos de progreso y media de ejercicios **no** usan R2 en esta fase.
+5. Fotos de progreso **no** usan R2 en esta fase. Media de ejercicios (GIFs del catálogo) → [ADR-0005](ADR-0005-r2-exercise-gifs-trial.md).
 
 ## Coste
 

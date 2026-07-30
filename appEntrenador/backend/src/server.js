@@ -221,6 +221,11 @@ async function start() {
         ? '[avatars] R2 configurado — fotos de perfil en Cloudflare R2'
         : '[avatars] R2 no configurado — fotos de perfil en disco local',
     );
+    console.log(
+      isR2Configured
+        ? '[exercises] R2 configurado — GIFs en Cloudflare R2'
+        : '[exercises] R2 no configurado — GIFs en disco local',
+    );
   });
 }
 

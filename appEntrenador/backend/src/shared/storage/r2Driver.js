@@ -1,4 +1,10 @@
-const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  DeleteObjectCommand,
+} = require('@aws-sdk/client-s3');
 const { R2 } = require('../../config/env');
 
 let client = null;
@@ -55,6 +61,26 @@ async function getObject(key) {
 
 /**
  * @param {string} key
+ * @returns {Promise<boolean>} true if object exists
+ */
+async function headObject(key) {
+  try {
+    await getClient().send(new HeadObjectCommand({
+      Bucket: R2.bucket,
+      Key: key,
+    }));
+    return true;
+  } catch (error) {
+    if (error?.name === 'NotFound' || error?.name === 'NoSuchKey'
+      || error?.$metadata?.httpStatusCode === 404) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+/**
+ * @param {string} key
  */
 async function deleteObject(key) {
   await getClient().send(new DeleteObjectCommand({
@@ -66,5 +92,6 @@ async function deleteObject(key) {
 module.exports = {
   putObject,
   getObject,
+  headObject,
   deleteObject,
 };

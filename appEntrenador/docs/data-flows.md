@@ -27,7 +27,14 @@
 5. Express sirve `/uploads/avatars/...` con JWT (`?token=`): proxy R2 o `express.static` local. La DB guarda solo la ruta relativa en `alumnos_info.foto_url`.
 6. Si `foto_url` es null, la UI usa `src/assets/foto_perfil.png`.
 
-Ver ADR-0004 y `docs/deploy-render.md` (sección R2).
+Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
+
+## Media de ejercicios (catálogo Fitcron)
+
+1. DB guarda solo `local_media_path` (`/uploads/exercises/exercise_{id}.gif`); sin binarios en TiDB.
+2. Con env R2 → binarios en Cloudflare R2 prefijo `exercises/`; Express proxy público en `GET /uploads/exercises/...` (fallback disco).
+3. Sin R2 → disco `backend/public/uploads/exercises`.
+4. Migración inicial del catálogo a R2 ya aplicada (prefijo `exercises/`); el scraper sube GIFs nuevos si R2 está configurado.
 
 ## Ajustes de cuenta del trainer (Feature 024)
 

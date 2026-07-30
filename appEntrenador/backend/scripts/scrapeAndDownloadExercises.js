@@ -29,6 +29,10 @@ const {
   ensureExercisesI18nColumns,
   ensureExercisesMediaDir,
 } = require('../src/db/ensureExercisesI18nColumns');
+const { isR2Configured } = require('../src/config/env');
+const {
+  putLocalExerciseGifToR2,
+} = require('../src/shared/storage/exerciseMediaStorage');
 
 const LIST_URL = 'https://fitcron.com/exercises/';
 const USER_AGENT =
@@ -453,6 +457,27 @@ async function downloadForExercise(item, exerciseId, flags, stats) {
     console.warn(`[download] error ${item.sourceMediaUrl}:`, err.message);
   }
 
+  // Persist to R2 when configured so redeploys don't lose new GIFs.
+  if (!flags.dryRun && isR2Configured && fs.existsSync(absPath)) {
+    try {
+      const filename = path.basename(absPath);
+      if (/\.gif$/i.test(filename)) {
+        const r2 = await putLocalExerciseGifToR2(filename, absPath);
+        if (r2.uploaded) {
+          stats.r2Uploaded = (stats.r2Uploaded || 0) + 1;
+          console.log(`[r2] uploaded exercises/${filename}`);
+        } else if (r2.reason === 'already-in-r2') {
+          stats.r2Skipped = (stats.r2Skipped || 0) + 1;
+        } else if (r2.reason) {
+          console.log(`[r2] skip ${filename}: ${r2.reason}`);
+        }
+      }
+    } catch (err) {
+      stats.errors += 1;
+      console.warn(`[r2] upload error ${absPath}:`, err.message);
+    }
+  }
+
   return { relPath, mediaType, ext };
 }
 
@@ -480,6 +505,8 @@ async function main() {
     downloaded: 0,
     downloadSkipped: 0,
     detailFetched: 0,
+    r2Uploaded: 0,
+    r2Skipped: 0,
     errors: 0,
   };
   const unmatchedSamples = [];

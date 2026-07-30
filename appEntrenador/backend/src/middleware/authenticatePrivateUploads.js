@@ -1,8 +1,14 @@
 const path = require('path');
+const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET, isR2Configured } = require('../config/env');
 const { getAvatarFromR2 } = require('../shared/storage/avatarStorage');
 const { AVATARS_DIR } = require('../shared/storage/avatarPaths');
+const { getExerciseGifFromR2 } = require('../shared/storage/exerciseMediaStorage');
+const {
+  EXERCISES_DIR,
+  isValidExerciseGifFilename,
+} = require('../shared/storage/exerciseMediaPaths');
 
 /**
  * Auth for private static media (/uploads/photos, /uploads/avatars).
@@ -116,6 +122,69 @@ async function serveAvatarFromR2(req, res) {
   }
 }
 
+/**
+ * Serve catalog exercise GIF from R2; on miss, fall back to local disk.
+ * Public (no JWT).
+ */
+async function serveExerciseGif(req, res, next) {
+  const filename = path.basename(req.path || '');
+  if (!isValidExerciseGifFilename(filename)) {
+    return res.status(404).json({
+      success: false,
+      error: 'Media de ejercicio no encontrada.',
+      message: 'Media de ejercicio no encontrada.',
+      code: 404,
+    });
+  }
+
+  try {
+    if (isR2Configured) {
+      const object = await getExerciseGifFromR2(filename);
+      if (object) {
+        res.setHeader('Content-Type', object.contentType || 'image/gif');
+        if (object.contentLength != null) {
+          res.setHeader('Content-Length', String(object.contentLength));
+        }
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+
+        if (typeof object.body?.pipe === 'function') {
+          object.body.pipe(res);
+          return undefined;
+        }
+
+        const chunks = [];
+        for await (const chunk of object.body) {
+          chunks.push(chunk);
+        }
+        return res.send(Buffer.concat(chunks));
+      }
+    }
+
+    const localFile = path.join(EXERCISES_DIR, filename);
+    try {
+      await fs.promises.access(localFile, fs.constants.R_OK);
+    } catch {
+      return res.status(404).json({
+        success: false,
+        error: 'Media de ejercicio no encontrada.',
+        message: 'Media de ejercicio no encontrada.',
+        code: 404,
+      });
+    }
+
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.sendFile(localFile);
+  } catch (error) {
+    console.error('[exercises/media] serve failed:', error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Error al servir la media del ejercicio.',
+      message: 'Error al servir la media del ejercicio.',
+      code: 500,
+    });
+  }
+}
+
 function mountPrivateUploads(app, express) {
   app.use(
     '/uploads/photos',
@@ -135,14 +204,21 @@ function mountPrivateUploads(app, express) {
     );
   }
 
-  // Catálogo de ejercicios: público (menos sensible; usado en listados/media).
-  app.use(
-    '/uploads/exercises',
-    express.static(path.join(UPLOADS_ROOT, 'exercises')),
-  );
+  // Catálogo de ejercicios: público. R2 cuando está configurado; fallback disco.
+  if (isR2Configured) {
+    app.use('/uploads/exercises', (req, res, next) => {
+      serveExerciseGif(req, res, next);
+    });
+  } else {
+    app.use(
+      '/uploads/exercises',
+      express.static(path.join(UPLOADS_ROOT, 'exercises')),
+    );
+  }
 }
 
 module.exports = {
   authenticatePrivateUploads,
   mountPrivateUploads,
+  serveExerciseGif,
 };

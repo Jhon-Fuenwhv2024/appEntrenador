@@ -737,7 +737,8 @@ Respuesta:
 }
 ```
 
-Media estática: `GET {API_ORIGIN}/uploads/exercises/...` (fuera de `/api`).
+Media estática: `GET {API_ORIGIN}/uploads/exercises/...` (fuera de `/api`; **público**).
+Con env R2 (ADR-0005) Express hace proxy desde Cloudflare R2 (`exercises/…`); sin R2, disco `backend/public/uploads/exercises`. La DB solo guarda `local_media_path`.
 **Política Feature 044:** las demos del player/preview solo usan `local_media_path` (GIF hosteado). No se usan JPG wrkout de GitHub.
 
 **Vínculo catálogo (rutinas / plantillas):** al crear/editar, si falta `exercise_id` el backend resuelve por nombre/`name_es`/aliases **solo** contra ejercicios con GIF local.  
