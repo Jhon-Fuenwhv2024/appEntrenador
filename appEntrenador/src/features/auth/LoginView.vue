@@ -1,5 +1,5 @@
 <script setup>
-import { shallowRef } from 'vue';
+import { computed, nextTick, shallowRef, useTemplateRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { APP_NAME } from '../../config/app.js';
 import AppLogo from '../../components/AppLogo.vue';
@@ -11,8 +11,17 @@ const router = useRouter();
 
 const username = shallowRef('');
 const password = shallowRef('');
-const errorMessage = shallowRef('');
+/** Error inline del campo usuario (p. ej. no existe). */
+const usernameError = shallowRef('');
+/** Error inline del campo contraseña (solo si la clave es incorrecta). */
+const passwordError = shallowRef('');
+/** Fallos de red / servidor → mensaje suave encima del CTA. */
+const formError = shallowRef('');
 const showPassword = shallowRef(false);
+const isSubmitting = shallowRef(false);
+const shakeFields = shallowRef(false);
+const passwordFieldRef = useTemplateRef('passwordField');
+const usernameFieldRef = useTemplateRef('usernameField');
 
 /** confirm | username | done */
 const forgotStep = shallowRef('confirm');
@@ -25,9 +34,58 @@ const forgotError = shallowRef('');
 const GENERIC_FORGOT_SUCCESS =
   'Si la cuenta existe y tiene un correo registrado, te hemos enviado un enlace para restablecer tu contraseña.';
 
+const PASSWORD_INCORRECT_MESSAGE = 'La contraseña es incorrecta.';
+const USER_NOT_FOUND_MESSAGE = 'El usuario ingresado no existe.';
+
+const usernameErrorMessages = computed(() => (
+  usernameError.value ? [usernameError.value] : []
+));
+
+const passwordErrorMessages = computed(() => (
+  passwordError.value ? [passwordError.value] : []
+));
+
+const hasUsernameError = computed(() => Boolean(usernameError.value));
+const hasPasswordError = computed(() => Boolean(passwordError.value));
+
+watch(username, () => {
+  if (usernameError.value) usernameError.value = '';
+  if (formError.value) formError.value = '';
+});
+
+watch(password, () => {
+  if (passwordError.value) passwordError.value = '';
+  if (formError.value) formError.value = '';
+});
+
+function clearLoginErrors() {
+  usernameError.value = '';
+  passwordError.value = '';
+  formError.value = '';
+}
+
+async function triggerFieldShake() {
+  shakeFields.value = false;
+  await nextTick();
+  shakeFields.value = true;
+  window.setTimeout(() => {
+    shakeFields.value = false;
+  }, 450);
+}
+
+function focusField(fieldRef) {
+  const input = fieldRef.value?.$el?.querySelector('input');
+  input?.focus?.();
+}
+
+function getLoginStatus(error) {
+  return Number(error?.response?.status || error?.normalized?.code || 0);
+}
+
 const handleLogin = async () => {
   try {
-    errorMessage.value = '';
+    clearLoginErrors();
+    isSubmitting.value = true;
 
     const response = await login({
       username: username.value,
@@ -42,16 +100,35 @@ const handleLogin = async () => {
       return;
     }
 
-    errorMessage.value = success
+    formError.value = success
       ? 'El servidor no devolvió JWT. Reinicia el backend (`cd backend && npm start`) y vuelve a intentar.'
       : 'No se pudo iniciar sesión.';
     console.error('Login incompleto. Claves recibidas:', Object.keys(response.data || {}));
   } catch (error) {
-    errorMessage.value = getApiErrorMessage(
-      error,
-      'No se pudo conectar con el servidor backend. ¿Está encendido?',
-    );
+    const status = getLoginStatus(error);
+    const apiMessage = getApiErrorMessage(error, '');
+
+    if (status === 404 || /no existe/i.test(apiMessage)) {
+      // Solo cuando el usuario no existe → error en el campo usuario
+      usernameError.value = USER_NOT_FOUND_MESSAGE;
+      await triggerFieldShake();
+      await nextTick();
+      focusField(usernameFieldRef);
+    } else if (status === 401) {
+      // Solo cuando la contraseña es incorrecta → error en el campo contraseña
+      passwordError.value = PASSWORD_INCORRECT_MESSAGE;
+      await triggerFieldShake();
+      await nextTick();
+      focusField(passwordFieldRef);
+    } else {
+      formError.value = getApiErrorMessage(
+        error,
+        'No se pudo conectar con el servidor. Intenta de nuevo.',
+      );
+    }
     console.error('Error en el inicio de sesión:', error);
+  } finally {
+    isSubmitting.value = false;
   }
 };
 
@@ -133,32 +210,50 @@ async function onSubmitForgotUsername() {
 
       <v-card-text>
         <v-form @submit.prevent="handleLogin">
-          <v-text-field
-            v-model="username"
-            label="Nombre de Usuario"
-            prepend-icon="mdi-account"
-            color="primary"
-            required
-            density="comfortable"
-            hide-details="auto"
-            class="login-field"
-          />
+          <div
+            class="login-fields"
+            :class="{ 'login-fields--shake': shakeFields }"
+          >
+            <v-text-field
+              ref="usernameField"
+              v-model="username"
+              label="Nombre de Usuario"
+              prepend-icon="mdi-account"
+              color="primary"
+              autocomplete="username"
+              required
+              density="comfortable"
+              :hide-details="hasUsernameError ? false : 'auto'"
+              class="login-field login-field--username"
+              :error="hasUsernameError"
+              :error-messages="usernameErrorMessages"
+              :disabled="isSubmitting"
+            />
 
-          <v-text-field
-            v-model="password"
-            label="Contraseña"
-            prepend-icon="mdi-lock"
-            :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-            :type="showPassword ? 'text' : 'password'"
-            color="primary"
-            required
-            density="comfortable"
-            hide-details="auto"
-            class="login-field"
-            @click:append-inner="showPassword = !showPassword"
-          />
+            <v-text-field
+              ref="passwordField"
+              v-model="password"
+              label="Contraseña"
+              prepend-icon="mdi-lock"
+              :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+              :type="showPassword ? 'text' : 'password'"
+              color="primary"
+              autocomplete="current-password"
+              required
+              density="comfortable"
+              :hide-details="hasPasswordError ? false : 'auto'"
+              class="login-field login-field--password"
+              :error="hasPasswordError"
+              :error-messages="passwordErrorMessages"
+              :disabled="isSubmitting"
+              @click:append-inner="showPassword = !showPassword"
+            />
+          </div>
 
-          <div class="login-forgot-row">
+          <div
+            class="login-forgot-row"
+            :class="{ 'login-forgot-row--emphasize': hasPasswordError }"
+          >
             <button
               type="button"
               class="forgot-link"
@@ -168,14 +263,13 @@ async function onSubmitForgotUsername() {
             </button>
           </div>
 
-          <v-alert
-            v-if="errorMessage"
-            type="error"
-            variant="tonal"
-            class="mb-4 text-body-2"
+          <p
+            v-if="formError"
+            class="login-form-error"
+            role="alert"
           >
-            {{ errorMessage }}
-          </v-alert>
+            {{ formError }}
+          </p>
 
           <v-btn
             type="submit"
@@ -183,6 +277,8 @@ async function onSubmitForgotUsername() {
             color="primary"
             class="font-weight-bold login-submit-btn"
             size="large"
+            :loading="isSubmitting"
+            :disabled="isSubmitting"
           >
             Entrar
           </v-btn>

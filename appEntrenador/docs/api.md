@@ -51,6 +51,10 @@ Respuesta exitosa:
 
 El JWT incluye el claim `is_superadmin` (boolean). No es un tercer rol: los roles siguen siendo `trainer` | `client`.
 
+Credenciales inválidas (UI inline, sin banner):
+- Usuario inexistente → `404` `"El usuario ingresado no existe."` (mensaje bajo el campo usuario).
+- Contraseña incorrecta → `401` `"La contraseña es incorrecta."` (mensaje solo bajo el campo contraseña).
+
 ### `POST /register`
 
 Registra un cliente usando una invitación válida con `status = pending`. El servidor fuerza `rol = "client"`, asigna `trainer_id` del creador de la invitación y marca la invitación como `used` (vía `invitesService.validateAndConsumeToken`).

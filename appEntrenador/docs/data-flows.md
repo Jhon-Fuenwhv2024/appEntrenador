@@ -3,10 +3,11 @@
 ## Login y sesión
 
 1. Frontend `POST /login` → backend valida bcrypt y firma JWT.
-2. Frontend guarda `token` + user en `localStorage` (`shared/auth/session.js`).
-3. Axios envía `Authorization: Bearer` en cada request.
-4. Middleware pobla `req.user`; roles restringen endpoints.
-5. Ante `401`, el interceptor limpia sesión y redirige al login.
+2. Credenciales inválidas → error **inline** en el campo correspondiente: usuario inexistente (`404`) o contraseña incorrecta (`401`, mensaje específico solo en ese caso).
+3. Respuesta exitosa incluye `user` + `token` (JWT con claim `is_superadmin`).
+4. Frontend guarda sesión en `localStorage` (`setSession` / `shared/auth/session.js`) y navega al dashboard según rol.
+5. Axios envía `Authorization: Bearer` en cada request; el middleware pobla `req.user` y los roles restringen endpoints.
+6. Ante `401` fuera del login, el interceptor limpia sesión y redirige al login.
 
 ## Invitación → cliente del trainer (Feature 023)
 

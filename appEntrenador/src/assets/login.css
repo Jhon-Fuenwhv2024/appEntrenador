@@ -78,8 +78,66 @@
 }
 
 /* Form fields: breathing room between icon and label/text */
+.login-fields {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-fields--shake {
+  animation: login-shake 0.45s ease-in-out;
+}
+
+@keyframes login-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-fields--shake {
+    animation: none;
+  }
+}
+
 .login-field {
   margin-bottom: 1.1rem !important;
+}
+
+/* Error inline: tipografía suave, sin banner rojo */
+.login-card .login-field--username .v-messages__message,
+.login-card .login-field--password .v-messages__message {
+  color: var(--tf-error);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  padding-top: 2px;
+}
+
+.login-card .login-field.v-input--error .v-field {
+  --v-border-opacity: 0.55;
+}
+
+.login-form-error {
+  margin: 0 0 0.75rem;
+  padding: 0.35rem 0.15rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  text-align: left;
+  color: var(--tf-error);
+  letter-spacing: 0.01em;
 }
 
 .login-card .login-field .v-input__prepend {
@@ -113,6 +171,14 @@
   margin-top: 0.35rem;
   margin-bottom: 0.75rem;
   padding-top: 0.15rem;
+}
+
+.login-forgot-row--emphasize {
+  margin-top: 0.15rem;
+}
+
+.login-forgot-row--emphasize .forgot-link {
+  font-weight: 600;
 }
 
 .login-submit-btn {
