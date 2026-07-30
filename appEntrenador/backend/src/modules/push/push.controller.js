@@ -78,6 +78,41 @@ const pushController = {
       });
     }
   },
+
+  async touchPresence(req, res) {
+    try {
+      pushService.touchPresence(req.user.id);
+      return res.json({
+        success: true,
+        data: { active: true },
+        message: 'Presencia actualizada',
+      });
+    } catch (error) {
+      console.error('Error touchPresence:', error.message);
+      return res.status(500).json({
+        success: false,
+        error: 'Error al actualizar presencia',
+        code: 500,
+      });
+    }
+  },
+
+  async clearPresence(req, res) {
+    try {
+      pushService.clearPresence(req.user.id);
+      return res.json({
+        success: true,
+        message: 'Presencia limpiada',
+      });
+    } catch (error) {
+      console.error('Error clearPresence:', error.message);
+      return res.status(500).json({
+        success: false,
+        error: 'Error al limpiar presencia',
+        code: 500,
+      });
+    }
+  },
 };
 
 module.exports = { pushController };

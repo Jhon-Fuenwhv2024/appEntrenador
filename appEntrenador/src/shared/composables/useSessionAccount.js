@@ -227,6 +227,13 @@ export function useSessionAccount(options = {}) {
   function logout() {
     const { unbindOnLogout } = usePushNotifications();
     Promise.resolve()
+      .then(async () => {
+        const { clearAppPresence } = await import('./useAppPresence.js');
+        await clearAppPresence();
+      })
+      .catch((error) => {
+        console.warn('[presence] logout clear:', error);
+      })
       .then(() => unbindOnLogout())
       .catch((error) => {
         console.warn('[push] logout unbind:', error);

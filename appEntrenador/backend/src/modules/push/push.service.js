@@ -1,6 +1,7 @@
 const webpush = require('web-push');
 const db = require('../../config/db');
 const { VAPID, isVapidConfigured } = require('../../config/env');
+const presenceStore = require('./presenceStore');
 
 let vapidReady = false;
 
@@ -43,6 +44,21 @@ const pushService = {
   getPublicKey() {
     if (!isVapidConfigured) return null;
     return VAPID.publicKey;
+  },
+
+  touchPresence(userId) {
+    return presenceStore.touch(userId);
+  },
+
+  clearPresence(userId) {
+    presenceStore.clear(userId);
+  },
+
+  /**
+   * True if the user recently heartbeated with the app visible/foreground.
+   */
+  isUserActiveInApp(userId) {
+    return presenceStore.isActive(userId);
   },
 
   /**

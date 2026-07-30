@@ -1119,6 +1119,14 @@ Upsert por `endpoint` (UNIQUE). Body:
 
 Body `{ "endpoint": "…" }`. Solo borra si pertenece al usuario. `404` si no existe.
 
+### `POST /push/presence`
+
+Heartbeat: el cliente indica que la app está **visible / en primer plano**. Auth trainer|client. En memoria (~45 s). Si el destinatario está activo (o tiene SSE de chat), **no** se envía push de `chat_message`.
+
+### `DELETE /push/presence`
+
+Limpia la presencia (app oculta, logout o unmount del shell).
+
 ## Nutrición / objetivos diarios (Feature 031)
 
 Tabla `nutrition_targets` (relación 1:1 con el cliente vía `UNIQUE(client_id)`). Macros y calorías en enteros positivos.

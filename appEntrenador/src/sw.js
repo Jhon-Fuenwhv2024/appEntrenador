@@ -86,6 +86,22 @@ self.addEventListener('push', (event) => {
       return
     }
 
+    // Backup: if a visible Trainfit window is open, skip noisy chat OS notifications.
+    // Server usually skips chat push when presence is active; this covers races.
+    if (data.type === 'chat_message') {
+      const windowClients = await self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      })
+      const appVisible = windowClients.some(
+        (client) => client.visibilityState === 'visible',
+      )
+      if (appVisible) {
+        console.info('[sw] chat push suppressed: app visible')
+        return
+      }
+    }
+
     await self.registration.showNotification(data.title || 'Trainfit', {
       body: data.body || '',
       icon: '/pwa-192x192.png',

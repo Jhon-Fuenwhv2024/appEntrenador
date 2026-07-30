@@ -10,6 +10,7 @@ import AppLogo from '../../components/AppLogo.vue';
 import { useUnreadMessages } from '../../features/messaging/composables/useUnreadMessages.js';
 import { clearSession, getSessionUser } from '../auth/session.js';
 import { clearSessionAccountCache } from '../composables/useSessionAccount.js';
+import { clearAppPresence, useAppPresence } from '../composables/useAppPresence.js';
 import { usePushNotifications } from '../composables/usePushNotifications.js';
 import PushSoftPrompt from '../components/PushSoftPrompt.vue';
 import AppBottomNav from './AppBottomNav.vue';
@@ -40,6 +41,7 @@ const { total, badgeLabel } = useUnreadMessages({ autoStart: true });
 const isSuperAdmin = computed(() => getSessionUser()?.is_superadmin === true);
 
 const { bindSubscriptionToCurrentUser, unbindOnLogout } = usePushNotifications();
+useAppPresence();
 
 const snackbar = reactive({
   show: false,
@@ -61,6 +63,11 @@ const messagesAriaLabel = computed(() => {
 });
 
 const handleLogout = async () => {
+  try {
+    await clearAppPresence();
+  } catch (error) {
+    console.warn('[presence] logout clear:', error);
+  }
   try {
     await unbindOnLogout();
   } catch (error) {
