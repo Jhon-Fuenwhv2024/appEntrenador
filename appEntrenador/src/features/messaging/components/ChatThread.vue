@@ -3,7 +3,7 @@
  * Chat thread chrome: header + history + composer.
  * Visual shell is presentational; data/SSE stay in this composition surface.
  */
-import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 import { getApiErrorMessage } from '../../../shared/api/http.js';
 import { getSessionUser } from '../../../shared/auth/session.js';
 import { resolveAvatarSrc } from '../../../shared/utils/avatar.js';
@@ -42,6 +42,7 @@ const resolvedPartnerName = shallowRef(props.partnerName);
 const resolvedPartnerFotoUrl = shallowRef(props.partnerFotoUrl || '');
 /** Partner has an active SSE stream (not "my" connection). */
 const partnerOnline = shallowRef(false);
+const messageListRef = ref(null);
 
 const streamEnabled = computed(() => Number(props.partnerId) > 0);
 const { refresh: refreshUnread } = useUnreadMessages({ autoStart: false });
@@ -134,6 +135,10 @@ const loadHistory = async () => {
     loadingHistory.value = false;
   }
 
+  // Tras montar la lista con el historial, ir al último mensaje.
+  await nextTick();
+  messageListRef.value?.scrollToBottom?.();
+
   try {
     await refreshUnread();
   } catch (error) {
@@ -156,6 +161,8 @@ const handleSend = async (content) => {
     });
     const message = response.data?.data;
     if (message) appendIfRelevant(message);
+    await nextTick();
+    messageListRef.value?.scrollToBottom?.();
   } catch (error) {
     console.error('Error enviando mensaje:', error);
     sendError.value = getApiErrorMessage(error, 'No se pudo enviar el mensaje');
@@ -259,6 +266,7 @@ onUnmounted(() => {
 
     <ChatMessageList
       v-else
+      ref="messageListRef"
       :messages="messages"
       :current-user-id="currentUserId"
     />

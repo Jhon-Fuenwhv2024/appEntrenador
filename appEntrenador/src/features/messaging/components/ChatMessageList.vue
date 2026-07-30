@@ -2,7 +2,7 @@
 /**
  * Presentational message list with day separators and refined bubbles.
  */
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
   messages: {
@@ -16,6 +16,7 @@ const props = defineProps({
 });
 
 const listRef = ref(null);
+const bottomAnchorRef = ref(null);
 
 const isMine = (message) => Number(message.sender_id) === Number(props.currentUserId);
 
@@ -71,20 +72,44 @@ const timeline = computed(() => {
   return items;
 });
 
+/**
+ * Scroll al último mensaje. Reintenta tras layout (nextTick + rAF) porque al abrir
+ * el hilo la lista monta con el historial ya cargado y scrollHeight aún puede ser 0.
+ */
 const scrollToBottom = async () => {
   await nextTick();
-  const el = listRef.value;
-  if (!el) return;
-  el.scrollTop = el.scrollHeight;
+
+  const apply = () => {
+    const el = listRef.value;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+    bottomAnchorRef.value?.scrollIntoView({ block: 'end', inline: 'nearest' });
+  };
+
+  apply();
+  requestAnimationFrame(() => {
+    apply();
+    requestAnimationFrame(apply);
+  });
 };
 
+const lastMessageId = computed(() => {
+  const list = props.messages;
+  if (!list.length) return null;
+  return list[list.length - 1]?.id ?? null;
+});
+
 watch(
-  () => props.messages.length,
+  () => [props.messages.length, lastMessageId.value],
   () => {
     scrollToBottom();
   },
-  { flush: 'post' },
+  { flush: 'post', immediate: true },
 );
+
+onMounted(() => {
+  scrollToBottom();
+});
 
 defineExpose({ scrollToBottom });
 </script>
@@ -123,6 +148,12 @@ defineExpose({ scrollToBottom });
         </div>
       </div>
     </template>
+
+    <div
+      ref="bottomAnchorRef"
+      class="chat-message-list__anchor"
+      aria-hidden="true"
+    />
   </div>
 </template>
 
@@ -208,6 +239,13 @@ defineExpose({ scrollToBottom });
 
 .chat-message-list__row--mine {
   justify-content: flex-end;
+}
+
+.chat-message-list__anchor {
+  width: 100%;
+  height: 1px;
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 .chat-bubble {
