@@ -123,7 +123,7 @@ const accessBlocked = computed(() => (
 const accessLabel = computed(() => {
   if (!normalized.value) return '—';
   if (accessBlocked.value) return 'Bloqueado';
-  if (normalized.value.block_on_unpaid) return 'Activo (con bloqueo)';
+  if (normalized.value.block_on_unpaid) return 'Activo (bloqueo al vencer + 3d gracia)';
   return 'Permitido';
 });
 

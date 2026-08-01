@@ -2,6 +2,9 @@ const db = require('../../config/db');
 
 const VALID_STATUSES = new Set(['active', 'owing', 'expired']);
 
+/** Días de acceso tras period_end antes del soft-lock (Feature 080+). */
+const MEMBERSHIP_ACCESS_GRACE_DAYS = 3;
+
 /** Lazy require — evita ciclo memberships ↔ clients (module.exports replace). */
 function getClientsService() {
   return require('../clients/clients.service');
@@ -198,6 +201,19 @@ async function getByClientId(clientId) {
     }
   }
 
+  // Auto-alinear status → expired si el periodo ya terminó (aunque aún haya gracia de acceso).
+  const end = toDateOnly(row.period_end);
+  const today = todayDateOnly();
+  if (end && end < today && row.status !== 'expired') {
+    await db.query(
+      `UPDATE client_memberships
+       SET status = 'expired'
+       WHERE client_id = ? AND status <> 'expired'`,
+      [clientId],
+    );
+    row.status = 'expired';
+  }
+
   return row;
 }
 
@@ -254,6 +270,71 @@ function parseAmountPaid(raw) {
   return Math.round(n * 100) / 100;
 }
 
+function amountPaidWasOmitted(raw) {
+  return raw === undefined || raw === null || raw === '';
+}
+
+/**
+ * Feature 080: sincroniza status con montos y fecha cuando hay plan_price.
+ * Sin plan_price solo auto-expira active → expired (flujo 040).
+ */
+function applyMembershipPaymentRules({
+  status,
+  period_end: periodEnd,
+  plan_price: planPrice,
+  amount_paid: amountPaid,
+}) {
+  const today = todayDateOnly();
+  const paid = amountPaid == null ? 0 : Number(amountPaid);
+  const price = planPrice == null ? null : Number(planPrice);
+
+  if (price == null || !Number.isFinite(price)) {
+    let nextStatus = status;
+    if (periodEnd && periodEnd < today && nextStatus === 'active') {
+      nextStatus = 'expired';
+    }
+    return {
+      status: nextStatus,
+      amount_paid: Number.isFinite(paid) ? Math.round(paid * 100) / 100 : 0,
+      plan_price: null,
+    };
+  }
+
+  if (!Number.isFinite(paid) || paid < 0) {
+    throw createHttpError('amount_paid debe ser un número ≥ 0.', 400);
+  }
+
+  const normalizedPaid = Math.round(paid * 100) / 100;
+  const normalizedPrice = Math.round(price * 100) / 100;
+
+  if (normalizedPaid > normalizedPrice) {
+    const label = normalizedPrice.toLocaleString('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      maximumFractionDigits: 0,
+    });
+    throw createHttpError(
+      `El monto pagado no puede superar el valor del plan (${label}).`,
+      400,
+    );
+  }
+
+  let nextStatus;
+  if (periodEnd && periodEnd < today) {
+    nextStatus = 'expired';
+  } else if (normalizedPaid >= normalizedPrice) {
+    nextStatus = 'active';
+  } else {
+    nextStatus = 'owing';
+  }
+
+  return {
+    status: nextStatus,
+    amount_paid: normalizedPaid,
+    plan_price: normalizedPrice,
+  };
+}
+
 /**
  * Normaliza upsert; si hay membershipType (objeto del catálogo), usa su duration/price.
  */
@@ -277,11 +358,6 @@ function normalizeUpsertPayload(payload, membershipType = null) {
   const periodEnd = membershipType
     ? periodEndFromDuration(periodStart, membershipType.duration_days)
     : monthlyPeriodEnd(periodStart);
-
-  let nextStatus = status;
-  if (periodEnd < todayDateOnly() && nextStatus === 'active') {
-    nextStatus = 'expired';
-  }
 
   let notes = null;
   if (body.notes !== undefined && body.notes !== null) {
@@ -313,22 +389,32 @@ function normalizeUpsertPayload(payload, membershipType = null) {
     planPrice = Math.round(explicit * 100) / 100;
   }
 
-  const amountPaid = parseAmountPaid(body.amount_paid);
-  if (nextStatus === 'active') {
-    // Al día: considerar pagado el plan si hay precio.
-    // Si trainer no envía amount_paid, asumir plan completo pagado.
-    // Si envía 0 explícitamente con active, dejar 0.
+  let amountPaid = parseAmountPaid(body.amount_paid);
+  // Al día sin monto explícito + precio → asumir pagado completo (antes de reglas 080).
+  if (
+    status === 'active'
+    && planPrice != null
+    && amountPaidWasOmitted(body.amount_paid)
+  ) {
+    amountPaid = planPrice;
   }
 
+  const ruled = applyMembershipPaymentRules({
+    status,
+    period_end: periodEnd,
+    plan_price: planPrice,
+    amount_paid: amountPaid,
+  });
+
   return {
-    status: nextStatus,
+    status: ruled.status,
     period_start: periodStart,
     period_end: periodEnd,
     notes,
     block_on_unpaid: blockOnUnpaid,
     membership_type_id: membershipTypeId,
-    plan_price: planPrice,
-    amount_paid: amountPaid,
+    plan_price: ruled.plan_price,
+    amount_paid: ruled.amount_paid,
   };
 }
 
@@ -350,16 +436,6 @@ async function upsertForTrainer(trainerId, clientId, payload) {
   }
 
   const data = normalizeUpsertPayload(payload, membershipType);
-
-  // Si active y hay plan_price y no enviaron amount_paid, marcar pagado completo.
-  let amountPaid = data.amount_paid;
-  if (
-    data.status === 'active'
-    && data.plan_price != null
-    && (payload?.amount_paid === undefined || payload?.amount_paid === null || payload?.amount_paid === '')
-  ) {
-    amountPaid = data.plan_price;
-  }
 
   await db.query(
     `INSERT INTO client_memberships (
@@ -384,7 +460,7 @@ async function upsertForTrainer(trainerId, clientId, payload) {
       data.period_end,
       data.notes,
       data.plan_price,
-      amountPaid,
+      data.amount_paid,
       data.block_on_unpaid ? 1 : 0,
       trainerId,
     ],
@@ -398,19 +474,40 @@ async function assertClientMembershipAccess(clientId) {
   if (!row) return;
 
   const membership = mapMembershipRow(row, { includeNotes: false });
-  if (!membership.block_on_unpaid) return;
+  if (!shouldBlockMembershipAccess(membership)) return;
 
-  const daysRemaining = membership.days_remaining;
-  const notActive = membership.status !== 'active';
-  const expiredByDate = daysRemaining != null && daysRemaining < 0;
+  throw createHttpError(
+    'Tu membresía venció — habla con tu entrenador.',
+    403,
+    'MEMBERSHIP_BLOCKED',
+  );
+}
 
-  if (notActive || expiredByDate) {
-    throw createHttpError(
-      'Tu membresía venció — habla con tu entrenador.',
-      403,
-      'MEMBERSHIP_BLOCKED',
-    );
-  }
+/**
+ * Días después de period_end (0 si el periodo sigue vigente).
+ * days_remaining = DATEDIFF(period_end, hoy).
+ */
+function getDaysPastPeriodEnd(daysRemaining) {
+  if (daysRemaining == null || daysRemaining === '') return null;
+  const d = Number(daysRemaining);
+  if (!Number.isFinite(d)) return null;
+  if (d >= 0) return 0;
+  return -d;
+}
+
+function isMembershipPastGrace(daysRemaining, graceDays = MEMBERSHIP_ACCESS_GRACE_DAYS) {
+  const past = getDaysPastPeriodEnd(daysRemaining);
+  if (past == null) return false;
+  return past > graceDays;
+}
+
+/**
+ * Soft-lock: block_on_unpaid + fuera de gracia.
+ * Pendiente (owing) con periodo vigente NO bloquea.
+ */
+function shouldBlockMembershipAccess(membership, graceDays = MEMBERSHIP_ACCESS_GRACE_DAYS) {
+  if (!membership || !membership.block_on_unpaid) return false;
+  return isMembershipPastGrace(membership.days_remaining, graceDays);
 }
 
 function summarizeMembership(row) {
@@ -423,9 +520,13 @@ module.exports = {
   getForClient,
   upsertForTrainer,
   assertClientMembershipAccess,
+  shouldBlockMembershipAccess,
+  isMembershipPastGrace,
+  MEMBERSHIP_ACCESS_GRACE_DAYS,
   getByClientId,
   summarizeMembership,
   mapMembershipRow,
+  applyMembershipPaymentRules,
   monthlyPeriodEnd,
   periodEndFromDuration,
   toDateOnly,

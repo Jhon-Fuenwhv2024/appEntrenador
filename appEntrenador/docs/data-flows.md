@@ -80,13 +80,16 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 4. Si ya hay sesión de esa rutina hoy → solo la sesión real (sin duplicar Pendiente). Empty «Sin entrenamientos hoy» solo sin sesión ni rutina programada.
 5. Ayer / días anteriores siguen basados solo en sesiones reales.
 
-## Membresía y control de pago (Feature 040)
+## Membresía y control de pago (Feature 040 + 079 + 080)
 
 1. Trainer en ficha 360 guarda estado/fechas/notas/bloqueo/tipo/monto → `PUT /clients/:id/membership` (upsert en `client_memberships`; snapshot `plan_price` desde tipo 079).
-2. Lista de alumnos (`GET /clients`) trae `membership` básico; la UI filtra localmente Al día / Por vencer / Vencidos / Pendientes.
-3. Cliente consulta `GET /me/membership` → `days_remaining`, `amount_due`, nombre de tipo; sin `notes`.
-4. Catálogo de tipos: trainer en **Recursos → Membresías** (`/trainer/library/memberships`) CRUD vía `/trainer/membership-types`.
-4. Si el trainer activó `block_on_unpaid` y la membresía no está al día, `GET /me/routines`, `GET /me/today` y `POST /me/workout-sessions` responden 403 `MEMBERSHIP_BLOCKED`.
+2. **Reglas 080:** con `plan_price`, el service rechaza sobrepago (`amount_paid > plan_price`), fuerza `active` si pagó completo y periodo vigente, `owing` si hay saldo, y `expired` si `period_end < hoy` (prioridad sobre pago). Sin precio, el estado sigue siendo manual (040).
+3. Al **leer** membresía, si `period_end < hoy` y status no es `expired`, se auto-actualiza a `expired` en DB.
+4. **Soft-lock:** `block_on_unpaid` bloquea rutinas solo si el periodo terminó **y** pasaron **3 días de gracia** (`days_remaining < -3`). `owing` (pendiente/abono) con periodo vigente **no** bloquea.
+5. Lista de alumnos (`GET /clients`) trae `membership` básico; la UI filtra localmente Al día / Por vencer / Vencidos / Pendientes.
+6. Cliente consulta `GET /me/membership` → `days_remaining`, `amount_due`, nombre de tipo; sin `notes`.
+7. Catálogo de tipos: trainer en **Recursos → Membresías** (`/trainer/library/memberships`) CRUD vía `/trainer/membership-types`.
+8. Si aplica soft-lock, `POST /me/workout-sessions` (y guards) responden 403 `MEMBERSHIP_BLOCKED`.
 
 ## Dashboard immersivo del cliente (Feature 038)
 

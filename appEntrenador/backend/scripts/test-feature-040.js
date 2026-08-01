@@ -68,7 +68,7 @@ async function main() {
   const listed = list.find((c) => c.id === clientId);
   assert(listed?.membership?.status === 'active', 'list membership');
 
-  // Soft-lock: owing + block
+  // Soft-lock NUEVO: owing + block con periodo vigente NO bloquea
   await membershipsService.upsertForTrainer(trainerId, clientId, {
     status: 'owing',
     period_start: periodStart,
@@ -76,14 +76,32 @@ async function main() {
     block_on_unpaid: true,
   });
 
-  let blocked = false;
-  try {
-    await membershipsService.assertClientMembershipAccess(clientId);
-  } catch (error) {
-    blocked = error.error === 'MEMBERSHIP_BLOCKED' && Number(error.code) === 403;
-    console.log('[test-040] block OK', error.error, error.code);
-  }
-  assert(blocked, 'assertClientMembershipAccess debe bloquear');
+  await membershipsService.assertClientMembershipAccess(clientId);
+  console.log('[test-040] owing + block + periodo vigente → acceso OK');
+
+  // Helper: fuera de gracia sí bloquea
+  assert(
+    membershipsService.shouldBlockMembershipAccess({
+      block_on_unpaid: true,
+      days_remaining: -(membershipsService.MEMBERSHIP_ACCESS_GRACE_DAYS + 1),
+    }) === true,
+    'past grace must block',
+  );
+  assert(
+    membershipsService.shouldBlockMembershipAccess({
+      block_on_unpaid: true,
+      days_remaining: -1,
+    }) === false,
+    'in grace must not block',
+  );
+  assert(
+    membershipsService.shouldBlockMembershipAccess({
+      block_on_unpaid: true,
+      days_remaining: 5,
+      status: 'owing',
+    }) === false,
+    'owing vigente must not block',
+  );
 
   // Restore active without block
   await membershipsService.upsertForTrainer(trainerId, clientId, {

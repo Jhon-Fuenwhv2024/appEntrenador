@@ -1,16 +1,19 @@
 /**
- * Helpers de UI para membresía del alumno (Feature 040).
+ * Helpers de UI para membresía del alumno (Feature 040 + 080).
  */
+import {
+  getMembershipGraceDaysLeft,
+  isMembershipAccessBlocked,
+  isMembershipPastGrace,
+  MEMBERSHIP_ACCESS_GRACE_DAYS,
+} from '../../../shared/membership/access.js';
 
-export function isMembershipAccessBlocked(membership) {
-  if (!membership || !membership.block_on_unpaid) return false;
-  const days = membership.days_remaining == null
-    ? null
-    : Number(membership.days_remaining);
-  const notActive = membership.status !== 'active';
-  const expiredByDate = days != null && days < 0;
-  return notActive || expiredByDate;
-}
+export {
+  isMembershipAccessBlocked,
+  isMembershipPastGrace,
+  getMembershipGraceDaysLeft,
+  MEMBERSHIP_ACCESS_GRACE_DAYS,
+};
 
 export function isMembershipExpiringSoon(membership) {
   if (!membership || membership.status !== 'active') return false;
@@ -47,8 +50,9 @@ export function getMembershipHomeState(membership, forcedBlocked = false) {
   const blocked = forcedBlocked || isMembershipAccessBlocked(membership);
   const expiring = !blocked && isMembershipExpiringSoon(membership);
   const progress = getMembershipProgress(membership);
+  const periodEnded = status === 'expired' || (days != null && days < 0);
 
-  if (blocked || status === 'expired' || (days != null && days < 0)) {
+  if (blocked) {
     return {
       tone: 'danger',
       title: 'Membresía vencida',
@@ -58,6 +62,22 @@ export function getMembershipHomeState(membership, forcedBlocked = false) {
       progress: 0,
       blocked: true,
       expiring: false,
+    };
+  }
+
+  if (periodEnded) {
+    const graceLeft = getMembershipGraceDaysLeft(days);
+    return {
+      tone: 'warn',
+      title: 'Membresía vencida',
+      headline: '0',
+      unit: 'días',
+      subtitle: membership.block_on_unpaid && graceLeft > 0
+        ? `Periodo terminado — ${graceLeft === 1 ? '1 día' : `${graceLeft} días`} de gracia`
+        : 'Habla con tu entrenador para renovar',
+      progress: 0,
+      blocked: false,
+      expiring: true,
     };
   }
 

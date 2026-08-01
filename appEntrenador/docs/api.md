@@ -354,9 +354,9 @@ Agregado 360 para la ficha del alumno (solo trainer dueño). Incluye perfil, con
 
 UI: `/trainer/clients/:clientId` (`Client360View`) con secciones vía `?tab=` (`resumen` | `programacion` | `nutricion` | `medidas` | `checkins` | `graficas` | `chat`). En Resumen (Feature 060 + 066): `MembershipPanel` (vista/edición), `ConsistencyPanel` strip compacto, widgets + historial paginado; Actividad reciente mergea rutina(s) de hoy (`GET /clients/:id/routines` + weekday local) como fila **Pendiente** si no hay sesión.
 
-## Membresía del alumno (Feature 040 + 079)
+## Membresía del alumno (Feature 040 + 079 + 080)
 
-Tabla `client_memberships` (1:1 con cliente). `days_remaining` y `amount_due` se calculan en service. Feature 079 añade tipos/precios.
+Tabla `client_memberships` (1:1 con cliente). `days_remaining` y `amount_due` se calculan en service. Feature 079 añade tipos/precios. Feature 080 sincroniza `status` ↔ montos.
 
 ### `GET /clients/:clientId/membership` (trainer)
 
@@ -366,9 +366,15 @@ Membresía del alumno propio (incluye `notes` internas). Incluye `membership_typ
 
 Upsert: `status` (`active` | `owing` | `expired`), `period_start` (obligatorio), `notes`, `block_on_unpaid`, `membership_type_id?`, `amount_paid?`.
 
-- Sin tipo: `period_end` = ciclo mensual (~30 días) como 040.
+- Sin tipo: `period_end` = ciclo mensual (~30 días) como 040; `status` manual (solo auto-expira `active` → `expired` si `period_end < hoy`).
 - Con tipo (079): `plan_price` = snapshot del catálogo; `period_end` = `period_start + duration_days - 1`.
 - Si `active` y hay `plan_price` sin `amount_paid`, se asume pagado completo.
+- **Reglas 080** (cuando hay `plan_price`):
+  - `amount_paid > plan_price` → **400** (`El monto pagado no puede superar el valor del plan ($X).`)
+  - `period_end < hoy` → `status = expired` (prioridad)
+  - `amount_paid >= plan_price` y no vencido → `status = active`
+  - `amount_paid < plan_price` y no vencido → `status = owing`
+  - `amount_paid` se persiste en cualquier status
 
 ### `GET /me/membership` (client)
 
@@ -403,11 +409,15 @@ UI hub **Recursos** (antes Biblioteca): `/trainer/library/memberships`.
 
 ### Soft-lock `MEMBERSHIP_BLOCKED`
 
-Si `block_on_unpaid = true` y (`status ≠ active` **o** `days_remaining < 0`), entonces:
+Si `block_on_unpaid = true` **y** el periodo ya terminó **más** los días de gracia (3), entonces:
 
-- `POST /me/workout-sessions`
+- `POST /me/workout-sessions` (y guards equivalentes)
 
-responden **403** (`GET /me/routines` permanece permitido para preview de solo lectura):
+responden **403**. **No** se bloquea solo por `status = owing` (pago pendiente / abono) mientras el periodo + gracia sigan vigentes.
+
+Regla: `days_remaining < -3` (es decir, más de 3 días después de `period_end`).
+
+Durante la gracia el status puede mostrarse como `expired`, pero el acceso continúa hasta agotar los 3 días.
 
 ```json
 {

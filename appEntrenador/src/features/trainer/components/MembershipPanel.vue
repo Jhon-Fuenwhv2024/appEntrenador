@@ -128,12 +128,85 @@ const miniBalance = computed(() => {
   return null;
 });
 
+/** Precio del plan en edición (tipo seleccionado o snapshot del tipo aún asignado). */
+const effectivePlanPrice = computed(() => {
+  if (selectedType.value?.price != null) return Number(selectedType.value.price);
+  if (form.membership_type_id == null || form.membership_type_id === '') return null;
+  if (displayPlanPrice.value != null) return Number(displayPlanPrice.value);
+  return null;
+});
+
+const showAmountPaidField = computed(() => effectivePlanPrice.value != null);
+
+const amountPaidNumber = computed(() => {
+  if (form.amount_paid === '' || form.amount_paid == null) return null;
+  const n = Number(form.amount_paid);
+  return Number.isFinite(n) ? n : null;
+});
+
+const remainingBalanceLabel = computed(() => {
+  const price = effectivePlanPrice.value;
+  if (price == null) return null;
+  const paid = amountPaidNumber.value == null ? 0 : amountPaidNumber.value;
+  const due = Math.max(0, Math.round((price - paid) * 100) / 100);
+  if (due <= 0) return 'Saldo $0 — Al día';
+  return `Saldo pendiente ${formatMoneyCop(due)}`;
+});
+
+const isPeriodExpired = computed(() => {
+  const end = computedPeriodEnd.value;
+  if (!end) return false;
+  return end < todayDateOnly();
+});
+
 function todayDateOnly() {
   const now = new Date();
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
+}
+
+/** Feature 080: sincroniza chip de estado con monto/fecha cuando hay precio. */
+function syncStatusFromPayment() {
+  const price = effectivePlanPrice.value;
+  if (price == null) return;
+
+  if (isPeriodExpired.value) {
+    form.status = 'expired';
+    return;
+  }
+
+  const paid = amountPaidNumber.value == null ? 0 : amountPaidNumber.value;
+  if (paid > price) return; // validación en onSave / hint
+  form.status = paid >= price ? 'active' : 'owing';
+}
+
+function onStatusChipClick(value) {
+  const price = effectivePlanPrice.value;
+  if (price == null) {
+    form.status = value;
+    return;
+  }
+
+  if (value === 'active') {
+    form.amount_paid = String(price);
+    form.status = isPeriodExpired.value ? 'expired' : 'active';
+    return;
+  }
+  if (value === 'owing') {
+    const paid = amountPaidNumber.value;
+    if (paid == null || paid >= price) {
+      form.amount_paid = '0';
+    }
+    form.status = isPeriodExpired.value ? 'expired' : 'owing';
+    return;
+  }
+  form.status = value;
+}
+
+function onAmountPaidInput() {
+  syncStatusFromPayment();
 }
 
 function resetForm() {
@@ -264,6 +337,27 @@ async function onSave() {
     return;
   }
 
+  const price = effectivePlanPrice.value;
+  let amountPaidPayload;
+  if (price != null) {
+    const raw = form.amount_paid === '' || form.amount_paid == null
+      ? (form.status === 'active' ? price : 0)
+      : Number(form.amount_paid);
+    if (!Number.isFinite(raw) || raw < 0) {
+      emit('notify', { text: 'El monto pagado debe ser un número ≥ 0', color: 'warning' });
+      return;
+    }
+    if (raw > price) {
+      emit('notify', {
+        text: `El monto pagado no puede superar el valor del plan (${formatMoneyCop(price)}).`,
+        color: 'warning',
+      });
+      return;
+    }
+    amountPaidPayload = Math.round(raw * 100) / 100;
+    syncStatusFromPayment();
+  }
+
   const payload = {
     status: form.status,
     period_start: form.period_start,
@@ -272,8 +366,13 @@ async function onSave() {
     membership_type_id: form.membership_type_id,
   };
 
-  if (form.status === 'owing' && form.amount_paid !== '') {
-    payload.amount_paid = Number(form.amount_paid);
+  if (amountPaidPayload !== undefined) {
+    payload.amount_paid = amountPaidPayload;
+  } else if (form.amount_paid !== '' && form.amount_paid != null) {
+    const n = Number(form.amount_paid);
+    if (Number.isFinite(n) && n >= 0) {
+      payload.amount_paid = Math.round(n * 100) / 100;
+    }
   }
 
   try {
@@ -294,6 +393,15 @@ async function onSave() {
     saving.value = false;
   }
 }
+
+watch(
+  () => [form.membership_type_id, form.period_start, form.amount_paid],
+  () => {
+    if (!editing.value) return;
+    if (effectivePlanPrice.value == null) return;
+    syncStatusFromPayment();
+  },
+);
 
 watch(() => props.clientId, () => {
   loadMembership();
@@ -345,7 +453,7 @@ onMounted(() => {
                   icon="mdi-lock"
                   size="12"
                   class="mp__lock"
-                  title="Bloqueo si no paga"
+                  title="Bloqueo al vencer (+ 3d gracia)"
                 />
               </p>
               <p v-if="displayTypeName || miniBalance" class="mp__line mp__line--muted">
@@ -411,7 +519,7 @@ onMounted(() => {
               [`mp__chip--${opt.value}`]: form.status === opt.value,
             }"
             :disabled="saving"
-            @click="form.status = opt.value"
+            @click="onStatusChipClick(opt.value)"
           >
             {{ opt.title }}
           </button>
@@ -508,18 +616,20 @@ onMounted(() => {
         </div>
 
         <v-text-field
-          v-if="form.status === 'owing'"
+          v-if="showAmountPaidField"
           v-model="form.amount_paid"
           type="number"
           min="0"
+          :max="effectivePlanPrice"
           step="1000"
           label="Monto pagado (COP)"
-          hint="Deja vacío o 0 si no ha abonado nada"
+          :hint="remainingBalanceLabel || 'No puede superar el valor del plan'"
           persistent-hint
           density="compact"
           variant="outlined"
           :disabled="saving"
           class="mp__paid"
+          @update:model-value="onAmountPaidInput"
         />
 
         <label class="mp__check">
@@ -528,7 +638,7 @@ onMounted(() => {
             type="checkbox"
             :disabled="saving"
           >
-          Bloquear rutinas si no paga
+          Bloquear rutinas al vencer el periodo (3 días de gracia)
         </label>
 
         <button
