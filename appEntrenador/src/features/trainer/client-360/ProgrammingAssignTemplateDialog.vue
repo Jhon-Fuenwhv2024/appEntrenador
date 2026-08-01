@@ -91,7 +91,7 @@ const handleSubmit = () => {
   >
     <v-card bg-color="surface">
       <v-card-title class="d-flex align-center justify-space-between">
-        <span>Desde biblioteca</span>
+        <span>Desde Recursos</span>
         <v-btn icon="mdi-close" variant="text" size="small" aria-label="Cerrar" @click="close" />
       </v-card-title>
 
@@ -125,7 +125,7 @@ const handleSubmit = () => {
           density="comfortable"
           class="mb-4"
         >
-          No hay plantillas. Crea una en Biblioteca o guarda una rutina existente.
+          No hay plantillas. Crea una en Recursos o guarda una rutina existente.
         </v-alert>
 
         <v-select

@@ -30,7 +30,7 @@ Permite al entrenador gestionar la membresía de cada alumno (periodo, estado de
 - [x] `GET /clients/:clientId/membership` — trainer dueño.
 - [x] `PUT /clients/:clientId/membership` — trainer: status, fechas, notes, `block_on_unpaid`; upsert.
 - [x] `GET /me/membership` — client: `{ status, period_start, period_end, days_remaining, block_on_unpaid }` (sin notes internas si se desea privacidad; notes opcionales).
-- [x] Guard: si `block_on_unpaid` y status ≠ `active` (o `days_remaining < 0` / expired), bloquear inicio de sesión de workout y/o `GET /me/routines` con código claro (ej. `403` + `MEMBERSHIP_BLOCKED`).
+- [x] Guard: si `block_on_unpaid` y status ≠ `active` (o `days_remaining < 0` / expired), bloquear **inicio de sesión de workout** con `403` + `MEMBERSHIP_BLOCKED`. `GET /me/routines` queda permitido (preview de solo lectura); el soft-lock se aplica al Player / Empezar.
 - [x] Ownership estricto vía `req.user` / `trainer_id`.
 
 ### UI Entrenador

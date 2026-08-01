@@ -14,8 +14,17 @@ import {
 } from './api/templatesApi.js';
 import AssignTemplateDialog from './components/AssignTemplateDialog.vue';
 import ExercisesCatalogPanel from './components/ExercisesCatalogPanel.vue';
+import LibraryDietsStub from './components/LibraryDietsStub.vue';
+import MembershipTypesPanel from './components/MembershipTypesPanel.vue';
 import TemplateFormDialog from './components/TemplateFormDialog.vue';
 import TemplateList from './components/TemplateList.vue';
+
+const TAB_PATH = {
+  templates: '/trainer/library',
+  exercises: '/trainer/library/exercises',
+  memberships: '/trainer/library/memberships',
+  diets: '/trainer/library/diets',
+};
 
 const router = useRouter();
 const route = useRoute();
@@ -34,11 +43,17 @@ const snackbar = reactive({
   color: 'success',
 });
 
-/** Hub tabs: plantillas | catálogo (Feature 022). */
+/** Hub tabs: plantillas | catálogo | membresías | dietas (Feature 079). */
 const libraryTab = computed({
-  get: () => (route.path.includes('/exercises') ? 'exercises' : 'templates'),
+  get: () => {
+    const path = route.path;
+    if (path.includes('/exercises')) return 'exercises';
+    if (path.includes('/memberships')) return 'memberships';
+    if (path.includes('/diets')) return 'diets';
+    return 'templates';
+  },
   set: (value) => {
-    router.push(value === 'exercises' ? '/trainer/library/exercises' : '/trainer/library');
+    router.push(TAB_PATH[value] || TAB_PATH.templates);
   },
 });
 
@@ -48,7 +63,7 @@ const showNotification = (text, color = 'success') => {
   snackbar.color = color;
 };
 
-const onCatalogNotify = ({ text, color }) => {
+const onPanelNotify = ({ text, color }) => {
   showNotification(text, color);
 };
 
@@ -160,9 +175,9 @@ watch(libraryTab, (tab) => {
     <main class="main-content flex-grow-1 overflow-y-auto">
       <header class="dashboard-header">
         <div class="header-left">
-          <h1 class="header-title">Biblioteca</h1>
+          <h1 class="header-title">Recursos</h1>
           <p class="header-greeting text-medium-emphasis">
-            Plantillas y catálogo de ejercicios
+            Plantillas, catálogo, membresías y dietas
           </p>
         </div>
 
@@ -177,12 +192,19 @@ watch(libraryTab, (tab) => {
           color="primary"
           class="library-page__tabs mb-4"
           density="comfortable"
+          show-arrows
         >
           <v-tab value="templates" prepend-icon="mdi-file-document-multiple-outline">
             Plantillas
           </v-tab>
           <v-tab value="exercises" prepend-icon="mdi-dumbbell">
             Catálogo
+          </v-tab>
+          <v-tab value="memberships" prepend-icon="mdi-card-account-details-outline">
+            Membresías
+          </v-tab>
+          <v-tab value="diets" prepend-icon="mdi-food-apple-outline">
+            Dietas
           </v-tab>
         </v-tabs>
 
@@ -203,9 +225,16 @@ watch(libraryTab, (tab) => {
         </div>
 
         <ExercisesCatalogPanel
-          v-else
-          @notify="onCatalogNotify"
+          v-else-if="libraryTab === 'exercises'"
+          @notify="onPanelNotify"
         />
+
+        <MembershipTypesPanel
+          v-else-if="libraryTab === 'memberships'"
+          @notify="onPanelNotify"
+        />
+
+        <LibraryDietsStub v-else-if="libraryTab === 'diets'" />
       </div>
     </main>
   </AppShell>

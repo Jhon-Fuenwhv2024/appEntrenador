@@ -6,15 +6,19 @@ import {
   isMembershipBlockedError,
 } from '../../shared/api/http.js';
 import { getSessionUser } from '../../shared/auth/session.js';
+import { normalizeMembershipPeriod } from '../../shared/membership/period.js';
+import { getMyMembership } from './api/membershipApi.js';
 import { getMyRoutines } from './api/routinesApi.js';
 import { createMyWorkoutSession } from './api/workoutSessionsApi.js';
 import { useWorkoutSession } from './composables/useWorkoutSession.js';
+import MembershipLockedState from './components/MembershipLockedState.vue';
 import PrCelebrationOverlay from './components/PrCelebrationOverlay.vue';
 import WorkoutExerciseMedia from './components/WorkoutExerciseMedia.vue';
 import WorkoutFinishedSummary from './components/WorkoutFinishedSummary.vue';
 import WorkoutHintExpandable from './components/WorkoutHintExpandable.vue';
 import WorkoutRestRing from './components/WorkoutRestRing.vue';
 import WorkoutSetsChecklist from './components/WorkoutSetsChecklist.vue';
+import { isMembershipAccessBlocked } from './utils/membershipUi.js';
 
 const MEMBERSHIP_BLOCKED_MSG = 'Tu membresía venció — habla con tu entrenador.';
 
@@ -177,20 +181,36 @@ async function loadRoutine() {
     membershipBlocked.value = false;
     pendingRoutine.value = null;
     const routineId = Number(route.params.routineId);
-    const response = await getMyRoutines();
-    const list = response.data.data ?? [];
+
+    const [routinesRes, membershipRes] = await Promise.all([
+      getMyRoutines(),
+      getMyMembership().catch((error) => {
+        console.warn('No se pudo cargar membresía en player:', error);
+        return null;
+      }),
+    ]);
+
+    if (membershipRes) {
+      const mem = normalizeMembershipPeriod(membershipRes.data?.data ?? null);
+      membershipBlocked.value = isMembershipAccessBlocked(mem);
+    }
+
+    const list = routinesRes.data.data ?? [];
     const routine = list.find((item) => Number(item.id) === routineId);
     if (!routine) {
       loadError.value = 'No encontramos esa rutina en tu plan.';
       return;
     }
     sessionRoutineName.value = routine.nombre_rutina || '';
-    pendingRoutine.value = routine;
+    // Soft-lock: no preparar sesión si la membresía bloquea el entrenamiento.
+    if (!membershipBlocked.value) {
+      pendingRoutine.value = routine;
+    }
   } catch (error) {
     console.error('Error cargando rutina para el player:', error);
     if (isMembershipBlockedError(error)) {
       membershipBlocked.value = true;
-      loadError.value = MEMBERSHIP_BLOCKED_MSG;
+      loadError.value = '';
     } else {
       loadError.value = getApiErrorMessage(error, 'No se pudo cargar la rutina');
     }
@@ -266,12 +286,18 @@ onMounted(() => {
 
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mx-4" />
 
+    <MembershipLockedState
+      v-else-if="membershipBlocked && !pendingRoutine && phase === 'idle'"
+      title="Entrenamiento pausado"
+      message="Tu membresía venció. Renueva con tu entrenador para volver a entrenar."
+      @back="goBack"
+    />
+
     <v-alert
       v-else-if="loadError"
       type="error"
       variant="tonal"
       class="ma-4"
-      :prepend-icon="membershipBlocked ? 'mdi-lock' : undefined"
     >
       {{ loadError }}
       <template #append>

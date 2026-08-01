@@ -56,14 +56,14 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 2. Cabecera sticky muestra avatar/objetivo/última sesión y badge de membresía (días restantes / Pendiente / Vencida); navegación por `?tab=` (Resumen · Programación · Nutrición & Hábitos · Medidas · Check-ins · Gráficas · Chat).
 3. Resumen (Feature 060): `MembershipPanel` en **vista** por defecto (Editar abre formulario) + `ConsistencyPanel` strip compacto (meta bajo demanda) + widgets de decisión (incl. PRs del mes 041) + historial agrupado por día con `GET /clients/:id/workout-sessions?limit=&offset=` y «Ver más».
 4. Overview incluye `consistencyScore` y `prsThisMonth` calculados en server.
-5. Programación (Feature 061): vista semanal L–D + builder bajo demanda + **Desde biblioteca** (`POST /templates/:id/assign` con `clientId` fijo) + duplicar a otro día vía `POST /clients/:id/routines`. Paneles existentes (nutrición, hábitos, body-comp, check-ins, gráficas, perfil, chat) se montan por sección sin perder CRUD.
+5. Programación (Feature 061): vista semanal L–D + builder bajo demanda + **Desde Recursos** (`POST /templates/:id/assign` con `clientId` fijo) + duplicar a otro día vía `POST /clients/:id/routines`. Paneles existentes (nutrición, hábitos, body-comp, check-ins, gráficas, perfil, chat) se montan por sección sin perder CRUD.
 6. Ownership: el overview y cada panel validan `trainer_id` del alumno.
 
 ## Programación 360 (Feature 061)
 
 1. Trainer abre `?tab=programacion` → `Client360Programming` carga `GET /clients/:id/routines` y muestra strip semanal (`ProgrammingWeekBoard`).
 2. Día vacío → crear (abre `RoutineDayBuilder`) o asignar plantilla (`ProgrammingAssignTemplateDialog` → `POST /templates/:id/assign`).
-3. Día con rutina → editar en builder, duplicar a otro día (create con mismos ejercicios), guardar en Biblioteca (`POST /templates`), eliminar.
+3. Día con rutina → editar en builder, duplicar a otro día (create con mismos ejercicios), guardar en Recursos (`POST /templates`), eliminar.
 4. El builder solo aparece al crear/editar (progressive disclosure: Grupo/indicaciones colapsables; reorder de ejercicios).
 
 ## Densidad Resumen 360 (Feature 060)
@@ -82,9 +82,10 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 
 ## Membresía y control de pago (Feature 040)
 
-1. Trainer en ficha 360 guarda estado/fechas/notas/bloqueo → `PUT /clients/:id/membership` (upsert en `client_memberships`).
+1. Trainer en ficha 360 guarda estado/fechas/notas/bloqueo/tipo/monto → `PUT /clients/:id/membership` (upsert en `client_memberships`; snapshot `plan_price` desde tipo 079).
 2. Lista de alumnos (`GET /clients`) trae `membership` básico; la UI filtra localmente Al día / Por vencer / Vencidos / Pendientes.
-3. Cliente consulta `GET /me/membership` → `days_remaining` calculado; sin `notes`.
+3. Cliente consulta `GET /me/membership` → `days_remaining`, `amount_due`, nombre de tipo; sin `notes`.
+4. Catálogo de tipos: trainer en **Recursos → Membresías** (`/trainer/library/memberships`) CRUD vía `/trainer/membership-types`.
 4. Si el trainer activó `block_on_unpaid` y la membresía no está al día, `GET /me/routines`, `GET /me/today` y `POST /me/workout-sessions` responden 403 `MEMBERSHIP_BLOCKED`.
 
 ## Dashboard immersivo del cliente (Feature 038)
@@ -94,7 +95,7 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 3. Si no hay rutina para ese weekday, `todayRoutine = null` → UI “Día de descanso”; si hay, hero + CTA **Empezar** → `/client/workout/:routineId`.
 4. Hábitos y macros se hidratan desde la misma respuesta (sin round-trips extra); el toggle de hábitos sigue siendo `POST /habits/:id/toggle`.
 5. Meta bajo el saludo (“N días restantes”); si `membershipBlocked`, hero con CTA Bloqueado (Player también responde 403 `MEMBERSHIP_BLOCKED`).
-6. Perfil cliente (`/client/profile`): `ProfileFormCard` (datos/foto) y debajo un resumen compacto de membresía (`GET /me/membership`: días, Al día/Debe, vigencia).
+6. Perfil cliente (`/client/profile`): `ProfileFormCard` (datos/foto) y debajo un resumen compacto de membresía (`GET /me/membership`: días, Al día/Pendiente/Saldo $X, vigencia).
 7. Plan de dieta activo (043/064): `ClientDietView` llama `GET /me/diet-plan?date=` (día resuelto del ciclo) y `GET /me/diet-plan/week` (strip L–D).
 8. Lista de compra (071): botón carrito en `ClientDietView` → `/client/shopping-list` (`ClientShoppingListView` + `GET /me/diet-plan/shopping-list`); checklist en `localStorage` por `planId`.
 
@@ -112,15 +113,15 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 
 ## Plantillas → deep copy al alumno (Feature 018)
 
-1. Trainer crea/edita plantillas en `/trainer/library` (`POST/PATCH /templates`) o guarda una rutina existente con “Guardar en Biblioteca”.
+1. Trainer crea/edita plantillas en `/trainer/library` (hub **Recursos**; `POST/PATCH /templates`) o guarda una rutina existente con “Guardar en Recursos”.
 2. Al asignar (`POST /templates/:id/assign` con `clientId` + `dia_semana?`):
-   - Desde Biblioteca: dialog elige alumno + día (`AssignTemplateDialog`).
+   - Desde Recursos: dialog elige alumno + día (`AssignTemplateDialog`).
    - Desde Programación 360 (Feature 061): dialog elige plantilla + día con alumno fijado (`ProgrammingAssignTemplateDialog`).
    - Valida plantilla propia (`trainer_id = req.user.id`) y ownership del alumno.
    - En una transacción inserta una **nueva** fila en `rutinas` y copia cada línea a `ejercicios`.
    - No se guarda FK hacia `routine_templates`: la copia es independiente.
 3. Editar o borrar la plantilla después **no** cambia las rutinas ya asignadas.
-4. Desde el Catálogo (Biblioteca), el trainer puede **añadir un ejercicio** a una plantilla existente o a una rutina de alumno (`AssignCatalogExerciseDialog` → `PATCH /templates/:id` o `PUT /routines/:id` con la línea al final).
+4. Desde el Catálogo (Recursos), el trainer puede **añadir un ejercicio** a una plantilla existente o a una rutina de alumno (`AssignCatalogExerciseDialog` → `PATCH /templates/:id` o `PUT /routines/:id` con la línea al final).
 
 ## Ejecución de rutina (Workout Player)
 

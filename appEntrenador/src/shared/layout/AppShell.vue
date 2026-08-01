@@ -145,11 +145,11 @@ onMounted(() => {
             type="button"
             class="nav-item"
             :class="{ active: active === 'library' }"
-            title="Biblioteca"
-            aria-label="Biblioteca"
+            title="Recursos"
+            aria-label="Recursos"
             @click="go('/trainer/library')"
           >
-            <v-icon icon="mdi-bookshelf" size="22" />
+            <v-icon icon="mdi-folder-multiple-outline" size="22" />
           </button>
           <button
             type="button"

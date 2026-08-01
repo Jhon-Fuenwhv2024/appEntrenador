@@ -110,6 +110,18 @@ const routes = [
     meta: { requiresAuth: true, role: 'trainer' },
   },
   {
+    path: '/trainer/library/memberships',
+    name: 'TrainerLibraryMemberships',
+    component: LibraryView,
+    meta: { requiresAuth: true, role: 'trainer' },
+  },
+  {
+    path: '/trainer/library/diets',
+    name: 'TrainerLibraryDiets',
+    component: LibraryView,
+    meta: { requiresAuth: true, role: 'trainer' },
+  },
+  {
     path: '/trainer/settings',
     name: 'TrainerSettings',
     component: TrainerSettingsView,

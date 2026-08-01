@@ -332,7 +332,7 @@ const handleSaveAsTemplate = async (routine) => {
         indicaciones: ex.indicaciones || '',
       })),
     });
-    showNotification(`"${routine.nombre_rutina}" guardada en Biblioteca`);
+    showNotification(`"${routine.nombre_rutina}" guardada en Recursos`);
   } catch (error) {
     console.error('Error guardando plantilla:', error);
     showNotification(getApiErrorMessage(error, 'No se pudo guardar como plantilla'), 'error');
@@ -438,7 +438,7 @@ onMounted(() => {
           prepend-icon="mdi-bookshelf"
           @click="openAssign('Lunes')"
         >
-          Desde biblioteca
+          Desde Recursos
         </v-btn>
         <v-btn
           color="primary"

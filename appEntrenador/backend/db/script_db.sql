@@ -406,25 +406,48 @@ CREATE TABLE push_subscriptions (
       FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- 18. MEMBRESÍA / CONTROL DE PAGO DEL ALUMNO (Feature 040)
+-- 18. MEMBRESÍA / CONTROL DE PAGO DEL ALUMNO (Feature 040 + 079)
 -- days_remaining se calcula en service (DATEDIFF), no es columna.
+-- Tipos de plan: trainer_membership_types (Feature 079).
+CREATE TABLE trainer_membership_types (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trainer_id INT NOT NULL,
+    name VARCHAR(120) NOT NULL,
+    price DECIMAL(12, 2) NOT NULL,
+    duration_days INT NOT NULL DEFAULT 30,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_tmt_trainer (trainer_id),
+    INDEX idx_tmt_trainer_active (trainer_id, is_active),
+    CONSTRAINT fk_tmt_trainer
+      FOREIGN KEY (trainer_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE client_memberships (
     id INT AUTO_INCREMENT PRIMARY KEY,
     client_id INT NOT NULL,
+    membership_type_id INT NULL,
     status ENUM('active', 'owing', 'expired') NOT NULL DEFAULT 'active',
     period_start DATE NULL,
     period_end DATE NULL,
     notes TEXT NULL,
+    plan_price DECIMAL(12, 2) NULL,
+    amount_paid DECIMAL(12, 2) NOT NULL DEFAULT 0,
     block_on_unpaid BOOLEAN NOT NULL DEFAULT FALSE,
     updated_by INT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_client_memberships_client (client_id),
     INDEX idx_client_memberships_status (status),
     INDEX idx_client_memberships_period_end (period_end),
+    INDEX idx_cm_membership_type (membership_type_id),
     CONSTRAINT fk_client_memberships_client
       FOREIGN KEY (client_id) REFERENCES usuarios(id) ON DELETE CASCADE,
     CONSTRAINT fk_client_memberships_updated_by
-      FOREIGN KEY (updated_by) REFERENCES usuarios(id) ON DELETE SET NULL
+      FOREIGN KEY (updated_by) REFERENCES usuarios(id) ON DELETE SET NULL,
+    CONSTRAINT fk_cm_membership_type
+      FOREIGN KEY (membership_type_id) REFERENCES trainer_membership_types(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- 19. RÉCORDS PERSONALES / PRs (Feature 041)

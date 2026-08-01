@@ -1,21 +1,21 @@
 <script setup>
 /**
  * Resumen compacto de membresía / pago en Mi Perfil (Feature 040).
- * CTA renovar (chat + WhatsApp) solo cuando el plan está por vencer (≤7 días).
+ * - Por vencer (≤7d): CTA prominente Chat + WhatsApp
+ * - Vencida / pago pendiente: acciones sutiles (text links)
  */
-import { computed, shallowRef, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed } from 'vue';
+import { formatMoneyCop } from '../../../shared/membership/money.js';
 import {
   formatMembershipDate,
   normalizeMembershipPeriod,
 } from '../../../shared/membership/period.js';
-import { getChatPartner } from '../../messaging/api/messagesApi.js';
 import {
   getMembershipHomeState,
   isMembershipAccessBlocked,
   isMembershipExpiringSoon,
 } from '../utils/membershipUi.js';
-import { buildWhatsAppUrl } from '../utils/whatsapp.js';
+import ClientMembershipContactActions from './ClientMembershipContactActions.vue';
 
 const props = defineProps({
   membership: {
@@ -24,19 +24,67 @@ const props = defineProps({
   },
 });
 
-const router = useRouter();
-const trainerPhone = shallowRef(null);
-const trainerName = shallowRef('');
-const contactLoading = shallowRef(false);
-
 const normalized = computed(() => normalizeMembershipPeriod(props.membership));
 const state = computed(() => getMembershipHomeState(normalized.value, false));
 
-const paymentLabel = computed(() => {
+const planNameLabel = computed(() => normalized.value?.membership_type_name || null);
+
+/**
+ * Desglose claro cuando hay precio: plan / abonado / por pagar.
+ * Evita confusión de “Saldo $X” bajo el título “Pago”.
+ */
+const paymentBreakdown = computed(() => {
+  const m = normalized.value;
+  if (!m?.status) return null;
+
+  const status = String(m.status).toLowerCase();
+  const planPrice = m.plan_price != null ? Number(m.plan_price) : NaN;
+  const hasPlanPrice = Number.isFinite(planPrice) && planPrice > 0;
+  const amountPaidRaw = m.amount_paid != null ? Number(m.amount_paid) : 0;
+  const amountPaid = Number.isFinite(amountPaidRaw) ? Math.max(0, amountPaidRaw) : 0;
+  const amountDueRaw = m.amount_due != null ? Number(m.amount_due) : NaN;
+  const amountDue = Number.isFinite(amountDueRaw)
+    ? Math.max(0, amountDueRaw)
+    : (hasPlanPrice ? Math.max(0, planPrice - amountPaid) : null);
+
+  if (status === 'owing' && hasPlanPrice) {
+    return {
+      mode: 'owing',
+      planLabel: formatMoneyCop(planPrice),
+      paidLabel: formatMoneyCop(amountPaid),
+      dueLabel: formatMoneyCop(amountDue),
+      paidPct: Math.min(100, Math.round((amountPaid / planPrice) * 100)),
+    };
+  }
+
+  if (status === 'active' && hasPlanPrice) {
+    return {
+      mode: 'active',
+      summary: formatMoneyCop(planPrice),
+    };
+  }
+
+  if (status === 'owing') {
+    return { mode: 'owing-simple', summary: 'Pago pendiente' };
+  }
+  if (status === 'expired') {
+    return { mode: 'expired', summary: 'Vencida' };
+  }
+  if (status === 'active') {
+    return { mode: 'active', summary: 'Al día' };
+  }
+  return { mode: 'other', summary: status };
+});
+
+const showPaymentBreakdown = computed(() => paymentBreakdown.value?.mode === 'owing');
+
+const paymentLabel = computed(() => paymentBreakdown.value?.summary || 'Sin plan');
+
+const badgeLabel = computed(() => {
   const m = normalized.value;
   if (!m?.status) return 'Sin plan';
   const status = String(m.status).toLowerCase();
-  if (status === 'owing') return 'Debe el mes';
+  if (status === 'owing') return 'Pendiente';
   if (status === 'expired') return 'Vencida';
   if (status === 'active') return 'Al día';
   return status;
@@ -90,21 +138,31 @@ const empty = computed(() => !normalized.value?.status);
 const startLabel = computed(() => formatMembershipDate(normalized.value?.period_start));
 const endLabel = computed(() => formatMembershipDate(normalized.value?.period_end));
 
-/** Solo plan activo a ≤7 días del vencimiento. */
-const showRenewCta = computed(() => isMembershipExpiringSoon(normalized.value));
-
-/** Aviso de texto sin botones (vencida / pago pendiente). */
-const showStatusNote = computed(() => {
-  if (showRenewCta.value) return false;
-  return paymentTone.value === 'warn' || paymentTone.value === 'danger';
+const renewKind = computed(() => {
+  if (accessBlocked.value || String(normalized.value?.status || '').toLowerCase() === 'expired') {
+    return 'expired';
+  }
+  if (String(normalized.value?.status || '').toLowerCase() === 'owing') {
+    return 'owing';
+  }
+  if (isMembershipExpiringSoon(normalized.value)) return 'expiring';
+  return null;
 });
 
-const whatsappUrl = computed(() => buildWhatsAppUrl(
-  trainerPhone.value,
-  'Hola, quiero renovar mi membresía en Trainfit.',
+const showContact = computed(() => renewKind.value != null);
+
+/** Prominente solo “por vencer”; vencida/owing → sutil. */
+const contactDensity = computed(() => (
+  renewKind.value === 'expiring' ? 'prominent' : 'subtle'
 ));
 
-const renewSubtitle = computed(() => {
+const contactNote = computed(() => {
+  if (renewKind.value === 'expired') {
+    return 'Habla con tu entrenador para renovar o regularizar el pago.';
+  }
+  if (renewKind.value === 'owing') {
+    return 'Contáctalo para regularizar el pago y mantener el acceso.';
+  }
   const days = normalized.value?.days_remaining;
   const n = days == null ? null : Math.max(0, Number(days));
   if (n === 0) return 'Tu plan vence hoy. Contáctalo para renovar.';
@@ -115,33 +173,11 @@ const renewSubtitle = computed(() => {
   return 'Contáctalo para renovar a tiempo.';
 });
 
-async function loadTrainerContact() {
-  contactLoading.value = true;
-  try {
-    const response = await getChatPartner();
-    const partner = response.data?.data ?? null;
-    trainerPhone.value = partner?.telefono ?? null;
-    trainerName.value = partner?.nombre || 'tu entrenador';
-  } catch (error) {
-    console.warn('No se pudo cargar contacto del entrenador:', error);
-    trainerPhone.value = null;
-    trainerName.value = 'tu entrenador';
-  } finally {
-    contactLoading.value = false;
-  }
-}
-
-function goToChat() {
-  router.push({ name: 'ClientMessages' });
-}
-
-watch(
-  showRenewCta,
-  (show) => {
-    if (show) loadTrainerContact();
-  },
-  { immediate: true },
-);
+const contactPrefill = computed(() => (
+  renewKind.value === 'owing'
+    ? 'Hola, quiero regularizar el pago de mi membresía en Trainfit.'
+    : 'Hola, quiero renovar mi membresía en Trainfit.'
+));
 </script>
 
 <template>
@@ -152,7 +188,9 @@ watch(
   >
     <div class="pmc__top">
       <div>
-        <p class="pmc__eyebrow">Membresía mensual</p>
+        <p class="pmc__eyebrow">
+          {{ planNameLabel || 'Membresía mensual' }}
+        </p>
         <p v-if="empty" class="pmc__days">Sin plan configurado</p>
         <p v-else class="pmc__days">
           <strong>{{ daysText }}</strong>
@@ -160,7 +198,7 @@ watch(
         </p>
       </div>
       <span class="pmc__badge" :class="`pmc__badge--${paymentTone}`">
-        {{ paymentLabel }}
+        {{ badgeLabel }}
       </span>
     </div>
 
@@ -184,7 +222,7 @@ watch(
           <dt>Vence</dt>
           <dd>{{ endLabel }}</dd>
         </div>
-        <div>
+        <div v-if="!showPaymentBreakdown">
           <dt>Pago</dt>
           <dd>{{ paymentLabel }}</dd>
         </div>
@@ -194,56 +232,56 @@ watch(
         </div>
       </dl>
 
-      <p
-        v-if="showStatusNote"
-        class="pmc__note"
-      >
-        Habla con tu entrenador para renovar o regularizar el pago.
-      </p>
-
       <div
-        v-if="showRenewCta"
-        class="pmc__renew"
-        role="region"
-        aria-label="Renovar membresía"
+        v-if="showPaymentBreakdown"
+        class="pmc-pay"
+        aria-label="Detalle del pago"
       >
-        <div class="pmc__renew-copy">
-          <p class="pmc__renew-kicker">Por vencer</p>
-          <p class="pmc__renew-title">Habla con {{ trainerName || 'tu entrenador' }}</p>
-          <p class="pmc__renew-sub">{{ renewSubtitle }}</p>
+        <div class="pmc-pay__head">
+          <p class="pmc-pay__title">Detalle del pago</p>
+          <span class="pmc-pay__due-chip">
+            Por pagar {{ paymentBreakdown.dueLabel }}
+          </span>
         </div>
 
-        <div class="pmc__renew-actions">
-          <button
-            type="button"
-            class="pmc__pill pmc__pill--chat"
-            aria-label="Abrir chat con tu entrenador"
-            @click="goToChat"
-          >
-            <v-icon icon="mdi-message-text-outline" size="18" aria-hidden="true" />
-            <span>Chat</span>
-          </button>
-
-          <a
-            v-if="whatsappUrl"
-            :href="whatsappUrl"
-            class="pmc__pill pmc__pill--wa"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Abrir WhatsApp con el número de tu entrenador"
-          >
-            <v-icon icon="mdi-whatsapp" size="18" aria-hidden="true" />
-            <span>WhatsApp</span>
-          </a>
-
-          <p
-            v-else-if="!contactLoading"
-            class="pmc__renew-hint"
-          >
-            WhatsApp no disponible: tu entrenador aún no agregó teléfono en su perfil.
-          </p>
+        <div
+          class="pmc-pay__track"
+          role="progressbar"
+          :aria-valuenow="paymentBreakdown.paidPct"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          :aria-label="`Abonado ${paymentBreakdown.paidPct}% del plan`"
+        >
+          <div
+            class="pmc-pay__track-fill"
+            :style="{ width: `${paymentBreakdown.paidPct}%` }"
+          />
         </div>
+
+        <dl class="pmc-pay__grid">
+          <div>
+            <dt>Valor del plan</dt>
+            <dd>{{ paymentBreakdown.planLabel }}</dd>
+          </div>
+          <div>
+            <dt>Ya abonado</dt>
+            <dd class="pmc-pay__paid">{{ paymentBreakdown.paidLabel }}</dd>
+          </div>
+          <div class="pmc-pay__grid-due">
+            <dt>Por pagar</dt>
+            <dd>{{ paymentBreakdown.dueLabel }}</dd>
+          </div>
+        </dl>
       </div>
+
+      <ClientMembershipContactActions
+        v-if="showContact"
+        :density="contactDensity"
+        :enabled="showContact"
+        :note="contactNote"
+        :prefill-text="contactPrefill"
+        :tone="renewKind === 'owing' ? 'warn' : 'danger'"
+      />
     </template>
   </section>
 </template>
@@ -400,117 +438,107 @@ watch(
   color: #ff8a80 !important;
 }
 
-.pmc__note {
-  margin: 0.85rem 0 0;
-  padding: 0.65rem 0.75rem;
-  border-radius: 10px;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: var(--tf-on-surface, #e8ecf1);
-  background: rgba(255, 176, 32, 0.08);
-  border: 1px solid rgba(255, 176, 32, 0.18);
-}
-
-/* CTA renovar — solo “por vencer” */
-.pmc__renew {
-  margin-top: 0.9rem;
+.pmc-pay {
+  margin-top: 0.85rem;
   padding: 0.85rem 0.9rem;
   border-radius: 14px;
-  background:
-    linear-gradient(135deg, rgba(255, 176, 32, 0.1) 0%, rgba(0, 229, 255, 0.04) 100%);
   border: 1px solid rgba(255, 176, 32, 0.22);
+  background:
+    linear-gradient(135deg, rgba(255, 176, 32, 0.08), transparent 55%),
+    rgba(255, 255, 255, 0.03);
 }
 
-.pmc__renew-copy {
-  margin-bottom: 0.75rem;
+.pmc-pay__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  flex-wrap: wrap;
 }
 
-.pmc__renew-kicker {
+.pmc-pay__title {
   margin: 0;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #ffc857;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
-.pmc__renew-title {
-  margin: 0.28rem 0 0;
-  font-size: 0.9375rem;
+.pmc-pay__due-chip {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: var(--tf-on-surface, #ffffff);
-  line-height: 1.25;
+  color: #0b0d12;
+  background: #ffb020;
+  font-variant-numeric: tabular-nums;
 }
 
-.pmc__renew-sub {
-  margin: 0.25rem 0 0;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: var(--tf-on-surface-muted, #a8b0bc);
-}
-
-.pmc__renew-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.pmc__pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  min-height: 40px;
-  min-width: 44px;
-  padding: 0 0.95rem;
+.pmc-pay__track {
+  margin-top: 0.7rem;
+  height: 6px;
   border-radius: 999px;
-  border: 1px solid transparent;
-  font-size: 0.8125rem;
-  font-weight: 650;
-  letter-spacing: 0.01em;
-  line-height: 1;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
 }
 
-.pmc__pill:focus-visible {
-  outline: var(--tf-focus-ring, 2px solid #00e5ff);
-  outline-offset: var(--tf-focus-offset, 2px);
+.pmc-pay__track-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffb020, #ffd06a);
+  transition: width 0.35s ease;
 }
 
-.pmc__pill:active {
-  transform: scale(0.98);
+.pmc-pay__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem 0.85rem;
+  margin: 0.75rem 0 0;
 }
 
-.pmc__pill--chat {
-  color: var(--tf-on-primary, #0b0d12);
-  background: var(--tf-primary, #00e5ff);
-  border-color: transparent;
-}
-
-.pmc__pill--chat:hover {
-  background: #33ebff;
-}
-
-.pmc__pill--wa {
-  color: #e8f8ef;
-  background: rgba(37, 211, 102, 0.14);
-  border-color: rgba(37, 211, 102, 0.42);
-}
-
-.pmc__pill--wa:hover {
-  background: rgba(37, 211, 102, 0.22);
-  border-color: rgba(37, 211, 102, 0.55);
-}
-
-.pmc__renew-hint {
+.pmc-pay__grid dt {
   margin: 0;
-  flex: 1 1 100%;
-  font-size: 0.6875rem;
-  line-height: 1.35;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.pmc-pay__grid dd {
+  margin: 0.15rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+  color: var(--tf-on-surface, #e8eaed);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.pmc-pay__paid {
+  color: #c8f0c8 !important;
+}
+
+.pmc-pay__grid-due {
+  grid-column: 1 / -1;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.pmc-pay__grid-due dt {
+  margin: 0;
+}
+
+.pmc-pay__grid-due dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffb020;
 }
 </style>

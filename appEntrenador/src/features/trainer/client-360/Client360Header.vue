@@ -84,6 +84,10 @@ const membershipBadge = computed(() => {
   const status = String(m.status).toLowerCase();
 
   if (status === 'owing') {
+    const due = m.amount_due != null ? Number(m.amount_due) : null;
+    if (due != null && due > 0) {
+      return { label: `Saldo pendiente`, color: 'warning' };
+    }
     return { label: 'Pendiente', color: 'warning' };
   }
   if (status === 'expired' || (days != null && days < 0)) {

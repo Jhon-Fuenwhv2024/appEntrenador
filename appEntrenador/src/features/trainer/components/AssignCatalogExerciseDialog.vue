@@ -327,7 +327,7 @@ const handleSubmit = async () => {
             v-if="!loading && templates.length === 0"
             class="tf-assign-hint"
           >
-            No hay plantillas. Crea una en Biblioteca primero.
+            No hay plantillas. Crea una en Recursos primero.
           </p>
         </div>
 

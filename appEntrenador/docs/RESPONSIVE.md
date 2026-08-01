@@ -16,10 +16,10 @@
   - **Detalle:** ver `spec/features/014-mobile-shell-bottom-nav/`.
 
 - [x] `[016]` **IA de navegación trainer (shell)**
-  **Descripción:** Cuatro destinos estables en sidebar y bottom nav (Inicio, Alumnos, Biblioteca, Ajustes). Catálogo de ejercicios fuera de la barra (herramienta de Biblioteca). Placeholders seguros para rutas nuevas.
+  **Descripción:** Cuatro destinos estables en sidebar y bottom nav (Inicio, Alumnos, Recursos, Ajustes). Catálogo de ejercicios fuera de la barra (herramienta de Recursos). Placeholders seguros para rutas nuevas.
   **Requisitos Técnicos (Agente):**
   - **Slots trainer:** `/dashboard`, `/trainer/clients`, `/trainer/library`, `/trainer/settings`.
-  - **Active state:** ficha `/trainer/clients/:clientId` → Alumnos; `/trainer/exercises` → Biblioteca.
+  - **Active state:** ficha `/trainer/clients/:clientId` → Alumnos; `/trainer/exercises` → Recursos.
   - **Logout:** fuera de los 4 slots (header móvil / pie sidebar).
   - **Restricción:** Sin producto de dominio nuevo; client sin cambios de IA.
   - **Detalle:** ver `spec/features/016-trainer-nav-ia/`.

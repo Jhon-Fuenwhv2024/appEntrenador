@@ -11,17 +11,26 @@ function getTrainerSeats() {
   return require('../../shared/saas/trainerSeats');
 }
 
+function getMembershipTypesService() {
+  return require('../membership-types/membership-types.service');
+}
+
 const SELECT_COLUMNS = `
   cm.id,
   cm.client_id,
+  cm.membership_type_id,
   cm.status,
   DATE_FORMAT(cm.period_start, '%Y-%m-%d') AS period_start,
   DATE_FORMAT(cm.period_end, '%Y-%m-%d') AS period_end,
   cm.notes,
+  cm.plan_price,
+  cm.amount_paid,
   cm.block_on_unpaid,
   cm.updated_by,
   cm.updated_at,
-  DATEDIFF(cm.period_end, CURDATE()) AS days_remaining
+  DATEDIFF(cm.period_end, CURDATE()) AS days_remaining,
+  tmt.name AS membership_type_name,
+  tmt.duration_days AS type_duration_days
 `;
 
 function createHttpError(message, code, errorKey) {
@@ -44,7 +53,6 @@ function toDateOnly(value) {
     return `${y}-${m}-${d}`;
   }
   const str = String(value).trim();
-  // Evita "2026-07-17T00:00:00.000Z" → usar solo la parte fecha.
   if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
     return str.slice(0, 10);
   }
@@ -61,7 +69,6 @@ function todayDateOnly() {
 
 /**
  * Plan mensual (~30 días): fin = día anterior al mismo día del mes siguiente.
- * Ej. 2026-07-17 → 2026-08-16. Aritmética UTC para evitar bugs de TZ.
  */
 function monthlyPeriodEnd(dateOnly) {
   const [y, m, d] = dateOnly.split('-').map(Number);
@@ -81,6 +88,21 @@ function monthlyPeriodEnd(dateOnly) {
   return `${yy}-${mm}-${dd}`;
 }
 
+/** period_end = period_start + (durationDays - 1). */
+function periodEndFromDuration(dateOnly, durationDays) {
+  const days = Number(durationDays);
+  if (!Number.isInteger(days) || days < 1) {
+    return monthlyPeriodEnd(dateOnly);
+  }
+  const [y, m, d] = dateOnly.split('-').map(Number);
+  const end = new Date(Date.UTC(y, m - 1, d));
+  end.setUTCDate(end.getUTCDate() + (days - 1));
+  const yy = end.getUTCFullYear();
+  const mm = String(end.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(end.getUTCDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
 function daysBetween(startDateOnly, endDateOnly) {
   if (!startDateOnly || !endDateOnly) return null;
   const [ys, ms, ds] = startDateOnly.split('-').map(Number);
@@ -90,25 +112,49 @@ function daysBetween(startDateOnly, endDateOnly) {
   return Math.round((end - start) / 86400000);
 }
 
+function toMoneyOrNull(value) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.round(n * 100) / 100;
+}
+
+function computeAmountDue(planPrice, amountPaid) {
+  if (planPrice == null) return null;
+  const paid = amountPaid == null ? 0 : Number(amountPaid);
+  const due = Math.max(0, Number(planPrice) - (Number.isFinite(paid) ? paid : 0));
+  return Math.round(due * 100) / 100;
+}
+
 function mapMembershipRow(row, { includeNotes = true } = {}) {
   if (!row) return null;
 
   const periodStart = toDateOnly(row.period_start);
-  // Siempre normalizar fin al ciclo de 30 días (corrige filas guardadas con regla antigua).
+  const hasType = row.membership_type_id != null;
+  const storedEnd = toDateOnly(row.period_end);
+  // Con tipo: respetar period_end guardado. Sin tipo: ciclo mensual 040.
   const periodEnd = periodStart
-    ? monthlyPeriodEnd(periodStart)
-    : toDateOnly(row.period_end);
+    ? (hasType && storedEnd ? storedEnd : monthlyPeriodEnd(periodStart))
+    : storedEnd;
 
   const daysRemaining = periodEnd
     ? daysBetween(todayDateOnly(), periodEnd)
     : (row.days_remaining == null ? null : Number(row.days_remaining));
 
+  const planPrice = toMoneyOrNull(row.plan_price);
+  const amountPaid = toMoneyOrNull(row.amount_paid) ?? 0;
+
   const payload = {
     client_id: Number(row.client_id),
+    membership_type_id: row.membership_type_id == null ? null : Number(row.membership_type_id),
+    membership_type_name: row.membership_type_name || null,
     status: row.status,
     period_start: periodStart,
     period_end: periodEnd,
     days_remaining: Number.isFinite(daysRemaining) ? daysRemaining : null,
+    plan_price: planPrice,
+    amount_paid: amountPaid,
+    amount_due: computeAmountDue(planPrice, amountPaid),
     block_on_unpaid: Boolean(row.block_on_unpaid),
     updated_by: row.updated_by == null ? null : Number(row.updated_by),
     updated_at: row.updated_at ?? null,
@@ -125,6 +171,7 @@ async function getByClientId(clientId) {
   const [rows] = await db.query(
     `SELECT ${SELECT_COLUMNS}
      FROM client_memberships cm
+     LEFT JOIN trainer_membership_types tmt ON tmt.id = cm.membership_type_id
      WHERE cm.client_id = ?
      LIMIT 1`,
     [clientId],
@@ -135,25 +182,25 @@ async function getByClientId(clientId) {
   const start = toDateOnly(row.period_start);
   if (!start) return row;
 
-  const correctEnd = monthlyPeriodEnd(start);
-  const storedEnd = toDateOnly(row.period_end);
-  if (correctEnd && storedEnd !== correctEnd) {
-    await db.query(
-      `UPDATE client_memberships
-       SET period_end = ?
-       WHERE client_id = ?`,
-      [correctEnd, clientId],
-    );
-    row.period_end = correctEnd;
-    row.days_remaining = daysBetween(todayDateOnly(), correctEnd);
+  // Solo auto-corregir ciclo mensual cuando NO hay tipo asignado.
+  if (row.membership_type_id == null) {
+    const correctEnd = monthlyPeriodEnd(start);
+    const storedEnd = toDateOnly(row.period_end);
+    if (correctEnd && storedEnd !== correctEnd) {
+      await db.query(
+        `UPDATE client_memberships
+         SET period_end = ?
+         WHERE client_id = ?`,
+        [correctEnd, clientId],
+      );
+      row.period_end = correctEnd;
+      row.days_remaining = daysBetween(todayDateOnly(), correctEnd);
+    }
   }
 
   return row;
 }
 
-/**
- * Trainer dueño: membresía completa (incluye notes).
- */
 async function getForTrainer(trainerId, clientId) {
   if (!Number.isInteger(clientId) || clientId <= 0) {
     throw createHttpError('clientId inválido.', 400);
@@ -164,9 +211,6 @@ async function getForTrainer(trainerId, clientId) {
   return mapMembershipRow(row, { includeNotes: true });
 }
 
-/**
- * Cliente autenticado: sin notes internas.
- */
 async function getForClient(clientId) {
   if (!Number.isInteger(clientId) || clientId <= 0) {
     throw createHttpError('clientId inválido.', 400);
@@ -182,6 +226,11 @@ async function getForClient(clientId) {
     period_end: mapped.period_end,
     days_remaining: mapped.days_remaining,
     block_on_unpaid: mapped.block_on_unpaid,
+    membership_type_id: mapped.membership_type_id,
+    membership_type_name: mapped.membership_type_name,
+    plan_price: mapped.plan_price,
+    amount_paid: mapped.amount_paid,
+    amount_due: mapped.amount_due,
   };
 }
 
@@ -196,7 +245,19 @@ function parseOptionalDate(value, fieldLabel) {
   return dateOnly;
 }
 
-function normalizeUpsertPayload(payload) {
+function parseAmountPaid(raw) {
+  if (raw === undefined || raw === null || raw === '') return 0;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) {
+    throw createHttpError('amount_paid debe ser un número ≥ 0.', 400);
+  }
+  return Math.round(n * 100) / 100;
+}
+
+/**
+ * Normaliza upsert; si hay membershipType (objeto del catálogo), usa su duration/price.
+ */
+function normalizeUpsertPayload(payload, membershipType = null) {
   const body = payload || {};
 
   if (body.status === undefined || body.status === null || body.status === '') {
@@ -210,11 +271,12 @@ function normalizeUpsertPayload(payload) {
 
   const periodStart = parseOptionalDate(body.period_start, 'period_start');
   if (!periodStart) {
-    throw createHttpError('period_start es obligatorio (inicio del mes de membresía).', 400);
+    throw createHttpError('period_start es obligatorio (inicio del plan de membresía).', 400);
   }
 
-  // Plan único mensual: el vencimiento se calcula; se ignora period_end del cliente.
-  const periodEnd = monthlyPeriodEnd(periodStart);
+  const periodEnd = membershipType
+    ? periodEndFromDuration(periodStart, membershipType.duration_days)
+    : monthlyPeriodEnd(periodStart);
 
   let nextStatus = status;
   if (periodEnd < todayDateOnly() && nextStatus === 'active') {
@@ -232,18 +294,44 @@ function normalizeUpsertPayload(payload) {
     || body.block_on_unpaid === '1'
     || body.block_on_unpaid === 'true';
 
+  let membershipTypeId = null;
+  let planPrice = null;
+  if (membershipType) {
+    membershipTypeId = membershipType.id;
+    planPrice = membershipType.price;
+  } else if (body.membership_type_id === null || body.membership_type_id === '') {
+    membershipTypeId = null;
+    planPrice = null;
+  }
+
+  // Si envían plan_price explícito sin tipo, aceptar override (raro).
+  if (!membershipType && body.plan_price != null && body.plan_price !== '') {
+    const explicit = Number(body.plan_price);
+    if (!Number.isFinite(explicit) || explicit < 0) {
+      throw createHttpError('plan_price debe ser un número ≥ 0.', 400);
+    }
+    planPrice = Math.round(explicit * 100) / 100;
+  }
+
+  const amountPaid = parseAmountPaid(body.amount_paid);
+  if (nextStatus === 'active') {
+    // Al día: considerar pagado el plan si hay precio.
+    // Si trainer no envía amount_paid, asumir plan completo pagado.
+    // Si envía 0 explícitamente con active, dejar 0.
+  }
+
   return {
     status: nextStatus,
     period_start: periodStart,
     period_end: periodEnd,
     notes,
     block_on_unpaid: blockOnUnpaid,
+    membership_type_id: membershipTypeId,
+    plan_price: planPrice,
+    amount_paid: amountPaid,
   };
 }
 
-/**
- * Upsert membresía (solo trainer dueño).
- */
 async function upsertForTrainer(trainerId, clientId, payload) {
   if (!Number.isInteger(clientId) || clientId <= 0) {
     throw createHttpError('clientId inválido.', 400);
@@ -251,25 +339,52 @@ async function upsertForTrainer(trainerId, clientId, payload) {
 
   await getClientsService().getClientOwnedByTrainer(clientId, trainerId);
   await getTrainerSeats().assertClientWritableUnderPlan(trainerId, clientId);
-  const data = normalizeUpsertPayload(payload);
+
+  let membershipType = null;
+  const rawTypeId = payload?.membership_type_id;
+  if (rawTypeId != null && rawTypeId !== '') {
+    membershipType = await getMembershipTypesService().getOwnedByTrainer(trainerId, rawTypeId);
+    if (!membershipType.is_active) {
+      throw createHttpError('Ese tipo de membresía está archivado.', 400);
+    }
+  }
+
+  const data = normalizeUpsertPayload(payload, membershipType);
+
+  // Si active y hay plan_price y no enviaron amount_paid, marcar pagado completo.
+  let amountPaid = data.amount_paid;
+  if (
+    data.status === 'active'
+    && data.plan_price != null
+    && (payload?.amount_paid === undefined || payload?.amount_paid === null || payload?.amount_paid === '')
+  ) {
+    amountPaid = data.plan_price;
+  }
 
   await db.query(
     `INSERT INTO client_memberships (
-      client_id, status, period_start, period_end, notes, block_on_unpaid, updated_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      client_id, membership_type_id, status, period_start, period_end,
+      notes, plan_price, amount_paid, block_on_unpaid, updated_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
+      membership_type_id = VALUES(membership_type_id),
       status = VALUES(status),
       period_start = VALUES(period_start),
       period_end = VALUES(period_end),
       notes = VALUES(notes),
+      plan_price = VALUES(plan_price),
+      amount_paid = VALUES(amount_paid),
       block_on_unpaid = VALUES(block_on_unpaid),
       updated_by = VALUES(updated_by)`,
     [
       clientId,
+      data.membership_type_id,
       data.status,
       data.period_start,
       data.period_end,
       data.notes,
+      data.plan_price,
+      amountPaid,
       data.block_on_unpaid ? 1 : 0,
       trainerId,
     ],
@@ -278,10 +393,6 @@ async function upsertForTrainer(trainerId, clientId, payload) {
   return getForTrainer(trainerId, clientId);
 }
 
-/**
- * Soft-lock: bloquea rutinas / workout si el trainer activó bloqueo
- * y la membresía no está al día.
- */
 async function assertClientMembershipAccess(clientId) {
   const row = await getByClientId(clientId);
   if (!row) return;
@@ -302,9 +413,6 @@ async function assertClientMembershipAccess(clientId) {
   }
 }
 
-/**
- * Resumen ligero para lista de alumnos / overview.
- */
 function summarizeMembership(row) {
   if (!row) return null;
   return mapMembershipRow(row, { includeNotes: false });
@@ -319,6 +427,7 @@ module.exports = {
   summarizeMembership,
   mapMembershipRow,
   monthlyPeriodEnd,
+  periodEndFromDuration,
   toDateOnly,
   createHttpError,
 };

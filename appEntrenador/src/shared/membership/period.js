@@ -22,6 +22,21 @@ export function monthlyPeriodEnd(dateOnly) {
   return `${yy}-${mm}-${dd}`;
 }
 
+/** period_end = start + (durationDays - 1). */
+export function periodEndFromDuration(dateOnly, durationDays) {
+  const raw = String(dateOnly || '').trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return '';
+  const days = Number(durationDays);
+  if (!Number.isInteger(days) || days < 1) return monthlyPeriodEnd(raw);
+  const [y, m, d] = raw.split('-').map(Number);
+  const end = new Date(Date.UTC(y, m - 1, d));
+  end.setUTCDate(end.getUTCDate() + (days - 1));
+  const yy = end.getUTCFullYear();
+  const mm = String(end.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(end.getUTCDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
 export function formatMembershipDate(dateOnly) {
   const raw = String(dateOnly || '').trim().slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return '—';

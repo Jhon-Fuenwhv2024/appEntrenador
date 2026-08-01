@@ -67,7 +67,9 @@ export function getMembershipHomeState(membership, forcedBlocked = false) {
       title: 'Pago pendiente',
       headline: days != null && days >= 0 ? String(Math.max(0, days)) : '—',
       unit: days != null && days >= 0 ? (days === 1 ? 'día' : 'días') : '',
-      subtitle: 'Tu entrenador marcó un pago pendiente',
+      subtitle: membership.amount_due > 0
+        ? 'Hay un monto por pagar; regularízalo con tu entrenador'
+        : 'Tu entrenador marcó un pago pendiente',
       progress,
       blocked: false,
       expiring: true,

@@ -1,6 +1,6 @@
 <script setup>
 /**
- * Legacy route `/trainer/exercises` redirects into Biblioteca hub.
+ * Legacy route `/trainer/exercises` redirects into Recursos hub.
  * Catalog UI lives under LibraryView → ExercisesCatalogPanel.
  */
 import { onMounted } from 'vue';
@@ -15,6 +15,6 @@ onMounted(() => {
 
 <template>
   <div class="catalog-redirect text-medium-emphasis pa-8 text-center">
-    Redirigiendo al catálogo en Biblioteca…
+    Redirigiendo al catálogo en Recursos…
   </div>
 </template>

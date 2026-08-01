@@ -1,5 +1,4 @@
 const routinesService = require('./routines.service');
-const membershipsService = require('../memberships/memberships.service');
 const { notificationService } = require('../notifications/notifications.service');
 
 function sendError(res, error, context) {
@@ -36,7 +35,7 @@ async function listForClient(req, res) {
 
 async function listMine(req, res) {
   try {
-    await membershipsService.assertClientMembershipAccess(req.user.id);
+    // Soft-lock: permitir ver rutinas (preview); el bloqueo duro está en start session.
     const routines = await routinesService.listMyRoutines(req.user.id);
 
     return res.json({

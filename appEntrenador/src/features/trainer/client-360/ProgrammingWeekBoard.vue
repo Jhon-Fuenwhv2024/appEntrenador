@@ -124,8 +124,8 @@ const exerciseCount = (routine) => (routine.ejercicios || []).length;
             variant="text"
             color="primary"
             :loading="savingTemplateId === routine.id"
-            title="Guardar en Biblioteca"
-            aria-label="Guardar en Biblioteca"
+            title="Guardar en Recursos"
+            aria-label="Guardar en Recursos"
             @click="emit('save-template', routine)"
           />
           <v-btn

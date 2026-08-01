@@ -1,7 +1,7 @@
 <script setup>
 /**
  * Feature 058 — Preview de solo lectura de la rutina del día (lista + media).
- * No inicia sesión de workout ni registra series.
+ * Soft-lock (Feature 040): se puede ver la rutina; Empezar queda bloqueado.
  */
 import { computed, onMounted, shallowRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -13,11 +13,11 @@ import { getSessionUser } from '../../shared/auth/session.js';
 import { normalizeMembershipPeriod } from '../../shared/membership/period.js';
 import { getMyMembership } from './api/membershipApi.js';
 import { getMyRoutines } from './api/routinesApi.js';
+import ClientMembershipContactActions from './components/ClientMembershipContactActions.vue';
+import MembershipLockedState from './components/MembershipLockedState.vue';
 import WorkoutExerciseMedia from './components/WorkoutExerciseMedia.vue';
 import WorkoutHintExpandable from './components/WorkoutHintExpandable.vue';
 import { isMembershipAccessBlocked } from './utils/membershipUi.js';
-
-const MEMBERSHIP_BLOCKED_MSG = 'Tu membresía venció — habla con tu entrenador.';
 
 const route = useRoute();
 const router = useRouter();
@@ -112,7 +112,7 @@ async function loadRoutine() {
     console.error('Error cargando preview de rutina:', error);
     if (isMembershipBlockedError(error)) {
       membershipBlocked.value = true;
-      loadError.value = MEMBERSHIP_BLOCKED_MSG;
+      loadError.value = '';
     } else {
       loadError.value = getApiErrorMessage(error, 'No se pudo cargar la rutina');
     }
@@ -152,12 +152,18 @@ onMounted(() => {
 
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mx-4" />
 
+    <MembershipLockedState
+      v-else-if="membershipBlocked && !routine"
+      title="Membresía pausada"
+      message="Renueva con tu entrenador para volver a ver y entrenar tus rutinas."
+      @back="goBack"
+    />
+
     <v-alert
       v-else-if="loadError"
       type="error"
       variant="tonal"
       class="ma-4"
-      :prepend-icon="membershipBlocked ? 'mdi-lock' : undefined"
     >
       {{ loadError }}
       <template #append>
@@ -166,6 +172,27 @@ onMounted(() => {
     </v-alert>
 
     <main v-else-if="routine" class="preview-main">
+      <div
+        v-if="membershipBlocked"
+        class="preview-lock"
+        role="status"
+      >
+        <div class="preview-lock__copy">
+          <p class="preview-lock__kicker">Membresía vencida</p>
+          <p class="preview-lock__text">
+            Puedes revisar la rutina, pero el entrenamiento está pausado.
+          </p>
+        </div>
+        <ClientMembershipContactActions
+          density="subtle"
+          tone="danger"
+          :enabled="true"
+          note="Habla con tu entrenador para renovar"
+          prefill-text="Hola, quiero renovar mi membresía en Trainfit."
+          class="preview-lock__contact"
+        />
+      </div>
+
       <ol class="preview-list" aria-label="Ejercicios de la rutina">
         <li
           v-for="(ex, index) in exercises"
@@ -291,6 +318,11 @@ onMounted(() => {
   background: rgba(0, 229, 255, 0.12);
 }
 
+.preview-back:focus-visible {
+  outline: var(--tf-focus-ring, 2px solid #00e5ff);
+  outline-offset: var(--tf-focus-offset, 2px);
+}
+
 .preview-top-text {
   min-width: 0;
   flex: 1;
@@ -327,6 +359,40 @@ onMounted(() => {
   width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
+}
+
+.preview-lock {
+  margin: 0 0 0.9rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 92, 92, 0.22);
+  background:
+    linear-gradient(135deg, rgba(255, 92, 92, 0.1) 0%, rgba(0, 229, 255, 0.03) 100%);
+}
+
+.preview-lock__kicker {
+  margin: 0;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ff8a80;
+}
+
+.preview-lock__text {
+  margin: 0.3rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--tf-on-surface, #e8eaed);
+}
+
+.preview-lock__contact {
+  margin-top: 0.55rem;
+}
+
+.preview-lock__contact :deep(.mca--subtle) {
+  margin-top: 0;
+  padding: 0.45rem 0.55rem;
 }
 
 .preview-list {
@@ -408,7 +474,6 @@ onMounted(() => {
   margin: 0 0 0.45rem;
 }
 
-/* Slightly shorter in the list so several demos fit on screen; still full GIF via contain. */
 .preview-card__media :deep(.workout-media) {
   max-height: min(42vh, 340px);
 }

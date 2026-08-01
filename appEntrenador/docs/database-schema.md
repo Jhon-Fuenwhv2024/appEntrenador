@@ -30,6 +30,8 @@ erDiagram
   diet_meals ||--o{ diet_items : "contiene"
   usuarios ||--o| client_memberships : "client_id"
   usuarios ||--o{ client_memberships : "updated_by"
+  usuarios ||--o{ trainer_membership_types : "trainer_id"
+  trainer_membership_types ||--o{ client_memberships : "membership_type_id"
   usuarios ||--o{ personal_records : "client_id"
   usuarios ||--o| client_streaks : "client_id"
   workout_sessions ||--o{ personal_records : "session_id"
@@ -212,7 +214,7 @@ node scripts/migrateInvitesStatus.js
 
 ### `routine_templates` / `template_exercises` (Feature 018)
 
-Biblioteca personal del trainer. `routine_templates.trainer_id` aísla ownership. Las líneas viven en `template_exercises` con `exercise_id` opcional → `exercises` (Feature 022, `ON DELETE SET NULL`).
+Hub **Recursos** del trainer (plantillas). `routine_templates.trainer_id` aísla ownership. Las líneas viven en `template_exercises` con `exercise_id` opcional → `exercises` (Feature 022, `ON DELETE SET NULL`).
 
 **Deep copy:** al asignar (`POST /templates/:id/assign`) se insertan filas nuevas en `rutinas` + `ejercicios` del alumno (incluye `exercise_id`, `rest_time_seconds` y `superset_letter` si existen). No hay FK plantilla↔rutina; editar/borrar la plantilla no muta rutinas ya asignadas.
 
@@ -301,11 +303,15 @@ Plan de dieta en **ciclo multi-semana** (2–4). Jerarquía: plan → días (`we
 
 Migraciones: [`023_diet_plans.sql`](../backend/db/migrations/023_diet_plans.sql), [`028_diet_plan_cycle_days.sql`](../backend/db/migrations/028_diet_plan_cycle_days.sql). Al arrancar, `ensureDietPlansTables` crea/migra schema + backfill legacy (semana 1 × 7 días).
 
-### `client_memberships` (Feature 040)
+### `client_memberships` (Feature 040 + 079)
 
-Membresía / control de pago 1:1 con el alumno (`UNIQUE client_id`). Campos: `status` (`active` | `owing` | `expired`), `period_start` / `period_end` (DATE), `notes` (TEXT, solo trainer), `block_on_unpaid` (BOOLEAN default false), `updated_by` → `usuarios`. `days_remaining` **no** es columna: se calcula en service con `DATEDIFF(period_end, CURDATE())`.
+Membresía / control de pago 1:1 con el alumno (`UNIQUE client_id`). Campos: `status` (`active` | `owing` | `expired`), `period_start` / `period_end` (DATE), `notes` (TEXT, solo trainer), `block_on_unpaid` (BOOLEAN default false), `updated_by` → `usuarios`. Feature 079 añade `membership_type_id` (FK → `trainer_membership_types`, ON DELETE SET NULL), `plan_price` (DECIMAL snapshot) y `amount_paid` (DECIMAL default 0). `amount_due` y `days_remaining` **no** son columnas: se calculan en service.
 
-Migración: [`backend/db/migrations/019_client_memberships.sql`](../backend/db/migrations/019_client_memberships.sql). Al arrancar, `ensureClientMembershipsTable` aplica `CREATE TABLE IF NOT EXISTS`.
+### `trainer_membership_types` (Feature 079)
+
+Catálogo de planes por trainer: `name`, `price` (COP), `duration_days` (default 30), `is_active`, `sort_order`. Soft-delete vía `is_active=0` si está asignado.
+
+Migraciones: [`019_client_memberships.sql`](../backend/db/migrations/019_client_memberships.sql), [`032_trainer_membership_types.sql`](../backend/db/migrations/032_trainer_membership_types.sql). Al arrancar, `ensureClientMembershipsTable` + `ensureTrainerMembershipTypesTable`.
 
 ### `weekly_checkins` + `progress_photos` (Feature 033 / 035)
 

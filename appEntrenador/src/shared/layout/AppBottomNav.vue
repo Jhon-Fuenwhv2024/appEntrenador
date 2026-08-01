@@ -43,8 +43,8 @@ const trainerItems = [
   },
   {
     key: 'library',
-    label: 'Biblioteca',
-    icon: 'mdi-bookshelf',
+    label: 'Recursos',
+    icon: 'mdi-folder-multiple-outline',
     to: '/trainer/library',
   },
   {

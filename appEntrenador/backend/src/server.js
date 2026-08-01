@@ -21,6 +21,7 @@ const checkinsRoutes = require('./modules/checkins/checkins.routes');
 const messagesRoutes = require('./modules/messages/messages.routes');
 const saasRoutes = require('./modules/saas/saas.routes');
 const membershipsRoutes = require('./modules/memberships/memberships.routes');
+const membershipTypesRoutes = require('./modules/membership-types/membership-types.routes');
 const personalRecordsRoutes = require('./modules/personal-records/personal-records.routes');
 const consistencyRoutes = require('./modules/consistency/consistency.routes');
 const dietPlansRoutes = require('./modules/diet-plans/diet-plans.routes');
@@ -38,6 +39,7 @@ const { ensureHabitsTables } = require('./db/ensureHabitsTables');
 const { ensureCheckinsTables } = require('./db/ensureCheckinsTables');
 const { ensureMessagesTable } = require('./db/ensureMessagesTable');
 const { ensureClientMembershipsTable } = require('./db/ensureClientMembershipsTable');
+const { ensureTrainerMembershipTypesTable } = require('./db/ensureTrainerMembershipTypesTable');
 const { ensurePersonalRecordsTable } = require('./db/ensurePersonalRecordsTable');
 const { ensureClientStreaksTable } = require('./db/ensureClientStreaksTable');
 const { ensureDietPlansTables } = require('./db/ensureDietPlansTables');
@@ -141,6 +143,7 @@ app.use('/api', checkinsRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/saas', saasRoutes);
 app.use('/api', membershipsRoutes);
+app.use('/api', membershipTypesRoutes);
 app.use('/api', personalRecordsRoutes);
 app.use('/api', consistencyRoutes);
 app.use('/api', dietPlansRoutes);
@@ -200,6 +203,12 @@ async function start() {
     await ensureClientMembershipsTable();
   } catch (error) {
     console.error('No se pudo asegurar la tabla client_memberships:', error.message);
+  }
+
+  try {
+    await ensureTrainerMembershipTypesTable();
+  } catch (error) {
+    console.error('No se pudo asegurar trainer_membership_types:', error.message);
   }
 
   try {

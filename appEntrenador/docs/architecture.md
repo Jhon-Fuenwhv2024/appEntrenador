@@ -8,12 +8,12 @@ Trainfit usa una migración modular gradual. La estructura actual mantiene compa
 - `src/shared/api/http.js`: instancia Axios única (`baseURL` desde `resolveApiBaseUrl()`), Bearer JWT e interceptor de errores/401.
 - `src/shared/auth/session.js`: persistencia de token + datos de usuario en `localStorage`.
 - `src/shared/layout/AppShell.vue` + `AppBottomNav.vue`: shell autenticado (sidebar desktop / bottom nav móvil ≤960px). Estilos en `src/assets/appShell.css`.
-  - **Trainer (4 slots):** Inicio (`/dashboard`), Alumnos (`/trainer/clients`), Biblioteca (`/trainer/library`), Ajustes (`/trainer/settings`). Logout: menú de cuenta en header (Feature 063) + pie sidebar desktop.
+  - **Trainer (4 slots):** Inicio (`/dashboard`), Alumnos (`/trainer/clients`), Recursos (`/trainer/library`), Ajustes (`/trainer/settings`). Logout: menú de cuenta en header (Feature 063) + pie sidebar desktop.
   - **Session header (063):** `SessionHeaderActions` + `UserAccountMenu` en `src/shared/layout/` — campana (`NotificationBadge`, badge numérico) + avatar con menú (perfil/ajustes + cerrar sesión con confirmación). En trainer el trigger muestra chip de plan SaaS (`FREE`/`PRO`). Layout del page header (`.dashboard-header` / `.header-right`) vive en `appShell.css` para anclar utilidades arriba-derecha en todas las vistas. Composable `useSessionAccount`.
-  - **Contexto (no ítem de barra):** ficha `/trainer/clients/:clientId` marca Alumnos; catálogo `/trainer/exercises` es herramienta de Biblioteca (sin slot propio).
+  - **Contexto (no ítem de barra):** ficha `/trainer/clients/:clientId` marca Alumnos; catálogo `/trainer/exercises` es herramienta de Recursos (sin slot propio).
   - **Client (3 slots):** Inicio (`/dashboard`), Progreso (`/client/progress`, Feature 021), Perfil (`/client/profile`). Workout Player y preview de rutina (`/client/routine/:id`, Feature 058) sin bottom nav.
 - `src/features/auth/`: vistas de login/registro y llamadas de auth.
-- `src/features/trainer/`: portal del entrenador, clientes, invitaciones (`InvitesManager` en Alumnos + `InviteClientAction` en Inicio), ficha 360 (`client-360/Client360View` en `/trainer/clients/:clientId`; Programación 061 = week board + day builder + assign plantilla), lista de alumnos (`ClientsListView`), biblioteca de plantillas (`LibraryView` en `/trainer/library`), placeholder `TrainerSettingsView` (024). Inicio (`TrainerDashboardView`) es hub de métricas + invitación + CTA a Alumnos. Paywall 402 (Feature 037) en create-invite.
+- `src/features/trainer/`: portal del entrenador, clientes, invitaciones (`InvitesManager` en Alumnos + `InviteClientAction` en Inicio), ficha 360 (`client-360/Client360View` en `/trainer/clients/:clientId`; Programación 061 = week board + day builder + assign plantilla), lista de alumnos (`ClientsListView`), hub **Recursos** (`LibraryView` en `/trainer/library`; tabs plantillas/catálogo/membresías/dietas), placeholder `TrainerSettingsView` (024). Inicio (`TrainerDashboardView`) es hub de métricas + invitación + CTA a Alumnos. Paywall 402 (Feature 037) en create-invite.
 - `src/features/saas/`: panel SuperAdmin `/backoffice` (`SuperAdminDashboardView`) — visible solo si `is_superadmin` (Feature 037).
 - `src/features/client/`: portal del cliente — rutinas (`ClientDashboardView`), preview de rutina (`ClientRoutinePreviewView`, Feature 058), progreso (`ClientProgressView`), perfil (`ClientProfileView`), player (`WorkoutPlayerView`), dieta (`ClientDietView`, Feature 057).
   - Descanso resiliente (Feature 028): `composables/useTimer.js` (timestamp + Page Visibility + beep `assets/sounds/rest-complete.wav`) integrado en `useWorkoutSession`.
@@ -42,7 +42,8 @@ El backend monta módulos bajo `/api` desde `backend/src/server.js`.
 - `backend/src/modules/saas/`: panel dueño — `GET/PUT /api/saas/trainers...` (Feature 037).
 - `backend/src/modules/invites/`: gestión de invitaciones (Feature 023) — `POST/GET /api/invites`, `PATCH /api/invites/:id/revoke`; alias `POST /api/generate-token`. Estados: `pending` | `used` | `revoked`. `POST /invites` aplica `checkTrainerLimits`.
 - `backend/src/modules/clients/`: listado/detalle/overview 360 de clientes del trainer autenticado (incluye resumen de membresía en listado/overview).
-- `backend/src/modules/memberships/`: membresía / control de pago del alumno (Feature 040) — `GET/PUT /clients/:id/membership`, `GET /me/membership`; soft-lock `MEMBERSHIP_BLOCKED` en rutinas/workout del cliente.
+- `backend/src/modules/memberships/`: membresía / control de pago del alumno (Feature 040 + 079) — `GET/PUT /clients/:id/membership`, `GET /me/membership`; soft-lock `MEMBERSHIP_BLOCKED` en workout del cliente.
+- `backend/src/modules/membership-types/`: catálogo de tipos/precios por trainer (Feature 079) — CRUD `/trainer/membership-types`.
 - `backend/src/modules/personal-records/`: PRs de peso (Feature 041) — detección al cerrar sesión, `GET /me/personal-records`, `GET /clients/:id/personal-records`; notificación `pr_achieved`.
 - `backend/src/modules/consistency/`: rachas y score (Feature 042) — `GET /me/consistency`, `GET/PUT /clients/:id/consistency` (meta semanal); recalculo al cerrar sesión.
 - `backend/src/modules/routines/`: CRUD de rutinas/ejercicios (líneas de rutina) con ownership.
@@ -56,7 +57,7 @@ El backend monta módulos bajo `/api` desde `backend/src/server.js`.
 - `backend/src/modules/habits/`: hábitos diarios trainer→client (Feature 032).
 - `backend/src/modules/checkins/`: check-in semanal + fotos de progreso opcionales (Feature 033). Multer en `uploads/photos`.
 - `backend/src/modules/messages/`: chat interno trainer↔cliente vía REST + SSE in-memory (Feature 034). Sin Socket.io.
-- Frontend trainer: `LibraryView` es el hub (tabs Plantillas | Catálogo en `/trainer/library` y `/trainer/library/exercises`); ficha 360 / `TemplateFormDialog` usan autocomplete híbrido (`nombre` + `exercise_id`).
+- Frontend trainer: `LibraryView` es el hub **Recursos** (tabs Plantillas | Catálogo | Membresías | Dietas en `/trainer/library*`); ficha 360 / `TemplateFormDialog` usan autocomplete híbrido (`nombre` + `exercise_id`).
 - Frontend gráficas: `src/shared/components/ProgressLineChart.vue` + `ProgressChartsPanel.vue` (chart.js); **Mi progreso** (cliente) es single scroll con hero + tendencias 7/30/90 (Feature 072); Client 360 trainer mantiene pestaña Gráficas sin romper el panel compartido.
 
 Cada módulo sigue la forma `routes -> controller -> service`. Los services concentran consultas MySQL parametrizadas y los controllers traducen a respuestas JSON.

@@ -164,7 +164,7 @@ Writes de coaching sobre un alumno fuera del cupo (rutinas, dieta asignada, macr
 }
 ```
 
-No se bloquean: login, listados/GET, chat/mensajes, ni biblioteca de plantillas sin `clientId`.
+No se bloquean: login, listados/GET, chat/mensajes, ni plantillas de Recursos sin `clientId`.
 
 Respuesta exitosa (`201`):
 
@@ -354,17 +354,21 @@ Agregado 360 para la ficha del alumno (solo trainer dueño). Incluye perfil, con
 
 UI: `/trainer/clients/:clientId` (`Client360View`) con secciones vía `?tab=` (`resumen` | `programacion` | `nutricion` | `medidas` | `checkins` | `graficas` | `chat`). En Resumen (Feature 060 + 066): `MembershipPanel` (vista/edición), `ConsistencyPanel` strip compacto, widgets + historial paginado; Actividad reciente mergea rutina(s) de hoy (`GET /clients/:id/routines` + weekday local) como fila **Pendiente** si no hay sesión.
 
-## Membresía del alumno (Feature 040)
+## Membresía del alumno (Feature 040 + 079)
 
-Tabla `client_memberships` (1:1 con cliente). `days_remaining` se calcula en service (`DATEDIFF(period_end, CURDATE())`), no es columna.
+Tabla `client_memberships` (1:1 con cliente). `days_remaining` y `amount_due` se calculan en service. Feature 079 añade tipos/precios.
 
 ### `GET /clients/:clientId/membership` (trainer)
 
-Membresía del alumno propio (incluye `notes` internas). `null` si aún no se configuró.
+Membresía del alumno propio (incluye `notes` internas). Incluye `membership_type_id`, `membership_type_name`, `plan_price`, `amount_paid`, `amount_due`. `null` si aún no se configuró.
 
 ### `PUT /clients/:clientId/membership` (trainer)
 
-Upsert plan **mensual único** (~30 días): `status` (`active` | `owing` | `expired`), `period_start` (obligatorio), `notes`, `block_on_unpaid`. El `period_end` lo calcula el servidor como **día anterior al mismo día del mes siguiente** (ej. `2026-07-17` → `2026-08-16`); no hace falta enviarlo. Si el vencimiento calculado es &lt; hoy y status era `active`, el service fuerza `expired`.
+Upsert: `status` (`active` | `owing` | `expired`), `period_start` (obligatorio), `notes`, `block_on_unpaid`, `membership_type_id?`, `amount_paid?`.
+
+- Sin tipo: `period_end` = ciclo mensual (~30 días) como 040.
+- Con tipo (079): `plan_price` = snapshot del catálogo; `period_end` = `period_start + duration_days - 1`.
+- Si `active` y hay `plan_price` sin `amount_paid`, se asume pagado completo.
 
 ### `GET /me/membership` (client)
 
@@ -372,25 +376,38 @@ Upsert plan **mensual único** (~30 días): `status` (`active` | `owing` | `expi
 {
   "success": true,
   "data": {
-    "status": "active",
+    "status": "owing",
     "period_start": "2026-07-01",
     "period_end": "2026-07-31",
     "days_remaining": 14,
-    "block_on_unpaid": false
+    "block_on_unpaid": false,
+    "membership_type_id": 3,
+    "membership_type_name": "Mensual",
+    "plan_price": 150000,
+    "amount_paid": 50000,
+    "amount_due": 100000
   }
 }
 ```
 
 Sin `notes` (privacidad).
 
+### Tipos de membresía (Feature 079)
+
+- `GET /api/trainer/membership-types?include_inactive=1`
+- `POST /api/trainer/membership-types` — `{ name, price, duration_days }`
+- `PUT /api/trainer/membership-types/:id`
+- `DELETE /api/trainer/membership-types/:id` — soft-archive si está asignado
+
+UI hub **Recursos** (antes Biblioteca): `/trainer/library/memberships`.
+
 ### Soft-lock `MEMBERSHIP_BLOCKED`
 
 Si `block_on_unpaid = true` y (`status ≠ active` **o** `days_remaining < 0`), entonces:
 
-- `GET /me/routines`
 - `POST /me/workout-sessions`
 
-responden **403**:
+responden **403** (`GET /me/routines` permanece permitido para preview de solo lectura):
 
 ```json
 {
@@ -544,7 +561,7 @@ Reemplaza día, nombre y ejercicios de una rutina propia.
 
 Elimina la rutina (cascade de `ejercicios`).
 
-## Plantillas (Biblioteca · Feature 018)
+## Plantillas (Recursos · Feature 018)
 
 Todas requieren JWT + `requireRole('trainer')`. Solo plantillas con `trainer_id = req.user.id`.
 
@@ -598,7 +615,7 @@ Deep copy a `rutinas` / `ejercicios` del alumno. Body:
 
 `dia_semana` es opcional (default `Lunes`). Valida ownership del `clientId`. Respuesta `201` con la rutina creada (mismo shape que create de rutinas). Sin FK viva hacia la plantilla.
 
-UI: `/trainer/library` (`LibraryView`); “Guardar en Biblioteca” desde ficha de alumno.
+UI: `/trainer/library` (`LibraryView` · hub **Recursos**); “Guardar en Recursos” desde ficha de alumno.
 
 ### `GET /me/today` (client) — Feature 038
 

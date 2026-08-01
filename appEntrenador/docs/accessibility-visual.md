@@ -38,7 +38,7 @@ WCAG **2.2 AA** (criterios visuales): 1.4.3, 1.4.11, 1.4.4/1.4.10, 2.4.7, 2.5.8.
 | **Trainer** Alumnos / invitaciones | pass | Close con `aria-label` OK | — |
 | **Trainer** Client 360 resumen | pass* | Captions `#8b929e` | Variable muted |
 | **Trainer** Programación / dialogs | pass | Close sin `aria-label` en 3 dialogs; quitar ejercicio en template form | P1: `aria-label="Cerrar"` / `"Quitar ejercicio"` |
-| **Trainer** Catálogo / biblioteca | pass* | Muted hardcode | Variable |
+| **Trainer** Catálogo / Recursos | pass* | Muted hardcode | Variable |
 | **Backoffice** `/backoffice` | P2 | Texto `rgba(255,255,255,0.4–0.45)` | Deuda documentada; no bloquea 062 |
 | **Admin** exercise tagger | P2 | Misma familia de opacidades bajas | Deuda P2 |
 

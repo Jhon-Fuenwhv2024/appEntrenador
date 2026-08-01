@@ -1,14 +1,17 @@
 <script setup>
 /**
- * Mini status card de membresía (040 + 060). Vista densa; edición bajo demanda.
+ * Mini status card de membresía (040 + 060 + 079). Vista densa; edición bajo demanda.
  */
 import { computed, onMounted, reactive, shallowRef, watch } from 'vue';
 import { getApiErrorMessage } from '../../../shared/api/http.js';
+import { formatMoneyCop } from '../../../shared/membership/money.js';
 import {
   formatMembershipDate,
   monthlyPeriodEnd,
+  periodEndFromDuration,
 } from '../../../shared/membership/period.js';
 import { getClientMembership, upsertClientMembership } from '../api/membershipApi.js';
+import { listMembershipTypes } from '../api/membershipTypesApi.js';
 
 const props = defineProps({
   clientId: {
@@ -38,6 +41,10 @@ const notesOpen = shallowRef(false);
 const editing = shallowRef(false);
 const hasMembership = shallowRef(false);
 const savedSnapshot = shallowRef(null);
+const membershipTypes = shallowRef([]);
+const displayTypeName = shallowRef('');
+const displayPlanPrice = shallowRef(null);
+const displayAmountDue = shallowRef(null);
 
 const form = reactive({
   status: 'active',
@@ -45,11 +52,57 @@ const form = reactive({
   period_end: '',
   notes: '',
   block_on_unpaid: false,
+  membership_type_id: null,
+  amount_paid: '',
 });
 
+const selectedType = computed(() => {
+  if (form.membership_type_id == null || form.membership_type_id === '') return null;
+  return membershipTypes.value.find((t) => Number(t.id) === Number(form.membership_type_id)) || null;
+});
+
+/** v-select no maneja bien `value: null`; usamos '' como “Sin tipo”. */
+const typeIdModel = computed({
+  get: () => (
+    form.membership_type_id == null || form.membership_type_id === ''
+      ? ''
+      : Number(form.membership_type_id)
+  ),
+  set: (value) => {
+    form.membership_type_id = (value === '' || value == null) ? null : Number(value);
+  },
+});
+
+const typeSelectItems = computed(() => [
+  {
+    title: 'Sin tipo',
+    subtitle: 'Ciclo mensual automático',
+    value: '',
+    isNone: true,
+    priceLabel: '',
+    durationLabel: '',
+  },
+  ...membershipTypes.value.map((t) => ({
+    title: t.name,
+    subtitle: `${formatMoneyCop(t.price)} · ${t.duration_days} días`,
+    value: Number(t.id),
+    isNone: false,
+    priceLabel: formatMoneyCop(t.price),
+    durationLabel: `${t.duration_days} d`,
+  })),
+]);
+
+function resolveSelectItem(item) {
+  if (!item) return null;
+  return item.raw ?? item;
+}
+
 const computedPeriodEnd = computed(() => {
-  if (form.period_start) return monthlyPeriodEnd(form.period_start);
-  return form.period_end || '';
+  if (!form.period_start) return form.period_end || '';
+  if (selectedType.value) {
+    return periodEndFromDuration(form.period_start, selectedType.value.duration_days);
+  }
+  return monthlyPeriodEnd(form.period_start);
 });
 
 const periodEndLabel = computed(() => {
@@ -63,6 +116,16 @@ const statusTitle = computed(() => STATUS_LABEL[form.status] || form.status || '
 const expiresShort = computed(() => {
   if (!computedPeriodEnd.value) return '—';
   return `Vence ${periodEndLabel.value}`;
+});
+
+const miniBalance = computed(() => {
+  if (displayAmountDue.value != null && displayAmountDue.value > 0) {
+    return `Saldo ${formatMoneyCop(displayAmountDue.value)}`;
+  }
+  if (displayPlanPrice.value != null) {
+    return formatMoneyCop(displayPlanPrice.value);
+  }
+  return null;
 });
 
 function todayDateOnly() {
@@ -79,7 +142,12 @@ function resetForm() {
   form.period_end = '';
   form.notes = '';
   form.block_on_unpaid = false;
+  form.membership_type_id = null;
+  form.amount_paid = '';
   notesOpen.value = false;
+  displayTypeName.value = '';
+  displayPlanPrice.value = null;
+  displayAmountDue.value = null;
 }
 
 function snapshotFromForm() {
@@ -89,7 +157,12 @@ function snapshotFromForm() {
     period_end: form.period_end,
     notes: form.notes,
     block_on_unpaid: form.block_on_unpaid,
+    membership_type_id: form.membership_type_id,
+    amount_paid: form.amount_paid,
     hasMembership: hasMembership.value,
+    displayTypeName: displayTypeName.value,
+    displayPlanPrice: displayPlanPrice.value,
+    displayAmountDue: displayAmountDue.value,
   };
 }
 
@@ -108,6 +181,11 @@ function applyMembership(data) {
   form.period_end = data.period_end ? String(data.period_end).slice(0, 10) : '';
   form.notes = data.notes || '';
   form.block_on_unpaid = Boolean(data.block_on_unpaid);
+  form.membership_type_id = data.membership_type_id ?? null;
+  form.amount_paid = data.amount_paid != null ? String(data.amount_paid) : '';
+  displayTypeName.value = data.membership_type_name || '';
+  displayPlanPrice.value = data.plan_price ?? null;
+  displayAmountDue.value = data.amount_due ?? null;
   notesOpen.value = Boolean(form.notes);
   savedSnapshot.value = snapshotFromForm();
 }
@@ -125,7 +203,22 @@ function restoreSnapshot() {
   form.period_end = snap.period_end;
   form.notes = snap.notes;
   form.block_on_unpaid = Boolean(snap.block_on_unpaid);
+  form.membership_type_id = snap.membership_type_id ?? null;
+  form.amount_paid = snap.amount_paid ?? '';
+  displayTypeName.value = snap.displayTypeName || '';
+  displayPlanPrice.value = snap.displayPlanPrice ?? null;
+  displayAmountDue.value = snap.displayAmountDue ?? null;
   notesOpen.value = Boolean(form.notes);
+}
+
+async function loadTypes() {
+  try {
+    const response = await listMembershipTypes(false);
+    membershipTypes.value = response.data?.data ?? [];
+  } catch (error) {
+    console.warn('No se pudieron cargar tipos de membresía:', error);
+    membershipTypes.value = [];
+  }
 }
 
 async function loadMembership() {
@@ -134,6 +227,7 @@ async function loadMembership() {
     loading.value = true;
     loadError.value = '';
     editing.value = false;
+    await loadTypes();
     const response = await getClientMembership(props.clientId);
     applyMembership(response.data?.data ?? null);
   } catch (error) {
@@ -152,6 +246,7 @@ function startEdit() {
   }
   editing.value = true;
   notesOpen.value = Boolean(form.notes);
+  loadTypes();
 }
 
 function cancelEdit() {
@@ -165,7 +260,7 @@ async function onSave() {
     return;
   }
   if (!form.period_start) {
-    emit('notify', { text: 'Indica la fecha de inicio del mes', color: 'warning' });
+    emit('notify', { text: 'Indica la fecha de inicio del plan', color: 'warning' });
     return;
   }
 
@@ -174,7 +269,12 @@ async function onSave() {
     period_start: form.period_start,
     notes: form.notes?.trim() || null,
     block_on_unpaid: Boolean(form.block_on_unpaid),
+    membership_type_id: form.membership_type_id,
   };
+
+  if (form.status === 'owing' && form.amount_paid !== '') {
+    payload.amount_paid = Number(form.amount_paid);
+  }
 
   try {
     saving.value = true;
@@ -248,6 +348,13 @@ onMounted(() => {
                   title="Bloqueo si no paga"
                 />
               </p>
+              <p v-if="displayTypeName || miniBalance" class="mp__line mp__line--muted">
+                <span v-if="displayTypeName">{{ displayTypeName }}</span>
+                <template v-if="displayTypeName && miniBalance">
+                  <span class="mp__sep">·</span>
+                </template>
+                <span v-if="miniBalance">{{ miniBalance }}</span>
+              </p>
             </template>
             <p v-else class="mp__empty">Sin asignar</p>
           </div>
@@ -310,6 +417,79 @@ onMounted(() => {
           </button>
         </div>
 
+        <v-select
+          v-model="typeIdModel"
+          :items="typeSelectItems"
+          item-title="title"
+          item-value="value"
+          label="Tipo de plan"
+          density="comfortable"
+          variant="outlined"
+          color="primary"
+          bg-color="surface"
+          hide-details
+          clearable
+          :disabled="saving"
+          class="mp__type"
+          :menu-props="{
+            contentClass: 'tf-overlay-menu mp-type-menu',
+            maxHeight: 320,
+          }"
+          :list-props="{ bgColor: 'surface', color: undefined }"
+        >
+          <template #selection>
+            <div class="mp-type-sel">
+              <template v-if="selectedType">
+                <span class="mp-type-sel__name">{{ selectedType.name }}</span>
+                <span class="mp-type-sel__meta">
+                  <span class="mp-type-sel__price">{{ formatMoneyCop(selectedType.price) }}</span>
+                  <span aria-hidden="true">·</span>
+                  <span>{{ selectedType.duration_days }} d</span>
+                </span>
+              </template>
+              <template v-else>
+                <span class="mp-type-sel__name">Sin tipo</span>
+                <span class="mp-type-sel__meta">Ciclo mensual automático</span>
+              </template>
+            </div>
+          </template>
+
+          <template #item="{ props: itemProps, item }">
+            <v-list-item
+              v-bind="itemProps"
+              class="mp-type-item"
+              title=""
+              subtitle=""
+            >
+              <template #prepend>
+                <div
+                  class="mp-type-item__icon"
+                  aria-hidden="true"
+                >
+                  <v-icon
+                    :icon="resolveSelectItem(item)?.isNone ? 'mdi-calendar-month-outline' : 'mdi-card-account-details-outline'"
+                    size="18"
+                    color="primary"
+                  />
+                </div>
+              </template>
+              <v-list-item-title class="mp-type-item__title">
+                {{ resolveSelectItem(item)?.title || '—' }}
+              </v-list-item-title>
+              <v-list-item-subtitle class="mp-type-item__sub">
+                <template v-if="resolveSelectItem(item)?.isNone">
+                  {{ resolveSelectItem(item)?.subtitle }}
+                </template>
+                <template v-else-if="resolveSelectItem(item)">
+                  <span class="mp-type-item__price">{{ resolveSelectItem(item).priceLabel }}</span>
+                  <span aria-hidden="true"> · </span>
+                  <span>{{ resolveSelectItem(item).durationLabel }}</span>
+                </template>
+              </v-list-item-subtitle>
+            </v-list-item>
+          </template>
+        </v-select>
+
         <div class="mp__period">
           <v-text-field
             v-model="form.period_start"
@@ -326,6 +506,21 @@ onMounted(() => {
             <strong>{{ periodEndLabel }}</strong>
           </div>
         </div>
+
+        <v-text-field
+          v-if="form.status === 'owing'"
+          v-model="form.amount_paid"
+          type="number"
+          min="0"
+          step="1000"
+          label="Monto pagado (COP)"
+          hint="Deja vacío o 0 si no ha abonado nada"
+          persistent-hint
+          density="compact"
+          variant="outlined"
+          :disabled="saving"
+          class="mp__paid"
+        />
 
         <label class="mp__check">
           <input
@@ -446,6 +641,11 @@ onMounted(() => {
   gap: 0.25rem 0.3rem;
   font-size: 0.8rem;
   line-height: 1.25;
+}
+
+.mp__line--muted {
+  color: var(--tf-on-surface-muted, #a8b0bc);
+  font-size: 0.72rem;
 }
 
 .mp__status {
@@ -572,6 +772,64 @@ onMounted(() => {
   gap: 0.4rem;
 }
 
+.mp__type {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.mp__type :deep(.v-field) {
+  min-height: 44px !important;
+  font-family: inherit;
+}
+
+.mp__type :deep(.v-field__input),
+.mp__type :deep(.v-select__selection-text),
+.mp__type :deep(.v-label) {
+  font-family: inherit;
+  letter-spacing: -0.01em;
+}
+
+.mp__type :deep(.v-label) {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.mp-type-sel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+  line-height: 1.2;
+  padding: 0.1rem 0;
+}
+
+.mp-type-sel__name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--tf-on-surface, #fff);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mp-type-sel__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.mp-type-sel__price {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--tf-on-surface, #e8eaed);
+}
+
+.mp__paid {
+  margin-top: 0.1rem;
+}
+
 .mp__date {
   flex: 0 0 auto;
   width: 9.75rem;
@@ -660,5 +918,59 @@ onMounted(() => {
   .mp__date {
     width: 100%;
   }
+}
+</style>
+
+<!-- Menú teleported: tipografía alineada a Inter / tokens Trainfit -->
+<style>
+.mp-type-menu {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+}
+
+.mp-type-menu .mp-type-item {
+  min-height: 52px !important;
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+
+.mp-type-menu .mp-type-item__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-inline-end: 4px;
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+}
+
+.mp-type-menu .mp-type-item__title {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.015em !important;
+  color: var(--tf-on-surface, #fff) !important;
+  line-height: 1.25 !important;
+}
+
+.mp-type-menu .mp-type-item__sub {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+  font-size: 0.72rem !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
+  color: var(--tf-on-surface-muted, #a8b0bc) !important;
+  opacity: 1 !important;
+  margin-top: 2px !important;
+}
+
+.mp-type-menu .mp-type-item__price {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--tf-on-surface, #e8eaed);
+}
+
+.mp-type-menu .v-list-item--active .mp-type-item__title {
+  color: var(--tf-primary, #00e5ff) !important;
 }
 </style>
