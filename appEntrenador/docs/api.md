@@ -1146,7 +1146,7 @@ Body `{ "endpoint": "…" }`. Solo borra si pertenece al usuario. `404` si no ex
 
 ### `POST /push/presence`
 
-Heartbeat: el cliente indica que la app está **visible / en primer plano**. Auth trainer|client. En memoria (~45 s). Si el destinatario está activo (o tiene SSE de chat), **no** se envía push de `chat_message`.
+Heartbeat: el cliente indica que la app está **visible / en primer plano**. Auth trainer|client. En memoria (~45 s). Si el destinatario está activo (presence reciente), **no** se envía push de `chat_message`. Un SSE zombie con la app en background **no** suprime el push.
 
 ### `DELETE /push/presence`
 

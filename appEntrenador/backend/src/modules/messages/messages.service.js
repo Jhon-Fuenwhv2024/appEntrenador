@@ -212,12 +212,9 @@ async function sendMessage(actor, { receiverId, content }) {
     const preview = truncatePreview(rawContent);
     const receiverIdNum = Number(partner.id);
     const push = getPushService();
-    const inApp =
-      push.isUserActiveInApp(receiverIdNum)
-      || sseManager.isOnline(receiverIdNum);
-
-    if (inApp) {
-      // Destinatario tiene la app abierta / chat en vivo: el SSE basta.
+    // Solo presencia visible (heartbeat). NO usar SSE: al cerrar/minimizar la
+    // PWA el EventSource puede quedar zombie en el servidor y silenciaría el push.
+    if (push.isUserActiveInApp(receiverIdNum)) {
       return message;
     }
 

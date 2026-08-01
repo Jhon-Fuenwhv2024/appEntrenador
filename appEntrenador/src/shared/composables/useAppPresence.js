@@ -58,10 +58,16 @@ function stopHeartbeat() {
   }
 }
 
+function onPageHide() {
+  stopHeartbeat();
+  markAway();
+}
+
 function bindListeners() {
   if (listenerBound || typeof document === 'undefined') return;
   document.addEventListener('visibilitychange', onVisibilityChange);
   window.addEventListener('focus', ping);
+  window.addEventListener('pagehide', onPageHide);
   listenerBound = true;
 }
 
@@ -69,6 +75,7 @@ function unbindListeners() {
   if (!listenerBound || typeof document === 'undefined') return;
   document.removeEventListener('visibilitychange', onVisibilityChange);
   window.removeEventListener('focus', ping);
+  window.removeEventListener('pagehide', onPageHide);
   listenerBound = false;
 }
 

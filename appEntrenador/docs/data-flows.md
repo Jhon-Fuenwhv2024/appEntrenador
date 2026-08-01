@@ -241,7 +241,7 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 1. El front registra service worker (`vite-plugin-pwa` / `src/sw.js`) y expone manifest instalable.
 2. Opt-in (soft-prompt o toggle en perfil/ajustes) → permiso del navegador → `pushManager.subscribe(VAPID)` → `POST /api/push/subscriptions`.
 3. `createNotification` inserta in-app y llama `pushService.notifyUserAsync` con `title` / `body` / `actionUrl` / `type`.
-4. `sendMessage` (chat) hace push al receptor con deep-link `/client/messages` o `/trainer/messages` (sin fila en `notifications`), **salvo** si el receptor está activo en la app (`POST /push/presence` reciente) o tiene SSE de chat abierto.
+4. `sendMessage` (chat) hace push al receptor con deep-link `/client/messages` o `/trainer/messages` (sin fila en `notifications`), **salvo** si el receptor tiene presence reciente (`POST /push/presence`, app visible). SSE solo no suprime push (conexiones zombie al minimizar/cerrar la PWA).
 5. SW: evento `push` → `showNotification`; `notificationclick` abre path relativo seguro. Chat push se suprime en SW si hay ventana visible (backup).
 6. Endpoints 404/410 se borran de `push_subscriptions`. Sin VAPID en env, el envío se omite (API de subscribe responde 503 en clave pública).
-7. Presencia: `AppShell` envía heartbeat mientras `document.visibilityState === 'visible'`; al ocultar/logout limpia con `DELETE /push/presence`.
+7. Presencia: `AppShell` envía heartbeat mientras `document.visibilityState === 'visible'`; al ocultar/logout limpia con `DELETE /push/presence`. El chat pausa el EventSource al pasar a `hidden` y lo reabre al volver a `visible`.
