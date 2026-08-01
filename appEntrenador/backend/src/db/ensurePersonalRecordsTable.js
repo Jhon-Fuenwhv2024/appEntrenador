@@ -42,7 +42,8 @@ async function ensurePersonalRecordsTable() {
           'diet_updated',
           'workout_reminder',
           'membership_expiring',
-          'membership_expired'
+          'membership_expired',
+          'membership_grace'
         ) NOT NULL DEFAULT 'system'
     `);
   } catch (error) {

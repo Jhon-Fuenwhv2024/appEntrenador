@@ -13,6 +13,8 @@ const {
 const MEMBERSHIP_ALERT_HOUR = 9;
 const STREAK_ALERT_HOUR = 9;
 const WORKOUT_WINDOW_MINUTES = 5;
+/** Alineado con memberships.service / access.js (Feature 080). */
+const MEMBERSHIP_ACCESS_GRACE_DAYS = 3;
 
 /**
  * True if client finished this routine on the given local civil date.
@@ -141,10 +143,59 @@ async function processMembershipAlerts(client) {
   const alumnoName = client.nombre || 'tu alumno';
   const trainerId = client.trainer_id != null ? Number(client.trainer_id) : null;
 
-  const isExpired =
-    status === 'expired' || (daysRemaining != null && daysRemaining < 0);
+  // Periodo terminado: gracia (días -1..-3) vs vencida fuera de gracia (<= -4).
+  const pastEnd = daysRemaining != null && Number.isFinite(daysRemaining) && daysRemaining < 0
+    ? -daysRemaining
+    : 0;
+  const inGrace = pastEnd >= 1 && pastEnd <= MEMBERSHIP_ACCESS_GRACE_DAYS;
+  const pastGrace = pastEnd > MEMBERSHIP_ACCESS_GRACE_DAYS
+    || (status === 'expired' && pastEnd === 0 && daysRemaining == null);
 
-  if (isExpired) {
+  if (inGrace) {
+    const graceLeft = MEMBERSHIP_ACCESS_GRACE_DAYS - pastEnd + 1;
+    const clientClaimed = await dedupeService.claim(
+      client.client_id,
+      `membership:grace:${parts.dateStr}`,
+    );
+    if (clientClaimed) {
+      await notificationService.createNotification({
+        userId: client.client_id,
+        title: graceLeft === 1
+          ? 'Último día de gracia'
+          : `Periodo de gracia: ${graceLeft} días`,
+        message: graceLeft === 1
+          ? 'Tu plan terminó. Hoy es el último día de acceso — renueva con tu entrenador.'
+          : `Tu plan terminó, pero aún tienes ${graceLeft} días de acceso. Renueva con tu entrenador antes de que se corte.`,
+        type: 'membership_grace',
+        entityType: 'membership',
+        entityId: client.client_id,
+        actionUrl: '/dashboard',
+      });
+    }
+
+    if (trainerId) {
+      const trainerClaimed = await dedupeService.claim(
+        trainerId,
+        `membership_trainer:${client.client_id}:grace:${parts.dateStr}`,
+      );
+      if (trainerClaimed) {
+        await notificationService.createNotification({
+          userId: trainerId,
+          title: 'Alumno en gracia',
+          message: graceLeft === 1
+            ? `${alumnoName} está en el último día de gracia de membresía.`
+            : `${alumnoName} tiene ${graceLeft} días de gracia de membresía.`,
+          type: 'membership_grace',
+          entityType: 'membership',
+          entityId: client.client_id,
+          actionUrl: '/trainer/clients',
+        });
+      }
+    }
+    return;
+  }
+
+  if (pastGrace || status === 'expired' || (daysRemaining != null && daysRemaining < -MEMBERSHIP_ACCESS_GRACE_DAYS)) {
     const clientClaimed = await dedupeService.claim(
       client.client_id,
       `membership:expired:${parts.dateStr}`,
@@ -153,7 +204,7 @@ async function processMembershipAlerts(client) {
       await notificationService.createNotification({
         userId: client.client_id,
         title: 'Tu membresía está vencida',
-        message: 'Renueva tu plan para seguir entrenando con tu entrenador.',
+        message: 'El periodo de gracia terminó. Renueva tu plan para seguir entrenando con tu entrenador.',
         type: 'membership_expired',
         entityType: 'membership',
         entityId: client.client_id,
@@ -170,7 +221,7 @@ async function processMembershipAlerts(client) {
         await notificationService.createNotification({
           userId: trainerId,
           title: 'Membresía vencida',
-          message: `La membresía de ${alumnoName} está vencida.`,
+          message: `La membresía de ${alumnoName} está vencida (gracia agotada).`,
           type: 'membership_expired',
           entityType: 'membership',
           entityId: client.client_id,

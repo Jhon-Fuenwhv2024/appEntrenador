@@ -214,6 +214,7 @@ const getIcon = (type) => {
       return 'mdi-dumbbell';
     case 'membership_expiring':
     case 'membership_expired':
+    case 'membership_grace':
       return 'mdi-card-account-details-outline';
     case 'streak_at_risk':
       return 'mdi-fire-alert';
@@ -542,7 +543,8 @@ const handleDismiss = async (notif) => {
 }
 
 .tf-notif-panel__icon--membership_expiring,
-.tf-notif-panel__icon--membership_expired {
+.tf-notif-panel__icon--membership_expired,
+.tf-notif-panel__icon--membership_grace {
   background: rgba(171, 71, 188, 0.16);
   color: #ce93d8;
 }

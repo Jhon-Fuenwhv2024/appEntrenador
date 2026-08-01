@@ -19,4 +19,5 @@
 
 - Pendiente + abono durante el mes → acceso OK.
 - Tras vencer: 3 días de aviso/gracia, luego 403 `MEMBERSHIP_BLOCKED` si el toggle está activo.
-- Constante FE: `src/shared/membership/access.js`; BE: `MEMBERSHIP_ACCESS_GRACE_DAYS` en memberships.service.
+- UI + in-app: banner de gracia y tipo `membership_grace` (job 09:00 locales, 1/día).
+- Constante FE: `src/shared/membership/access.js`; BE: `MEMBERSHIP_ACCESS_GRACE_DAYS` en memberships.service / notification-jobs.

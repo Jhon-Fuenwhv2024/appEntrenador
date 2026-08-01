@@ -12,8 +12,10 @@ import {
 } from '../../../shared/membership/period.js';
 import {
   getMembershipHomeState,
+  getMembershipGraceDaysLeft,
   isMembershipAccessBlocked,
   isMembershipExpiringSoon,
+  isMembershipInGrace,
 } from '../utils/membershipUi.js';
 import ClientMembershipContactActions from './ClientMembershipContactActions.vue';
 
@@ -67,6 +69,13 @@ const paymentBreakdown = computed(() => {
   if (status === 'owing') {
     return { mode: 'owing-simple', summary: 'Pago pendiente' };
   }
+  if (state.value?.inGrace) {
+    const left = getMembershipGraceDaysLeft(m.days_remaining);
+    return {
+      mode: 'grace',
+      summary: left === 1 ? 'Último día de gracia' : `${left} días de gracia`,
+    };
+  }
   if (status === 'expired') {
     return { mode: 'expired', summary: 'Vencida' };
   }
@@ -83,6 +92,7 @@ const paymentLabel = computed(() => paymentBreakdown.value?.summary || 'Sin plan
 const badgeLabel = computed(() => {
   const m = normalized.value;
   if (!m?.status) return 'Sin plan';
+  if (state.value?.inGrace) return 'En gracia';
   const status = String(m.status).toLowerCase();
   if (status === 'owing') return 'Pendiente';
   if (status === 'expired') return 'Vencida';
@@ -94,6 +104,7 @@ const paymentTone = computed(() => {
   const m = normalized.value;
   if (!m?.status) return 'muted';
   if (state.value?.blocked) return 'danger';
+  if (state.value?.inGrace) return 'warn';
   const status = String(m.status).toLowerCase();
   if (status === 'owing') return 'warn';
   if (status === 'expired') return 'danger';
@@ -101,9 +112,12 @@ const paymentTone = computed(() => {
   return 'muted';
 });
 
-/** Usa estado unificado: vencida/bloqueada → 0 días (no el calendario). */
+/** Usa estado unificado: vencida/bloqueada → 0 días; gracia → días de gracia. */
 const daysText = computed(() => {
   const s = state.value;
+  if (s?.inGrace) {
+    return s.unit ? `${s.headline} ${s.unit}` : String(s.headline ?? '—');
+  }
   if (s?.blocked) {
     return s.unit ? `${s.headline} ${s.unit}` : String(s.headline ?? '0 días');
   }
@@ -123,6 +137,10 @@ const accessBlocked = computed(() => (
 const accessLabel = computed(() => {
   if (!normalized.value) return '—';
   if (accessBlocked.value) return 'Bloqueado';
+  if (state.value?.inGrace) {
+    const left = getMembershipGraceDaysLeft(normalized.value.days_remaining);
+    return left === 1 ? 'Gracia (último día)' : `Gracia (${left} días)`;
+  }
   if (normalized.value.block_on_unpaid) return 'Activo (bloqueo al vencer + 3d gracia)';
   return 'Permitido';
 });
@@ -139,7 +157,11 @@ const startLabel = computed(() => formatMembershipDate(normalized.value?.period_
 const endLabel = computed(() => formatMembershipDate(normalized.value?.period_end));
 
 const renewKind = computed(() => {
-  if (accessBlocked.value || String(normalized.value?.status || '').toLowerCase() === 'expired') {
+  if (accessBlocked.value) return 'expired';
+  if (state.value?.inGrace || isMembershipInGrace(normalized.value?.days_remaining)) {
+    return 'grace';
+  }
+  if (String(normalized.value?.status || '').toLowerCase() === 'expired') {
     return 'expired';
   }
   if (String(normalized.value?.status || '').toLowerCase() === 'owing') {
@@ -151,12 +173,19 @@ const renewKind = computed(() => {
 
 const showContact = computed(() => renewKind.value != null);
 
-/** Prominente solo “por vencer”; vencida/owing → sutil. */
+/** Prominente solo “por vencer”; gracia/vencida/owing → sutil. */
 const contactDensity = computed(() => (
   renewKind.value === 'expiring' ? 'prominent' : 'subtle'
 ));
 
 const contactNote = computed(() => {
+  if (renewKind.value === 'grace') {
+    const left = getMembershipGraceDaysLeft(normalized.value?.days_remaining);
+    if (left === 1) {
+      return 'Último día de gracia: renueva hoy para no perder el acceso.';
+    }
+    return `Estás en periodo de gracia (${left} días). Renueva con tu entrenador.`;
+  }
   if (renewKind.value === 'expired') {
     return 'Habla con tu entrenador para renovar o regularizar el pago.';
   }

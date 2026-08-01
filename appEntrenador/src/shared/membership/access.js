@@ -26,6 +26,13 @@ export function isMembershipPastGrace(daysRemaining, graceDays = MEMBERSHIP_ACCE
   return past > graceDays;
 }
 
+/** Periodo terminado pero aún dentro de los días de gracia. */
+export function isMembershipInGrace(daysRemaining, graceDays = MEMBERSHIP_ACCESS_GRACE_DAYS) {
+  const past = getDaysPastPeriodEnd(daysRemaining);
+  if (past == null || past === 0) return false;
+  return past >= 1 && past <= graceDays;
+}
+
 /**
  * Soft-lock: solo con block_on_unpaid y periodo fuera de la gracia.
  * Pendiente (owing) con plan vigente NO bloquea.

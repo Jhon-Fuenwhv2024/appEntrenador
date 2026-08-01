@@ -35,6 +35,10 @@ const label = computed(() => {
   if (!s || !m) return '';
 
   if (s.blocked) return 'Membresía vencida';
+  if (s.inGrace) {
+    const n = Number(s.graceDaysLeft ?? s.headline) || 0;
+    return n === 1 ? 'Último día de gracia' : `${n} días de gracia`;
+  }
   if (m.status === 'owing') {
     const due = m.amount_due != null ? Number(m.amount_due) : null;
     if (due != null && due > 0) {
@@ -58,22 +62,22 @@ const rangeTitle = computed(() => {
   return `${formatMembershipDate(m.period_start)} → ${formatMembershipDate(m.period_end)}`;
 });
 
-/** Contacto sutil en home solo cuando hay bloqueo / vencida / owing. */
+/** Contacto sutil en home: bloqueo / gracia / vencida / owing. */
 const showSubtleContact = computed(() => {
   const s = state.value;
   if (!s) return false;
-  if (s.blocked) return true;
+  if (s.blocked || s.inGrace) return true;
   return String(normalized.value?.status || '').toLowerCase() === 'owing';
 });
 
-const contactNote = computed(() => (
-  state.value?.blocked
-    ? 'Renueva con tu entrenador'
-    : 'Regulariza el pago con tu entrenador'
-));
+const contactNote = computed(() => {
+  if (state.value?.blocked) return 'Renueva con tu entrenador';
+  if (state.value?.inGrace) return 'Renueva antes de que termine la gracia';
+  return 'Regulariza el pago con tu entrenador';
+});
 
 const contactPrefill = computed(() => (
-  state.value?.blocked
+  state.value?.blocked || state.value?.inGrace
     ? 'Hola, quiero renovar mi membresía en Trainfit.'
     : 'Hola, quiero regularizar el pago de mi membresía en Trainfit.'
 ));

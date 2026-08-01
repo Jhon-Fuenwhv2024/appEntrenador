@@ -4,12 +4,14 @@
 import {
   getMembershipGraceDaysLeft,
   isMembershipAccessBlocked,
+  isMembershipInGrace,
   isMembershipPastGrace,
   MEMBERSHIP_ACCESS_GRACE_DAYS,
 } from '../../../shared/membership/access.js';
 
 export {
   isMembershipAccessBlocked,
+  isMembershipInGrace,
   isMembershipPastGrace,
   getMembershipGraceDaysLeft,
   MEMBERSHIP_ACCESS_GRACE_DAYS,
@@ -28,6 +30,7 @@ export function getMembershipProgress(membership) {
   if (!membership) return 0;
   const status = String(membership.status || '').toLowerCase();
   if (status === 'expired' || isMembershipAccessBlocked(membership)) return 0;
+  if (isMembershipInGrace(membership.days_remaining)) return 0;
 
   const days = membership.days_remaining == null
     ? null
@@ -48,7 +51,8 @@ export function getMembershipHomeState(membership, forcedBlocked = false) {
     : Number(membership.days_remaining);
   const status = String(membership.status).toLowerCase();
   const blocked = forcedBlocked || isMembershipAccessBlocked(membership);
-  const expiring = !blocked && isMembershipExpiringSoon(membership);
+  const inGrace = !blocked && isMembershipInGrace(days);
+  const expiring = !blocked && !inGrace && isMembershipExpiringSoon(membership);
   const progress = getMembershipProgress(membership);
   const periodEnded = status === 'expired' || (days != null && days < 0);
 
@@ -61,23 +65,40 @@ export function getMembershipHomeState(membership, forcedBlocked = false) {
       subtitle: 'Habla con tu entrenador para renovar',
       progress: 0,
       blocked: true,
+      inGrace: false,
       expiring: false,
     };
   }
 
-  if (periodEnded) {
+  if (inGrace) {
     const graceLeft = getMembershipGraceDaysLeft(days);
     return {
       tone: 'warn',
+      title: 'Periodo de gracia',
+      headline: String(graceLeft),
+      unit: graceLeft === 1 ? 'día' : 'días',
+      subtitle: graceLeft === 1
+        ? 'Último día de acceso — renueva con tu entrenador'
+        : `Te quedan ${graceLeft} días de acceso — renueva con tu entrenador`,
+      progress: 0,
+      blocked: false,
+      inGrace: true,
+      expiring: true,
+      graceDaysLeft: graceLeft,
+    };
+  }
+
+  if (periodEnded) {
+    return {
+      tone: 'danger',
       title: 'Membresía vencida',
       headline: '0',
       unit: 'días',
-      subtitle: membership.block_on_unpaid && graceLeft > 0
-        ? `Periodo terminado — ${graceLeft === 1 ? '1 día' : `${graceLeft} días`} de gracia`
-        : 'Habla con tu entrenador para renovar',
+      subtitle: 'Habla con tu entrenador para renovar',
       progress: 0,
       blocked: false,
-      expiring: true,
+      inGrace: false,
+      expiring: false,
     };
   }
 
@@ -92,6 +113,7 @@ export function getMembershipHomeState(membership, forcedBlocked = false) {
         : 'Tu entrenador marcó un pago pendiente',
       progress,
       blocked: false,
+      inGrace: false,
       expiring: true,
     };
   }
@@ -110,6 +132,7 @@ export function getMembershipHomeState(membership, forcedBlocked = false) {
           : 'Plan mensual'),
       progress,
       blocked: false,
+      inGrace: false,
       expiring,
       days: n,
     };
@@ -123,9 +146,11 @@ export function getMembershipChip(membership) {
   const state = getMembershipHomeState(membership);
   if (!state) return null;
   return {
-    label: state.title === 'Plan mensual' && state.days != null
-      ? `Membresía: ${state.days} ${state.unit}`
-      : state.title,
+    label: state.inGrace
+      ? `Gracia: ${state.headline} ${state.unit}`
+      : (state.title === 'Plan mensual' && state.days != null
+        ? `Membresía: ${state.days} ${state.unit}`
+        : state.title),
     color: state.tone === 'ok' ? 'success' : state.tone === 'warn' ? 'warning' : 'error',
     icon: 'mdi-card-account-details-outline',
   };

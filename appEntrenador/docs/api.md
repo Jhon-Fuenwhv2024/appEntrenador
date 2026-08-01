@@ -1068,11 +1068,11 @@ Eventos:
 - Cliente: plan nutricional activado o guardado activo → `diet_updated` → `/dashboard`
 - Cliente: PR / racha → `pr_achieved` / `streak_milestone` → `/client/progress`
 - Cliente: recordatorio de entreno (job 075) → `workout_reminder` → `/dashboard`
-- Cliente: membresía 7/3/1 días o vencida (job 075) → `membership_expiring` / `membership_expired` → `/dashboard`
+- Cliente: membresía 7/3/1 días, gracia (−1…−3) o vencida (job 075) → `membership_expiring` / `membership_grace` / `membership_expired` → `/dashboard`
 - Cliente: racha en riesgo (job 075) → `streak_at_risk` → `/client/progress`
 - Trainer: alumno completa entrenamiento → `routine_completed` → `/trainer/clients/:clientId`
 - Trainer: PR de alumno → `pr_achieved` → `/trainer/clients/:clientId`
-- Trainer: membresía de alumno por vencer/vencida (job 075) → `membership_expiring` / `membership_expired` → `/trainer/clients`
+- Trainer: membresía de alumno por vencer / en gracia / vencida (job 075) → `membership_expiring` / `membership_grace` / `membership_expired` → `/trainer/clients`
 
 ### Preferencias de recordatorio (Feature 075)
 

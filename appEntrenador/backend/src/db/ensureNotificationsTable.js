@@ -10,7 +10,8 @@ const NOTIFICATION_TYPES_ENUM = `
   'diet_updated',
   'workout_reminder',
   'membership_expiring',
-  'membership_expired'
+  'membership_expired',
+  'membership_grace'
 `;
 
 /**

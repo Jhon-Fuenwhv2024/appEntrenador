@@ -6,4 +6,4 @@
 - [x] T4 · Docs api + data-flows + ADR-0003
 - [x] T5 · Validar PUT + build FE
 - [x] T6 · Soft-lock solo post-vencimiento + 3d gracia (BE/FE)
-- [x] T7 · Auto-expired al leer + ADR-0004 + docs
+- [x] T8 · Aviso gracia: UI banner/chip + notif `membership_grace`

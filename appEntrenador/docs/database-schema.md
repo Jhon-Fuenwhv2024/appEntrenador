@@ -258,7 +258,7 @@ Migración: [`backend/db/migrations/021_client_streaks.sql`](../backend/db/migra
 
 ### `notifications` (Feature 025 + 074 + 075)
 
-Alertas in-app N:1 con el usuario (`user_id` → `usuarios`). Tipos: `routine_assigned` | `routine_completed` | `system` | `pr_achieved` | `streak_milestone` | `streak_at_risk` | `diet_updated` | `workout_reminder` | `membership_expiring` | `membership_expired`. `is_read` booleano.
+Alertas in-app N:1 con el usuario (`user_id` → `usuarios`). Tipos: `routine_assigned` | `routine_completed` | `system` | `pr_achieved` | `streak_milestone` | `streak_at_risk` | `diet_updated` | `workout_reminder` | `membership_expiring` | `membership_expired` | `membership_grace`. `is_read` booleano.
 
 Metadata de navegación (074): `entity_type` (VARCHAR nullable), `entity_id` (INT nullable), `action_url` (VARCHAR 255, path relativo). Caducidad: `expires_at` (TIMESTAMP); al crear se setea `created_at + 30 días`. Purge en listado: filas con `expires_at < NOW()` o leídas con `created_at` > 3 días.
 
