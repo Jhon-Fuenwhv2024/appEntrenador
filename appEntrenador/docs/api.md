@@ -1418,12 +1418,15 @@ Hábitos del cliente autenticado con `is_completed` para esa fecha exacta.
 
 ### `POST /habits/:id/toggle` (client)
 
-Body: `{ "date": "2026-07-15" }`. Si existe el log, lo borra (`completed: false`); si no, lo inserta (`completed: true`).
+Body: `{ "date": "2026-07-15", "completed": false }`.  
+- Con `completed` (boolean): fuerza ese estado (idempotente; recomendado por el cliente).  
+- Sin `completed`: si existe el log, lo borra (`completed: false`); si no, lo inserta (`completed: true`).  
+La comparación de `logged_date` usa `DATE(...)` para evitar fallos de coerción en TiDB/MySQL.
 
 ```json
 {
   "success": true,
-  "data": { "completed": true, "date": "2026-07-15" }
+  "data": { "completed": false, "date": "2026-07-15" }
 }
 ```
 

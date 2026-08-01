@@ -204,7 +204,7 @@ onMounted(async () => {
             <DailyHabitsChecklist
               v-if="!loading"
               compact
-              :initial-habits="habits"
+              v-model:initial-habits="habits"
               :skip-fetch="true"
             />
           </div>

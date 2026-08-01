@@ -90,7 +90,7 @@ async function listToday(req, res) {
 
 /**
  * POST /api/habits/:id/toggle
- * Body: { date: "YYYY-MM-DD" }
+ * Body: { date: "YYYY-MM-DD", completed?: boolean }
  */
 async function toggle(req, res) {
   try {
@@ -98,6 +98,7 @@ async function toggle(req, res) {
       req.user.id,
       req.params.id,
       req.body?.date,
+      req.body?.completed,
     );
     return res.json({
       success: true,

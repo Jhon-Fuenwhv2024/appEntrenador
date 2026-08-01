@@ -146,7 +146,7 @@ async function deleteForTrainer(trainerId, habitId) {
 
 /**
  * GET /api/habits/today?date=YYYY-MM-DD — cliente autenticado.
- * is_completed según existencia exacta de habit_logs (logged_date = date).
+ * is_completed según existencia de habit_logs (comparación por DATE civil).
  */
 async function listTodayForClient(clientId, dateParam) {
   const date = parseLocalDateString(dateParam, 'date');
@@ -158,7 +158,7 @@ async function listTodayForClient(clientId, dateParam) {
        CASE WHEN hl.id IS NOT NULL THEN 1 ELSE 0 END AS is_completed
      FROM habits h
      LEFT JOIN habit_logs hl
-       ON hl.habit_id = h.id AND hl.logged_date = ?
+       ON hl.habit_id = h.id AND DATE(hl.logged_date) = ?
      WHERE h.client_id = ?
      ORDER BY h.created_at ASC, h.id ASC`,
     [date, clientId],
@@ -173,11 +173,15 @@ async function listTodayForClient(clientId, dateParam) {
 
 /**
  * POST /api/habits/:id/toggle — cliente autenticado.
- * Body: { date: "YYYY-MM-DD" }. Toggle insert/delete en habit_logs.
+ * Body: { date: "YYYY-MM-DD", completed?: boolean }
+ * - Si `completed` viene: fuerza ese estado (idempotente).
+ * - Si no: toggle clásico.
+ * Compara logged_date con DATE() para evitar fallos de coerción TiDB/MySQL.
  */
-async function toggleForClient(clientId, habitId, dateParam) {
+async function toggleForClient(clientId, habitId, dateParam, completedParam) {
   const id = parsePositiveId(habitId, 'id');
   const date = parseLocalDateString(dateParam, 'date');
+  const wantCompleted = typeof completedParam === 'boolean' ? completedParam : null;
 
   const [habits] = await db.query(
     `SELECT id, client_id
@@ -198,21 +202,44 @@ async function toggleForClient(clientId, habitId, dateParam) {
   const [existing] = await db.query(
     `SELECT id
      FROM habit_logs
-     WHERE habit_id = ? AND logged_date = ?
+     WHERE habit_id = ?
+       AND DATE(logged_date) = ?
      LIMIT 1`,
     [id, date],
   );
 
-  if (existing.length > 0) {
-    await db.query('DELETE FROM habit_logs WHERE id = ?', [existing[0].id]);
+  const isCompleted = existing.length > 0;
+  const shouldComplete = wantCompleted === null ? !isCompleted : wantCompleted;
+
+  if (!shouldComplete) {
+    if (isCompleted) {
+      await db.query('DELETE FROM habit_logs WHERE id = ?', [Number(existing[0].id)]);
+    } else {
+      // Por si existe con coerción distinta: borrar por fecha civil.
+      await db.query(
+        `DELETE FROM habit_logs
+         WHERE habit_id = ?
+           AND DATE(logged_date) = ?`,
+        [id, date],
+      );
+    }
     return { completed: false, date };
   }
 
-  await db.query(
-    `INSERT INTO habit_logs (habit_id, logged_date)
-     VALUES (?, ?)`,
-    [id, date],
-  );
+  if (!isCompleted) {
+    try {
+      await db.query(
+        `INSERT INTO habit_logs (habit_id, logged_date)
+         VALUES (?, ?)`,
+        [id, date],
+      );
+    } catch (error) {
+      if (error?.code !== 'ER_DUP_ENTRY' && Number(error?.errno) !== 1062) {
+        throw error;
+      }
+      // Ya existía: queda marcado.
+    }
+  }
 
   return { completed: true, date };
 }

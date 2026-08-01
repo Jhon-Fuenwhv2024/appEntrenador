@@ -78,241 +78,261 @@ onMounted(() => {
 <template>
   <AppShell role="client" active="dashboard">
     <main class="main-content shop-page flex-grow-1 overflow-y-auto">
-      <header class="shop-hero">
-        <div class="shop-hero__top">
-          <button
-            type="button"
-            class="shop-back"
-            aria-label="Volver al inicio"
+      <div class="shop-inner">
+        <header class="shop-hero">
+          <div class="shop-hero__top">
+            <button
+              type="button"
+              class="shop-back"
+              aria-label="Volver al inicio"
+              @click="goBack"
+            >
+              <v-icon icon="mdi-arrow-left" size="22" />
+            </button>
+            <div class="shop-hero__titles">
+              <p class="shop-hero__eyebrow">Supermercado</p>
+              <h1 class="shop-hero__title">Lista de compra</h1>
+            </div>
+          </div>
+
+          <template v-if="plan && !membershipBlocked && !loading">
+            <p class="shop-hero__plan">{{ plan.title }}</p>
+            <p class="shop-hero__sub">{{ subtitle }}</p>
+
+            <div
+              v-if="totalItems > 0"
+              class="shop-progress"
+              role="status"
+              aria-live="polite"
+            >
+              <div class="shop-progress__meta">
+                <span class="shop-progress__label">Progreso</span>
+                <span class="shop-progress__count">
+                  {{ checkedCount }}/{{ totalItems }}
+                </span>
+              </div>
+              <div
+                class="shop-progress__track"
+                role="progressbar"
+                :aria-valuenow="progressPct"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                :aria-label="`${progressPct}% de la lista marcada`"
+              >
+                <div
+                  class="shop-progress__fill"
+                  :style="{ width: `${progressPct}%` }"
+                />
+              </div>
+            </div>
+          </template>
+        </header>
+
+        <v-progress-linear
+          v-if="loading"
+          indeterminate
+          color="primary"
+          class="mb-3"
+          height="2"
+        />
+
+        <div
+          v-else-if="membershipBlocked"
+          class="shop-state shop-state--locked"
+          role="status"
+        >
+          <v-icon icon="mdi-lock" size="28" color="error" />
+          <p class="shop-state__title">Acceso pausado</p>
+          <p class="shop-state__msg">{{ MEMBERSHIP_BLOCKED_MSG }}</p>
+          <v-btn
+            color="primary"
+            variant="outlined"
+            rounded="lg"
+            class="font-weight-bold mt-2"
             @click="goBack"
           >
-            <v-icon icon="mdi-arrow-left" size="22" />
-          </button>
-          <div class="shop-hero__titles">
-            <p class="shop-hero__eyebrow">Supermercado</p>
-            <h1 class="shop-hero__title">Lista de compra</h1>
-          </div>
+            Volver
+          </v-btn>
         </div>
 
-        <template v-if="plan && !membershipBlocked && !loading">
-          <p class="shop-hero__plan">{{ plan.title }}</p>
-          <p class="shop-hero__sub">{{ subtitle }}</p>
-
-          <div
-            v-if="totalItems > 0"
-            class="shop-progress"
-            role="status"
-            aria-live="polite"
-          >
-            <div class="shop-progress__meta">
-              <span class="shop-progress__label">Progreso</span>
-              <span class="shop-progress__count">
-                {{ checkedCount }}/{{ totalItems }}
-              </span>
-            </div>
-            <div
-              class="shop-progress__track"
-              role="progressbar"
-              :aria-valuenow="progressPct"
-              aria-valuemin="0"
-              aria-valuemax="100"
-              :aria-label="`${progressPct}% de la lista marcada`"
-            >
-              <div
-                class="shop-progress__fill"
-                :style="{ width: `${progressPct}%` }"
-              />
-            </div>
-          </div>
-        </template>
-      </header>
-
-      <v-progress-linear
-        v-if="loading"
-        indeterminate
-        color="primary"
-        class="mb-3"
-        height="2"
-      />
-
-      <div
-        v-else-if="membershipBlocked"
-        class="shop-state shop-state--locked"
-        role="status"
-      >
-        <v-icon icon="mdi-lock" size="28" color="error" />
-        <p class="shop-state__title">Acceso pausado</p>
-        <p class="shop-state__msg">{{ MEMBERSHIP_BLOCKED_MSG }}</p>
-        <v-btn
-          color="primary"
-          variant="outlined"
-          rounded="lg"
-          class="font-weight-bold mt-2"
-          @click="goBack"
+        <v-alert
+          v-else-if="loadError"
+          type="error"
+          variant="tonal"
+          density="comfortable"
+          class="mb-3"
         >
-          Volver
-        </v-btn>
-      </div>
+          {{ loadError }}
+          <template #append>
+            <v-btn variant="text" size="small" @click="loadList">Reintentar</v-btn>
+          </template>
+        </v-alert>
 
-      <v-alert
-        v-else-if="loadError"
-        type="error"
-        variant="tonal"
-        density="comfortable"
-        class="mb-3"
-      >
-        {{ loadError }}
-        <template #append>
-          <v-btn variant="text" size="small" @click="loadList">Reintentar</v-btn>
-        </template>
-      </v-alert>
-
-      <div v-else-if="empty" class="shop-state">
-        <div class="shop-state__icon" aria-hidden="true">
-          <v-icon icon="mdi-cart-off" size="32" color="primary" />
-        </div>
-        <p class="shop-state__title">Sin plan activo</p>
-        <p class="shop-state__msg">
-          Cuando tu entrenador active un plan de dieta, aquí verás qué comprar.
-        </p>
-        <v-btn
-          color="primary"
-          rounded="lg"
-          class="font-weight-bold mt-2"
-          @click="goBack"
-        >
-          Volver al inicio
-        </v-btn>
-      </div>
-
-      <div v-else-if="emptyItems" class="shop-state">
-        <div class="shop-state__icon" aria-hidden="true">
-          <v-icon icon="mdi-food-off" size="32" color="primary" />
-        </div>
-        <p class="shop-state__title">Plan sin alimentos</p>
-        <p class="shop-state__msg">
-          Tu plan aún no tiene ítems para generar la lista de compra.
-        </p>
-      </div>
-
-      <template v-else-if="groups.length">
-        <nav class="shop-filters" aria-label="Filtrar por categoría">
-          <button
-            v-for="chip in filterChips"
-            :key="chip.key"
-            type="button"
-            class="shop-chip"
-            :class="{ 'shop-chip--active': filterCategory === chip.key }"
-            :style="chip.color ? { '--chip-accent': chip.color } : undefined"
-            :aria-pressed="filterCategory === chip.key"
-            @click="setFilter(chip.key)"
-          >
-            <span class="shop-chip__label">{{ chip.label }}</span>
-            <span class="shop-chip__count">{{ chip.count }}</span>
-          </button>
-        </nav>
-
-        <div class="shop-toolbar">
-          <p class="shop-toolbar__hint">
-            Marca lo que ya llevas en el carrito
+        <div v-else-if="empty" class="shop-state">
+          <div class="shop-state__icon" aria-hidden="true">
+            <v-icon icon="mdi-cart-off" size="32" color="primary" />
+          </div>
+          <p class="shop-state__title">Sin plan activo</p>
+          <p class="shop-state__msg">
+            Cuando tu entrenador active un plan de dieta, aquí verás qué comprar.
           </p>
-          <button
-            v-if="checkedCount > 0"
-            type="button"
-            class="shop-toolbar__clear"
-            @click="clearChecked"
+          <v-btn
+            color="primary"
+            rounded="lg"
+            class="font-weight-bold mt-2"
+            @click="goBack"
           >
-            Limpiar
-          </button>
+            Volver al inicio
+          </v-btn>
         </div>
 
-        <div class="shop-groups">
-          <section
-            v-for="group in filteredGroups"
-            :key="group.category"
-            class="shop-group"
-            :style="{ '--cat-color': categoryMeta(group.category).color }"
-          >
-            <header class="shop-group__head">
-              <span class="shop-group__badge" aria-hidden="true">
-                <v-icon
-                  :icon="categoryMeta(group.category).icon"
-                  size="16"
-                />
-              </span>
-              <h2 class="shop-group__title">{{ group.label }}</h2>
-              <span class="shop-group__count">{{ group.items.length }}</span>
-            </header>
+        <div v-else-if="emptyItems" class="shop-state">
+          <div class="shop-state__icon" aria-hidden="true">
+            <v-icon icon="mdi-food-off" size="32" color="primary" />
+          </div>
+          <p class="shop-state__title">Plan sin alimentos</p>
+          <p class="shop-state__msg">
+            Tu plan aún no tiene ítems para generar la lista de compra.
+          </p>
+        </div>
 
-            <ul class="shop-list" role="list">
-              <li
-                v-for="item in group.items"
-                :key="shoppingItemKey(item)"
-                class="shop-row"
-                :class="{ 'shop-row--checked': isChecked(item) }"
+        <template v-else-if="groups.length">
+          <div class="shop-filters-wrap">
+            <nav class="shop-filters" aria-label="Filtrar por categoría">
+              <button
+                v-for="chip in filterChips"
+                :key="chip.key"
+                type="button"
+                class="shop-chip"
+                :class="{ 'shop-chip--active': filterCategory === chip.key }"
+                :style="chip.color ? { '--chip-accent': chip.color } : undefined"
+                :aria-pressed="filterCategory === chip.key"
+                @click="setFilter(chip.key)"
               >
-                <button
-                  type="button"
-                  class="shop-row__btn"
-                  :aria-pressed="isChecked(item)"
-                  :aria-label="`${isChecked(item) ? 'Desmarcar' : 'Marcar'} ${item.food_name}`"
-                  @click="toggleChecked(item)"
-                >
-                  <span class="shop-row__check" aria-hidden="true">
-                    <v-icon
-                      v-if="isChecked(item)"
-                      icon="mdi-check"
-                      size="16"
-                    />
-                  </span>
-                  <span class="shop-row__body">
-                    <span class="shop-row__name">{{ item.food_name }}</span>
-                    <span class="shop-row__meta">
-                      {{ item.occurrences }}
-                      {{ item.occurrences === 1 ? 'vez' : 'veces' }} en el plan
-                    </span>
-                  </span>
-                  <span class="shop-row__qty">
-                    {{ formatShoppingQty(item.quantity) }}
-                    <span class="shop-row__unit">{{ item.unit }}</span>
-                  </span>
-                </button>
-              </li>
-            </ul>
-          </section>
+                <span class="shop-chip__label">{{ chip.label }}</span>
+                <span class="shop-chip__count">{{ chip.count }}</span>
+              </button>
+            </nav>
+          </div>
 
-          <p v-if="!filteredGroups.length" class="shop-empty-filter">
-            No hay productos en esta categoría.
-          </p>
-        </div>
-      </template>
+          <div class="shop-toolbar">
+            <p class="shop-toolbar__hint">
+              Marca lo que ya llevas en el carrito
+            </p>
+            <button
+              v-if="checkedCount > 0"
+              type="button"
+              class="shop-toolbar__clear"
+              @click="clearChecked"
+            >
+              Limpiar
+            </button>
+          </div>
+
+          <div class="shop-groups">
+            <section
+              v-for="group in filteredGroups"
+              :key="group.category"
+              class="shop-group"
+              :style="{ '--cat-color': categoryMeta(group.category).color }"
+            >
+              <header class="shop-group__head">
+                <span class="shop-group__badge" aria-hidden="true">
+                  <v-icon
+                    :icon="categoryMeta(group.category).icon"
+                    size="16"
+                  />
+                </span>
+                <h2 class="shop-group__title">{{ group.label }}</h2>
+                <span class="shop-group__count">{{ group.items.length }}</span>
+              </header>
+
+              <ul class="shop-list" role="list">
+                <li
+                  v-for="item in group.items"
+                  :key="shoppingItemKey(item)"
+                  class="shop-row"
+                  :class="{ 'shop-row--checked': isChecked(item) }"
+                >
+                  <button
+                    type="button"
+                    class="shop-row__btn"
+                    :aria-pressed="isChecked(item)"
+                    :aria-label="`${isChecked(item) ? 'Desmarcar' : 'Marcar'} ${item.food_name}, ${formatShoppingQty(item.quantity)} ${item.unit}`"
+                    @click="toggleChecked(item)"
+                  >
+                    <span class="shop-row__check" aria-hidden="true">
+                      <v-icon
+                        v-if="isChecked(item)"
+                        icon="mdi-check"
+                        size="16"
+                      />
+                    </span>
+                    <span class="shop-row__body">
+                      <span class="shop-row__name">{{ item.food_name }}</span>
+                      <span class="shop-row__meta">
+                        {{ item.occurrences }}
+                        {{ item.occurrences === 1 ? 'vez' : 'veces' }} en el plan
+                      </span>
+                    </span>
+                    <span class="shop-row__qty" aria-hidden="true">
+                      <span class="shop-row__qty-value">
+                        {{ formatShoppingQty(item.quantity) }}
+                      </span>
+                      <span class="shop-row__unit">{{ item.unit }}</span>
+                    </span>
+                  </button>
+                </li>
+              </ul>
+            </section>
+
+            <p v-if="!filteredGroups.length" class="shop-empty-filter">
+              No hay productos en esta categoría.
+            </p>
+          </div>
+        </template>
+      </div>
     </main>
   </AppShell>
 </template>
 
 <style scoped>
+/* Contención móvil: evita overflow-X que recorta cantidades y chips */
 .shop-page {
-  padding: 12px 16px 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.shop-inner {
+  width: 100%;
   max-width: 560px;
+  min-width: 0;
   margin: 0 auto;
+  padding: 4px 0 8px;
+  box-sizing: border-box;
 }
 
 .shop-hero {
   position: relative;
   margin-bottom: 14px;
-  padding: 14px 14px 16px;
+  padding: 14px;
   border-radius: 16px;
   background:
     radial-gradient(120% 80% at 100% 0%, rgba(0, 229, 255, 0.12), transparent 55%),
     rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   overflow: hidden;
+  min-width: 0;
 }
 
 .shop-hero__top {
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  min-width: 0;
 }
 
 .shop-back {
@@ -341,6 +361,7 @@ onMounted(() => {
 
 .shop-hero__titles {
   min-width: 0;
+  flex: 1;
   padding-top: 2px;
 }
 
@@ -360,6 +381,7 @@ onMounted(() => {
   letter-spacing: -0.02em;
   line-height: 1.15;
   color: var(--tf-on-surface, #e8eaed);
+  overflow-wrap: anywhere;
 }
 
 .shop-hero__plan {
@@ -368,6 +390,7 @@ onMounted(() => {
   font-weight: 650;
   color: var(--tf-on-surface, #e8eaed);
   line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .shop-hero__sub {
@@ -378,13 +401,16 @@ onMounted(() => {
 
 .shop-progress {
   margin-top: 14px;
+  min-width: 0;
 }
 
 .shop-progress__meta {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 8px;
   margin-bottom: 6px;
+  min-width: 0;
 }
 
 .shop-progress__label {
@@ -396,6 +422,7 @@ onMounted(() => {
 }
 
 .shop-progress__count {
+  flex-shrink: 0;
   font-size: 0.85rem;
   font-weight: 800;
   color: rgb(var(--v-theme-primary));
@@ -415,22 +442,38 @@ onMounted(() => {
   transition: width 0.25s ease;
 }
 
+.shop-filters-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-bottom: 10px;
+}
+
 .shop-filters {
   display: flex;
   gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
-  padding-bottom: 4px;
-  margin-bottom: 10px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  overflow-y: hidden;
+  padding: 2px 2px 6px;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 .shop-filters::-webkit-scrollbar {
-  display: none;
+  height: 3px;
+}
+
+.shop-filters::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
 }
 
 .shop-chip {
-  flex-shrink: 0;
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -442,6 +485,7 @@ onMounted(() => {
   color: var(--tf-on-surface, #e8eaed);
   cursor: pointer;
   font: inherit;
+  white-space: nowrap;
 }
 
 .shop-chip:focus-visible {
@@ -475,10 +519,12 @@ onMounted(() => {
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 12px;
+  min-width: 0;
 }
 
 .shop-toolbar__hint {
   margin: 0;
+  min-width: 0;
   font-size: 0.72rem;
   color: var(--tf-on-surface-muted, #a8b0bc);
 }
@@ -505,9 +551,14 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  width: 100%;
+  min-width: 0;
 }
 
 .shop-group {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.07);
   background: rgba(255, 255, 255, 0.03);
@@ -521,9 +572,11 @@ onMounted(() => {
   padding: 10px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   background: color-mix(in srgb, var(--cat-color) 8%, transparent);
+  min-width: 0;
 }
 
 .shop-group__badge {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -537,6 +590,7 @@ onMounted(() => {
 .shop-group__title {
   margin: 0;
   flex: 1;
+  min-width: 0;
   font-size: 0.82rem;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -545,6 +599,7 @@ onMounted(() => {
 }
 
 .shop-group__count {
+  flex-shrink: 0;
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--tf-on-surface-muted, #a8b0bc);
@@ -554,22 +609,29 @@ onMounted(() => {
   list-style: none;
   margin: 0;
   padding: 4px 0;
+  width: 100%;
+  min-width: 0;
 }
 
 .shop-row {
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  min-width: 0;
 }
 
 .shop-row:last-child {
   border-bottom: none;
 }
 
+/* Grid fijo: checkbox | info | cantidad — no se recorta en ~390px */
 .shop-row__btn {
-  display: flex;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
+  column-gap: 10px;
   width: 100%;
-  min-height: 56px;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 52px;
   padding: 10px 12px;
   border: none;
   background: transparent;
@@ -577,6 +639,7 @@ onMounted(() => {
   cursor: pointer;
   color: inherit;
   font: inherit;
+  box-sizing: border-box;
 }
 
 .shop-row__btn:hover {
@@ -589,14 +652,13 @@ onMounted(() => {
 }
 
 .shop-row__check {
-  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 24px;
   height: 24px;
   border-radius: 8px;
-  border: 2px solid rgba(255, 255, 255, 0.28);
+  border: 2px solid var(--tf-border, rgba(255, 255, 255, 0.28));
   color: #0b0d12;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
@@ -607,7 +669,6 @@ onMounted(() => {
 }
 
 .shop-row__body {
-  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -620,6 +681,7 @@ onMounted(() => {
   color: var(--tf-on-surface, #e8eaed);
   line-height: 1.25;
   overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .shop-row__meta {
@@ -628,14 +690,22 @@ onMounted(() => {
 }
 
 .shop-row__qty {
-  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  font-size: 0.95rem;
+  justify-content: center;
+  min-width: 3.25rem;
+  max-width: 5.5rem;
   font-weight: 800;
-  color: var(--cat-color);
+  color: var(--cat-color, #00e5ff);
   line-height: 1.1;
+}
+
+.shop-row__qty-value {
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  text-align: right;
 }
 
 .shop-row__unit {
@@ -704,10 +774,20 @@ onMounted(() => {
   color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
+@media (max-width: 960px) {
+  .shop-inner {
+    padding-top: 0;
+  }
+
+  .shop-row__btn {
+    column-gap: 8px;
+    padding: 10px;
+  }
+}
+
 @media (max-width: 390px) {
-  .shop-page {
-    padding-left: 12px;
-    padding-right: 12px;
+  .shop-hero {
+    padding: 12px;
   }
 
   .shop-hero__title {
@@ -716,6 +796,24 @@ onMounted(() => {
 
   .shop-row__name {
     font-size: 0.86rem;
+  }
+
+  .shop-row__qty {
+    min-width: 2.75rem;
+    max-width: 4.75rem;
+  }
+
+  .shop-row__qty-value {
+    font-size: 0.84rem;
+  }
+
+  .shop-chip {
+    min-height: 34px;
+    padding: 5px 10px;
+  }
+
+  .shop-chip__label {
+    font-size: 0.74rem;
   }
 }
 </style>
