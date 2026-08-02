@@ -432,6 +432,35 @@ Durante la gracia el status puede mostrarse como `expired`, pero el acceso conti
 
 Distinto del paywall SaaS **402** `LIMIT_EXCEEDED` (Feature 037).
 
+## Membresía del gym físico (Feature 082)
+
+Tabla `client_gym_memberships` (1:1 con cliente). Independiente de `client_memberships` (pago al entrenador). Solo el cliente lee/escribe. No aplica soft-lock.
+
+### `GET /me/gym-membership` (client)
+
+```json
+{
+  "success": true,
+  "data": {
+    "gym_name": "Mi gym",
+    "expires_on": "2026-09-15",
+    "days_remaining": 12,
+    "notify_enabled": true
+  }
+}
+```
+
+`data` es `null` si aún no se configuró.
+
+### `PUT /me/gym-membership` (client)
+
+Upsert: `{ "gym_name"?: string|null, "expires_on": "YYYY-MM-DD", "notify_enabled"?: boolean }`.  
+`expires_on` obligatorio. `gym_name` opcional (máx. 120).
+
+### `DELETE /me/gym-membership` (client)
+
+Elimina la fila. `404` si no existía.
+
 ## Cuenta / Ajustes (Feature 024)
 
 Endpoints del usuario autenticado (`req.user.id`). Trainer y client.
@@ -1069,6 +1098,7 @@ Eventos:
 - Cliente: PR / racha → `pr_achieved` / `streak_milestone` → `/client/progress`
 - Cliente: recordatorio de entreno (job 075) → `workout_reminder` → `/dashboard`
 - Cliente: membresía 7/3/1 días, gracia (−1…−3) o vencida (job 075) → `membership_expiring` / `membership_grace` / `membership_expired` → `/dashboard`
+- Cliente: membresía del gym físico 7/3/1/0 días (job 082) → `gym_membership_expiring` / `gym_membership_expired` → `/client/profile`
 - Cliente: racha en riesgo (job 075) → `streak_at_risk` → `/client/progress`
 - Trainer: alumno completa entrenamiento → `routine_completed` → `/trainer/clients/:clientId`
 - Trainer: PR de alumno → `pr_achieved` → `/trainer/clients/:clientId`

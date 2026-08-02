@@ -216,6 +216,9 @@ const getIcon = (type) => {
     case 'membership_expired':
     case 'membership_grace':
       return 'mdi-card-account-details-outline';
+    case 'gym_membership_expiring':
+    case 'gym_membership_expired':
+      return 'mdi-dumbbell';
     case 'streak_at_risk':
       return 'mdi-fire-alert';
     default:
@@ -547,6 +550,12 @@ const handleDismiss = async (notif) => {
 .tf-notif-panel__icon--membership_grace {
   background: rgba(171, 71, 188, 0.16);
   color: #ce93d8;
+}
+
+.tf-notif-panel__icon--gym_membership_expiring,
+.tf-notif-panel__icon--gym_membership_expired {
+  background: rgba(0, 229, 255, 0.14);
+  color: #00E5FF;
 }
 
 .tf-notif-panel__icon--streak_at_risk {

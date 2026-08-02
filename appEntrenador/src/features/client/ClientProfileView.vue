@@ -1,6 +1,6 @@
 <script setup>
 /**
- * Client "Mi Perfil" — identidad → membresía → avisos → seguridad.
+ * Client "Mi Perfil" — identidad → plan entrenador → gym → avisos → seguridad.
  * Orden según patrones de account settings (status crítico antes que preferencias).
  */
 import { onMounted, reactive, shallowRef } from 'vue';
@@ -20,13 +20,16 @@ import ChangePasswordForm from '../../shared/components/ChangePasswordForm.vue';
 import ProfileFormCard from '../../shared/components/ProfileFormCard.vue';
 import PushOptInCard from '../../shared/components/PushOptInCard.vue';
 import { getMyMembership } from './api/membershipApi.js';
+import { getMyGymMembership } from './api/gymMembershipApi.js';
 import ClientProfileMembershipCard from './components/ClientProfileMembershipCard.vue';
+import ClientGymMembershipCard from './components/ClientGymMembershipCard.vue';
 
 const router = useRouter();
 
 const userId = shallowRef(null);
 const profile = shallowRef(null);
 const membership = shallowRef(null);
+const gymMembership = shallowRef(null);
 const loading = shallowRef(true);
 const saving = shallowRef(false);
 const savingPassword = shallowRef(false);
@@ -54,16 +57,28 @@ async function loadMembershipSafe() {
   }
 }
 
+async function loadGymMembershipSafe() {
+  try {
+    const response = await getMyGymMembership();
+    return response.data?.data ?? null;
+  } catch (error) {
+    console.warn('No se pudo cargar membresía del gym:', error);
+    return null;
+  }
+}
+
 async function loadProfile() {
   try {
     loading.value = true;
     loadError.value = '';
-    const [profileRes, mem] = await Promise.all([
+    const [profileRes, mem, gymMem] = await Promise.all([
       getProfile(userId.value),
       loadMembershipSafe(),
+      loadGymMembershipSafe(),
     ]);
     profile.value = profileRes.data.data ?? null;
     membership.value = mem;
+    gymMembership.value = gymMem;
   } catch (error) {
     console.error('Error cargando perfil:', error);
     loadError.value = getApiErrorMessage(error, 'No se pudo cargar tu perfil');
@@ -71,6 +86,10 @@ async function loadProfile() {
   } finally {
     loading.value = false;
   }
+}
+
+function onGymUpdated(data) {
+  gymMembership.value = data;
 }
 
 async function onSave({ fields, fotoFile, done }) {
@@ -166,12 +185,24 @@ onMounted(() => {
             />
           </section>
 
-          <!-- 2. Membresía (status crítico, antes que preferencias) -->
+          <!-- 2. Membresía plan entrenador (status crítico) -->
           <section class="tf-profile-section" aria-labelledby="tf-sec-plan">
             <h2 id="tf-sec-plan" class="tf-profile-section__label">
               Plan
             </h2>
             <ClientProfileMembershipCard :membership="membership" />
+          </section>
+
+          <!-- 2b. Membresía del gym físico (Feature 082) -->
+          <section class="tf-profile-section" aria-labelledby="tf-sec-gym">
+            <h2 id="tf-sec-gym" class="tf-profile-section__label">
+              Gym
+            </h2>
+            <ClientGymMembershipCard
+              :membership="gymMembership"
+              @updated="onGymUpdated"
+              @notify="notify"
+            />
           </section>
 
           <!-- 3. Preferencias / notificaciones -->

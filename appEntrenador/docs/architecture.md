@@ -43,6 +43,7 @@ El backend monta módulos bajo `/api` desde `backend/src/server.js`.
 - `backend/src/modules/invites/`: gestión de invitaciones (Feature 023) — `POST/GET /api/invites`, `PATCH /api/invites/:id/revoke`; alias `POST /api/generate-token`. Estados: `pending` | `used` | `revoked`. `POST /invites` aplica `checkTrainerLimits`.
 - `backend/src/modules/clients/`: listado/detalle/overview 360 de clientes del trainer autenticado (incluye resumen de membresía en listado/overview).
 - `backend/src/modules/memberships/`: membresía / control de pago del alumno (Feature 040 + 079) — `GET/PUT /clients/:id/membership`, `GET /me/membership`; soft-lock `MEMBERSHIP_BLOCKED` en workout del cliente.
+- `backend/src/modules/gym-membership/`: membresía del gym físico (Feature 082) — `GET/PUT/DELETE /me/gym-membership` (solo client); recordatorios vía notification-jobs.
 - `backend/src/modules/membership-types/`: catálogo de tipos/precios por trainer (Feature 079) — CRUD `/trainer/membership-types`.
 - `backend/src/modules/personal-records/`: PRs de peso (Feature 041) — detección al cerrar sesión, `GET /me/personal-records`, `GET /clients/:id/personal-records`; notificación `pr_achieved`.
 - `backend/src/modules/consistency/`: rachas y score (Feature 042) — `GET /me/consistency`, `GET/PUT /clients/:id/consistency` (meta semanal); recalculo al cerrar sesión.

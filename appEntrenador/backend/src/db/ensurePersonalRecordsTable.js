@@ -43,7 +43,9 @@ async function ensurePersonalRecordsTable() {
           'workout_reminder',
           'membership_expiring',
           'membership_expired',
-          'membership_grace'
+          'membership_grace',
+          'gym_membership_expiring',
+          'gym_membership_expired'
         ) NOT NULL DEFAULT 'system'
     `);
   } catch (error) {

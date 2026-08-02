@@ -11,12 +11,14 @@ const NOTIFICATION_TYPES_ENUM = `
   'workout_reminder',
   'membership_expiring',
   'membership_expired',
-  'membership_grace'
+  'membership_grace',
+  'gym_membership_expiring',
+  'gym_membership_expired'
 `;
 
 /**
  * Asegura la tabla notifications en DBs ya existentes (script_db.sql no se re-ejecuta).
- * Feature 025 + 041/042 + 074 (deep-links / TTL / diet_updated) + 075 (jobs).
+ * Feature 025 + 041/042 + 074 (deep-links / TTL / diet_updated) + 075 (jobs) + 082 (gym).
  */
 async function ensureNotificationsTable() {
   await db.query(`

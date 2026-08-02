@@ -231,7 +231,7 @@ CREATE TABLE body_composition_logs (
       FOREIGN KEY (recorded_by) REFERENCES usuarios(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
--- 13. NOTIFICACIONES IN-APP (Feature 025 + 074 + 075)
+-- 13. NOTIFICACIONES IN-APP (Feature 025 + 074 + 075 + 082)
 CREATE TABLE notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -248,7 +248,9 @@ CREATE TABLE notifications (
       'workout_reminder',
       'membership_expiring',
       'membership_expired',
-      'membership_grace'
+      'membership_grace',
+      'gym_membership_expiring',
+      'gym_membership_expired'
     ) NOT NULL DEFAULT 'system',
     entity_type VARCHAR(50) NULL,
     entity_id INT NULL,
@@ -449,6 +451,20 @@ CREATE TABLE client_memberships (
       FOREIGN KEY (updated_by) REFERENCES usuarios(id) ON DELETE SET NULL,
     CONSTRAINT fk_cm_membership_type
       FOREIGN KEY (membership_type_id) REFERENCES trainer_membership_types(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- 18b. MEMBRESÍA DEL GYM FÍSICO (Feature 082) — recordatorio personal del cliente
+CREATE TABLE client_gym_memberships (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    client_id INT NOT NULL,
+    gym_name VARCHAR(120) NULL,
+    expires_on DATE NOT NULL,
+    notify_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_client_gym_memberships_client (client_id),
+    INDEX idx_client_gym_memberships_expires (expires_on),
+    CONSTRAINT fk_client_gym_memberships_client
+      FOREIGN KEY (client_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- 19. RÉCORDS PERSONALES / PRs (Feature 041)

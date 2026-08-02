@@ -70,11 +70,16 @@ async function listClientsForJobs() {
        cs.current_streak,
        cm.status AS membership_status,
        cm.period_end,
-       DATEDIFF(cm.period_end, CURDATE()) AS days_remaining
+       DATEDIFF(cm.period_end, CURDATE()) AS days_remaining,
+       cgm.gym_name AS gym_name,
+       cgm.expires_on AS gym_expires_on,
+       cgm.notify_enabled AS gym_notify_enabled,
+       DATEDIFF(cgm.expires_on, CURDATE()) AS gym_days_remaining
      FROM usuarios u
      LEFT JOIN client_notification_settings s ON s.client_id = u.id
      LEFT JOIN client_streaks cs ON cs.client_id = u.id
      LEFT JOIN client_memberships cm ON cm.client_id = u.id
+     LEFT JOIN client_gym_memberships cgm ON cgm.client_id = u.id
      WHERE u.rol = 'client'`,
     [DEFAULT_TIMEZONE],
   );
@@ -270,6 +275,53 @@ async function processMembershipAlerts(client) {
   }
 }
 
+async function processGymMembershipAlert(client) {
+  if (client.gym_expires_on == null) return;
+  if (!Boolean(Number(client.gym_notify_enabled ?? 1))) return;
+
+  const tz = normalizeTimeZone(client.timezone);
+  const parts = getZonedParts(tz);
+  if (parts.hour !== MEMBERSHIP_ALERT_HOUR) return;
+  if (parts.minute >= WORKOUT_WINDOW_MINUTES) return;
+
+  const daysRemaining =
+    client.gym_days_remaining == null ? null : Number(client.gym_days_remaining);
+  if (daysRemaining == null || !Number.isFinite(daysRemaining)) return;
+  if (![7, 3, 1, 0].includes(daysRemaining)) return;
+
+  const claimed = await dedupeService.claim(
+    client.client_id,
+    `gym_membership:${daysRemaining}:${parts.dateStr}`,
+  );
+  if (!claimed) return;
+
+  const gymLabel = (client.gym_name && String(client.gym_name).trim())
+    || 'tu gym';
+
+  if (daysRemaining === 0) {
+    await notificationService.createNotification({
+      userId: client.client_id,
+      title: 'Tu membresía del gym vence hoy',
+      message: `La membresía de ${gymLabel} vence hoy. Renueva para no quedarte fuera.`,
+      type: 'gym_membership_expired',
+      entityType: 'gym_membership',
+      entityId: client.client_id,
+      actionUrl: '/client/profile',
+    });
+    return;
+  }
+
+  await notificationService.createNotification({
+    userId: client.client_id,
+    title: `Membresía del gym: ${daysRemaining} ${daysRemaining === 1 ? 'día' : 'días'}`,
+    message: `Tu membresía de ${gymLabel} vence en ${daysRemaining} ${daysRemaining === 1 ? 'día' : 'días'}.`,
+    type: 'gym_membership_expiring',
+    entityType: 'gym_membership',
+    entityId: client.client_id,
+    actionUrl: '/client/profile',
+  });
+}
+
 async function processStreakAtRisk(client) {
   const streak = Number(client.current_streak || 0);
   if (!(streak > 0)) return;
@@ -327,6 +379,7 @@ async function runTick() {
 
       await processWorkoutReminder(client);
       await processMembershipAlerts(client);
+      await processGymMembershipAlert(client);
       await processStreakAtRisk(client);
       processed += 1;
     } catch (error) {

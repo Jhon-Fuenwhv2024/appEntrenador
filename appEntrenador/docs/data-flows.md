@@ -91,6 +91,13 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 7. Catálogo de tipos: trainer en **Recursos → Membresías** (`/trainer/library/memberships`) CRUD vía `/trainer/membership-types`.
 8. Si aplica soft-lock, `POST /me/workout-sessions` (y guards) responden 403 `MEMBERSHIP_BLOCKED`.
 
+## Membresía del gym físico (Feature 082)
+
+1. Cliente en `/client/profile` (sección Gym) guarda nombre opcional + `expires_on` + `notify_enabled` → `PUT /me/gym-membership` (upsert en `client_gym_memberships`).
+2. `GET /me/gym-membership` devuelve fila o `null` con `days_remaining` calculado.
+3. `DELETE /me/gym-membership` borra la fila (deja de avisar).
+4. Job diario (hora 9, TZ del alumno): si `notify_enabled` y `days_remaining` ∈ {7,3,1,0} → notificación `gym_membership_expiring` / `gym_membership_expired` → `/client/profile` (+ push 051). Independiente de `client_memberships` (040).
+
 ## Dashboard immersivo del cliente (Feature 038)
 
 1. Cliente en Inicio (`ClientDashboardView`) llama `GET /me/today?date=YYYY-MM-DD` (fecha civil local del dispositivo).
@@ -98,7 +105,7 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 3. Si no hay rutina para ese weekday, `todayRoutine = null` → UI “Día de descanso”; si hay, hero + CTA **Empezar** → `/client/workout/:routineId`.
 4. Hábitos y macros se hidratan desde la misma respuesta (sin round-trips extra); el toggle de hábitos sigue siendo `POST /habits/:id/toggle`.
 5. Meta bajo el saludo (“N días restantes”); si `membershipBlocked`, hero con CTA Bloqueado (Player también responde 403 `MEMBERSHIP_BLOCKED`).
-6. Perfil cliente (`/client/profile`): `ProfileFormCard` (datos/foto) y debajo un resumen compacto de membresía (`GET /me/membership`: días, Al día/Pendiente/Saldo $X, vigencia).
+6. Perfil cliente (`/client/profile`): `ProfileFormCard` (datos/foto), resumen de plan entrenador (`GET /me/membership`), card editable de gym físico (`GET/PUT/DELETE /me/gym-membership`, Feature 082), y preferencias push.
 7. Plan de dieta activo (043/064): `ClientDietView` llama `GET /me/diet-plan?date=` (día resuelto del ciclo) y `GET /me/diet-plan/week` (strip L–D).
 8. Lista de compra (071): botón carrito en `ClientDietView` → `/client/shopping-list` (`ClientShoppingListView` + `GET /me/diet-plan/shopping-list`); checklist en `localStorage` por `planId`.
 
