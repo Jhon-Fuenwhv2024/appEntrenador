@@ -1,6 +1,7 @@
 <script setup>
 /**
  * Modal de check-in semanal (biofeedback + fotos opcionales).
+ * Feature 081: escala 1–5 en pills primary (alineado a Trainfit).
  * Valida tamaño ≤5MB por foto antes de enviar.
  */
 import { computed, ref, shallowRef, watch } from 'vue';
@@ -8,6 +9,28 @@ import { getApiErrorMessage } from '../../../shared/api/http.js';
 import { createCheckin } from '../api/checkinsApi.js';
 
 const MAX_BYTES = 5 * 1024 * 1024;
+const SCALE = [1, 2, 3, 4, 5];
+
+const METRIC_DEFS = [
+  {
+    key: 'sleep',
+    label: 'Calidad de sueño',
+    icon: 'mdi-sleep',
+    groupLabel: 'Calidad de sueño, de 1 a 5',
+  },
+  {
+    key: 'stress',
+    label: 'Nivel de estrés',
+    icon: 'mdi-head-heart-outline',
+    groupLabel: 'Nivel de estrés, de 1 a 5',
+  },
+  {
+    key: 'diet',
+    label: 'Adherencia a la dieta',
+    icon: 'mdi-food-apple-outline',
+    groupLabel: 'Adherencia a la dieta, de 1 a 5',
+  },
+];
 
 const props = defineProps({
   modelValue: {
@@ -37,6 +60,26 @@ const localError = shallowRef('');
 
 const snackbar = ref(false);
 const snackbarText = shallowRef('');
+
+/**
+ * @param {'sleep'|'stress'|'diet'} key
+ * @returns {number}
+ */
+function getMetricValue(key) {
+  if (key === 'sleep') return sleepQuality.value;
+  if (key === 'stress') return stressLevel.value;
+  return dietAdherence.value;
+}
+
+/**
+ * @param {'sleep'|'stress'|'diet'} key
+ * @param {number} value
+ */
+function setMetricValue(key, value) {
+  if (key === 'sleep') sleepQuality.value = value;
+  else if (key === 'stress') stressLevel.value = value;
+  else dietAdherence.value = value;
+}
 
 function todayLocalDate() {
   const now = new Date();
@@ -152,18 +195,47 @@ function close() {
   <v-dialog
     v-model="open"
     max-width="520"
-    scrim="rgba(0,0,0,0.7)"
+    scrim="rgba(0, 0, 0, 0.62)"
+    transition="dialog-bottom-transition"
     :persistent="submitting"
   >
-    <v-card class="checkin-dialog" color="surface">
-      <v-card-title class="checkin-dialog__title">
-        Check-in semanal
-      </v-card-title>
-      <v-card-subtitle class="pb-2">
-        Cuéntale a tu entrenador cómo vas esta semana
-      </v-card-subtitle>
+    <v-card
+      class="checkin-dialog"
+      bg-color="surface"
+      rounded="xl"
+    >
+      <v-card-item class="checkin-dialog__head">
+        <template #prepend>
+          <div
+            class="checkin-dialog__icon"
+            aria-hidden="true"
+          >
+            <v-icon
+              icon="mdi-clipboard-check-outline"
+              size="22"
+              color="primary"
+            />
+          </div>
+        </template>
+        <v-card-title class="checkin-dialog__title">
+          Check-in semanal
+        </v-card-title>
+        <v-card-subtitle class="checkin-dialog__subtitle">
+          Cuéntale a tu entrenador cómo vas esta semana
+        </v-card-subtitle>
+        <template #append>
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            size="small"
+            aria-label="Cerrar"
+            :disabled="submitting"
+            @click="close"
+          />
+        </template>
+      </v-card-item>
 
-      <v-card-text class="pt-2">
+      <v-card-text class="checkin-dialog__body">
         <v-alert
           v-if="localError"
           type="error"
@@ -174,52 +246,49 @@ function close() {
           {{ localError }}
         </v-alert>
 
-        <div class="checkin-metric">
-          <div class="checkin-metric__label">
-            <v-icon icon="mdi-sleep" size="18" class="me-1" />
-            Calidad de sueño
+        <div
+          v-for="metric in METRIC_DEFS"
+          :key="metric.key"
+          class="checkin-metric"
+        >
+          <div class="checkin-metric__top">
+            <div class="checkin-metric__label">
+              <v-icon
+                :icon="metric.icon"
+                size="18"
+                class="checkin-metric__icon"
+                aria-hidden="true"
+              />
+              {{ metric.label }}
+            </div>
+            <span
+              class="checkin-metric__value"
+              aria-hidden="true"
+            >
+              {{ getMetricValue(metric.key) }}/5
+            </span>
           </div>
-          <v-rating
-            v-model="sleepQuality"
-            :length="5"
-            :half-increments="false"
-            color="primary"
-            active-color="primary"
-            hover
-            density="comfortable"
-          />
-        </div>
 
-        <div class="checkin-metric">
-          <div class="checkin-metric__label">
-            <v-icon icon="mdi-head-heart-outline" size="18" class="me-1" />
-            Nivel de estrés
+          <div
+            class="checkin-scale"
+            role="radiogroup"
+            :aria-label="metric.groupLabel"
+          >
+            <button
+              v-for="n in SCALE"
+              :key="`${metric.key}-${n}`"
+              type="button"
+              class="checkin-scale__btn"
+              :class="{ 'checkin-scale__btn--on': getMetricValue(metric.key) === n }"
+              role="radio"
+              :aria-checked="getMetricValue(metric.key) === n"
+              :aria-label="`${n} de 5`"
+              :disabled="submitting"
+              @click="setMetricValue(metric.key, n)"
+            >
+              {{ n }}
+            </button>
           </div>
-          <v-rating
-            v-model="stressLevel"
-            :length="5"
-            :half-increments="false"
-            color="warning"
-            active-color="warning"
-            hover
-            density="comfortable"
-          />
-        </div>
-
-        <div class="checkin-metric">
-          <div class="checkin-metric__label">
-            <v-icon icon="mdi-food-apple-outline" size="18" class="me-1" />
-            Adherencia a la dieta
-          </div>
-          <v-rating
-            v-model="dietAdherence"
-            :length="5"
-            :half-increments="false"
-            color="success"
-            active-color="success"
-            hover
-            density="comfortable"
-          />
         </div>
 
         <v-textarea
@@ -231,7 +300,7 @@ function close() {
           variant="outlined"
           density="comfortable"
           color="primary"
-          class="mt-3"
+          class="mt-3 checkin-field"
           hide-details="auto"
           :disabled="submitting"
         />
@@ -295,13 +364,19 @@ function close() {
         </v-expansion-panels>
       </v-card-text>
 
-      <v-card-actions class="px-4 pb-4">
-        <v-spacer />
-        <v-btn variant="text" :disabled="submitting" @click="close">
+      <v-card-actions class="checkin-dialog__actions">
+        <v-btn
+          variant="outlined"
+          class="checkin-dialog__cancel"
+          :disabled="submitting"
+          @click="close"
+        >
           Cancelar
         </v-btn>
         <v-btn
           color="primary"
+          variant="flat"
+          class="checkin-dialog__submit font-weight-bold"
           :loading="submitting"
           :disabled="submitting"
           @click="onSubmit"
@@ -318,31 +393,177 @@ function close() {
 </template>
 
 <style scoped>
+.checkin-dialog {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.checkin-dialog__head {
+  padding-top: 1rem !important;
+  padding-bottom: 0.35rem !important;
+}
+
+.checkin-dialog__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 229, 255, 0.12);
+  border: 1px solid rgba(0, 229, 255, 0.28);
+}
+
 .checkin-dialog__title {
-  font-weight: 700;
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
   letter-spacing: -0.02em;
+  color: var(--tf-on-surface, #fff);
+}
+
+.checkin-dialog__subtitle {
+  white-space: normal !important;
+  opacity: 1 !important;
+  color: var(--tf-on-surface-muted, #a8b0bc) !important;
+  font-size: 0.78rem !important;
+  line-height: 1.4 !important;
+  max-width: 34ch;
+}
+
+.checkin-dialog__body {
+  padding-top: 0.75rem !important;
 }
 
 .checkin-metric {
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.55rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.checkin-metric__top {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.55rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 0.55rem;
 }
 
 .checkin-metric__label {
   display: flex;
   align-items: center;
-  font-size: 0.9rem;
+  gap: 0.35rem;
+  font-size: 0.875rem;
   font-weight: 600;
+  color: var(--tf-on-surface, #fff);
+  min-width: 0;
+}
+
+.checkin-metric__icon {
+  color: var(--tf-on-surface-muted, #a8b0bc);
+  flex-shrink: 0;
+}
+
+.checkin-metric__value {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--v-theme-primary));
+}
+
+.checkin-scale {
+  display: flex;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.checkin-scale__btn {
+  flex: 1;
+  min-height: 44px;
+  min-width: 0;
+  padding: 0.35rem 0.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--tf-on-surface, #e8eaed);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.checkin-scale__btn:hover:not(:disabled) {
+  border-color: rgba(0, 229, 255, 0.35);
+  background: rgba(0, 229, 255, 0.08);
+}
+
+.checkin-scale__btn--on {
+  border-color: rgba(0, 229, 255, 0.55);
+  background: rgba(0, 229, 255, 0.16);
+  color: #00e5ff;
+}
+
+.checkin-scale__btn:focus-visible {
+  outline: var(--tf-focus-ring, 2px solid #00e5ff);
+  outline-offset: var(--tf-focus-offset, 2px);
+}
+
+.checkin-scale__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.checkin-dialog :deep(.v-field--variant-outlined) {
+  background: transparent;
+}
+
+.checkin-dialog :deep(.v-field--variant-outlined .v-field__outline) {
+  --v-field-border-opacity: 0.28;
 }
 
 .checkin-photos__hint {
   margin: 0 0 0.75rem;
   font-size: 0.75rem;
   color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.checkin-dialog__actions {
+  display: flex !important;
+  gap: 0.65rem;
+  padding: 0.75rem 1.25rem 1.25rem !important;
+}
+
+.checkin-dialog__cancel,
+.checkin-dialog__submit {
+  flex: 1;
+  min-height: 44px;
+}
+
+.checkin-dialog__cancel:focus-visible,
+.checkin-dialog__submit:focus-visible {
+  outline: var(--tf-focus-ring, 2px solid #00e5ff);
+  outline-offset: var(--tf-focus-offset, 2px);
+}
+
+@media (max-width: 390px) {
+  .checkin-dialog__subtitle {
+    max-width: 100%;
+  }
+
+  .checkin-metric {
+    padding: 0.65rem 0.7rem;
+  }
+
+  .checkin-scale {
+    gap: 0.3rem;
+  }
+
+  .checkin-scale__btn {
+    font-size: 0.8125rem;
+  }
 }
 </style>
