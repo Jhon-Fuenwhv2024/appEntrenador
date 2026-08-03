@@ -4,6 +4,9 @@ const exercisesService = require('../exercises/exercises.service');
 const habitsService = require('../habits/habits.service');
 const nutritionService = require('../nutrition/nutrition.service');
 const membershipsService = require('../memberships/memberships.service');
+const consistencyService = require('../consistency/consistency.service');
+const dietPlansService = require('../diet-plans/diet-plans.service');
+const messagesService = require('../messages/messages.service');
 const { assertClientWritableUnderPlan } = require('../../shared/saas/trainerSeats');
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -476,7 +479,7 @@ async function hasCompletedRoutineOnDate(clientId, routineId, dateStr) {
 }
 
 /**
- * Feature 038: aggregator for client immersive dashboard.
+ * Feature 038 + 083: aggregator for client immersive dashboard.
  * todayRoutine is null when there is no routine for the requested weekday (rest day).
  */
 async function getTodayBundle(clientId, dateParam) {
@@ -486,11 +489,36 @@ async function getTodayBundle(clientId, dateParam) {
   );
   const weekday = weekdayLabelFromLocalDate(date);
 
-  const [routines, habits, macrosRow, membership] = await Promise.all([
+  const [
+    routines,
+    habits,
+    macrosRow,
+    membership,
+    consistency,
+    checkinMeta,
+    chatPreview,
+    dietSummary,
+  ] = await Promise.all([
     listMyRoutines(clientId),
     habitsService.listTodayForClient(clientId, date),
     nutritionService.getByClientId(clientId),
     membershipsService.getForClient(clientId),
+    consistencyService.buildConsistencyPayload(clientId).catch((error) => {
+      console.warn('[getTodayBundle] consistency:', error.message);
+      return null;
+    }),
+    getCheckinDueMeta(clientId, date).catch((error) => {
+      console.warn('[getTodayBundle] checkin:', error.message);
+      return { checkinDue: false, lastCheckinAt: null };
+    }),
+    getChatPreviewForClient(clientId).catch((error) => {
+      console.warn('[getTodayBundle] chat:', error.message);
+      return null;
+    }),
+    dietPlansService.buildDietTodaySummary(clientId, date).catch((error) => {
+      console.warn('[getTodayBundle] diet:', error.message);
+      return null;
+    }),
   ]);
 
   let membershipBlocked = false;
@@ -509,6 +537,14 @@ async function getTodayBundle(clientId, dateParam) {
     ? await hasCompletedRoutineOnDate(clientId, todayRoutine.id, date)
     : false;
 
+  const weekInsight = buildWeekInsight({
+    consistency,
+    diet: dietSummary,
+    macros: macrosRow || null,
+    todayCompleted,
+    todayRoutine,
+  });
+
   return {
     date,
     weekday,
@@ -518,7 +554,80 @@ async function getTodayBundle(clientId, dateParam) {
     macros: macrosRow || null,
     membership,
     membershipBlocked,
+    consistency,
+    checkinDue: Boolean(checkinMeta?.checkinDue),
+    lastCheckinAt: checkinMeta?.lastCheckinAt ?? null,
+    chatPreview,
+    diet: dietSummary,
+    weekInsight,
   };
+}
+
+async function getCheckinDueMeta(clientId, localDateYmd) {
+  const [[row]] = await db.query(
+    `SELECT created_at
+     FROM weekly_checkins
+     WHERE client_id = ?
+     ORDER BY created_at DESC, id DESC
+     LIMIT 1`,
+    [clientId],
+  );
+
+  if (!row?.created_at) {
+    return { checkinDue: true, lastCheckinAt: null };
+  }
+
+  const last = new Date(row.created_at);
+  const lastKey = last.toISOString().slice(0, 10);
+  const anchor = new Date(`${localDateYmd}T12:00:00.000Z`);
+  const lastNoon = new Date(`${lastKey}T12:00:00.000Z`);
+  const diffMs = anchor.getTime() - lastNoon.getTime();
+  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+
+  return {
+    checkinDue: diffDays >= 7,
+    lastCheckinAt: row.created_at,
+  };
+}
+
+async function getChatPreviewForClient(clientId) {
+  const summary = await messagesService.getUnreadSummary({
+    id: clientId,
+    rol: 'client',
+  });
+  const total = Number(summary?.total) || 0;
+  if (total <= 0) return null;
+  const partner = summary.byPartner?.[0];
+  if (!partner) return null;
+  return {
+    total,
+    partnerId: partner.partnerId,
+    preview: partner.preview || '',
+    lastMessageAt: partner.lastMessageAt || null,
+  };
+}
+
+function buildWeekInsight({ consistency, diet, macros, todayCompleted, todayRoutine }) {
+  const parts = [];
+  if (consistency) {
+    const w = Number(consistency.workouts_this_week) || 0;
+    const g = Number(consistency.week_goal) || 3;
+    parts.push(`${w}/${g} entrenos`);
+  }
+  const proteinPlan = diet?.planned?.protein_g ?? diet?.eaten?.protein_g;
+  if (proteinPlan != null && Number.isFinite(Number(proteinPlan))) {
+    parts.push(`proteína plan ~${Math.round(Number(proteinPlan))}g`);
+  } else if (macros?.protein_g != null) {
+    parts.push(`meta P ${Math.round(Number(macros.protein_g))}g`);
+  }
+  if (todayCompleted) {
+    parts.push('hoy listo');
+  } else if (todayRoutine) {
+    parts.push('falta entreno hoy');
+  } else {
+    parts.push('día de descanso');
+  }
+  return parts.join(' · ');
 }
 
 async function insertExerciseLines(connection, routineId, ejercicios) {

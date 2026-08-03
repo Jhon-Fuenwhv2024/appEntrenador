@@ -2,6 +2,8 @@ const db = require('../../config/db');
 const { notificationService } = require('../notifications/notifications.service');
 const dedupeService = require('./dedupe.service');
 const notificationSettingsService = require('./notification-settings.service');
+const { sendMail, isSmtpConfigured } = require('../../shared/mail/mailer');
+const { APP_PUBLIC_URL } = require('../../config/env');
 const {
   DEFAULT_TIMEZONE,
   getZonedParts,
@@ -12,6 +14,9 @@ const {
 
 const MEMBERSHIP_ALERT_HOUR = 9;
 const STREAK_ALERT_HOUR = 9;
+const WEEKLY_DIGEST_HOUR = 9;
+/** Monday in weekdayEs from getZonedParts */
+const WEEKLY_DIGEST_WEEKDAY = 'Lunes';
 const WORKOUT_WINDOW_MINUTES = 5;
 /** Alineado con memberships.service / access.js (Feature 080). */
 const MEMBERSHIP_ACCESS_GRACE_DAYS = 3;
@@ -63,11 +68,13 @@ async function listClientsForJobs() {
     `SELECT
        u.id AS client_id,
        u.nombre,
+       u.email,
        u.trainer_id,
        COALESCE(s.workout_reminder_enabled, 1) AS workout_reminder_enabled,
        COALESCE(s.workout_reminder_hour, 8) AS workout_reminder_hour,
        COALESCE(s.timezone, ?) AS timezone,
        cs.current_streak,
+       cs.week_goal,
        cm.status AS membership_status,
        cm.period_end,
        DATEDIFF(cm.period_end, CURDATE()) AS days_remaining,
@@ -357,7 +364,128 @@ async function processStreakAtRisk(client) {
 }
 
 /**
- * Periodic tick: workout reminders, membership alerts, streak_at_risk.
+ * Feature 083 — digest semanal por email al cliente (lunes ~09:00 TZ).
+ */
+async function processWeeklyClientDigest(client) {
+  if (!isSmtpConfigured()) return;
+  const email = String(client.email || '').trim();
+  if (!email || !email.includes('@')) return;
+
+  const tz = normalizeTimeZone(client.timezone);
+  const parts = getZonedParts(tz);
+  if (parts.weekdayEs !== WEEKLY_DIGEST_WEEKDAY) return;
+  if (parts.hour !== WEEKLY_DIGEST_HOUR) return;
+  if (parts.minute >= WORKOUT_WINDOW_MINUTES) return;
+
+  const weekKey = parts.dateStr;
+  const claimed = await dedupeService.claim(
+    client.client_id,
+    `weekly_client_digest:${weekKey}`,
+  );
+  if (!claimed) return;
+
+  const weekStart = addDaysToDateStr(parts.dateStr, -7);
+  const [[workoutRow]] = await db.query(
+    `SELECT COUNT(*) AS cnt
+     FROM workout_sessions
+     WHERE client_id = ?
+       AND status = 'completed'
+       AND COALESCE(finished_at, created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 10 DAY)`,
+    [client.client_id],
+  );
+
+  // Count workouts in last 7 local days (approx via finished timestamps + TZ filter)
+  const [sessionRows] = await db.query(
+    `SELECT finished_at, created_at
+     FROM workout_sessions
+     WHERE client_id = ?
+       AND status = 'completed'
+       AND COALESCE(finished_at, created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 10 DAY)`,
+    [client.client_id],
+  );
+  let workoutsWeek = 0;
+  for (const row of sessionRows) {
+    const key = toZonedDateStr(row.finished_at || row.created_at, tz);
+    if (key >= weekStart && key < parts.dateStr) workoutsWeek += 1;
+  }
+  if (!workoutsWeek && workoutRow) {
+    workoutsWeek = Math.min(Number(workoutRow.cnt) || 0, 7);
+  }
+
+  const [[checkinRow]] = await db.query(
+    `SELECT created_at
+     FROM weekly_checkins
+     WHERE client_id = ?
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [client.client_id],
+  );
+  let checkinDue = true;
+  if (checkinRow?.created_at) {
+    const lastKey = toZonedDateStr(checkinRow.created_at, tz);
+    const anchor = new Date(`${parts.dateStr}T12:00:00.000Z`);
+    const lastNoon = new Date(`${lastKey}T12:00:00.000Z`);
+    const diffDays = Math.floor((anchor - lastNoon) / (24 * 60 * 60 * 1000));
+    checkinDue = diffDays >= 7;
+  }
+
+  const streak = Number(client.current_streak) || 0;
+  const weekGoal = Number(client.week_goal) || 3;
+  const daysRemaining = client.days_remaining == null
+    ? null
+    : Number(client.days_remaining);
+  const name = String(client.nombre || 'athlete').split(/\s+/)[0];
+
+  const lines = [
+    `Hola ${name},`,
+    '',
+    `Resumen de tu semana en Trainfit:`,
+    `• Entrenamientos (7 días): ${workoutsWeek}`,
+    `• Racha actual: ${streak} día${streak === 1 ? '' : 's'} · Meta semanal ${weekGoal}`,
+    checkinDue ? '• Check-in semanal pendiente' : '• Check-in al día',
+  ];
+  if (daysRemaining != null && Number.isFinite(daysRemaining) && daysRemaining <= 7) {
+    lines.push(
+      daysRemaining < 0
+        ? '• Membresía vencida — renueva con tu entrenador'
+        : `• Membresía: ${daysRemaining} día${daysRemaining === 1 ? '' : 's'} restantes`,
+    );
+  }
+  lines.push('', `Abre la app: ${APP_PUBLIC_URL}/dashboard`, '', '— Equipo Trainfit');
+
+  const text = lines.join('\n');
+  const html = `<p>Hola <strong>${name}</strong>,</p>
+<p>Resumen de tu semana en Trainfit:</p>
+<ul>
+  <li>Entrenamientos (7 días): <strong>${workoutsWeek}</strong></li>
+  <li>Racha actual: <strong>${streak}</strong> · Meta semanal ${weekGoal}</li>
+  <li>${checkinDue ? 'Check-in semanal pendiente' : 'Check-in al día'}</li>
+  ${
+    daysRemaining != null && Number.isFinite(daysRemaining) && daysRemaining <= 7
+      ? `<li>${daysRemaining < 0 ? 'Membresía vencida' : `Membresía: ${daysRemaining} días restantes`}</li>`
+      : ''
+  }
+</ul>
+<p><a href="${APP_PUBLIC_URL}/dashboard">Abrir Trainfit</a></p>
+<p>— Equipo Trainfit</p>`;
+
+  try {
+    await sendMail({
+      to: email,
+      subject: 'Tu semana en Trainfit',
+      text,
+      html,
+    });
+  } catch (error) {
+    console.error(
+      `[notification-jobs] weekly digest client ${client.client_id}:`,
+      error.message,
+    );
+  }
+}
+
+/**
+ * Periodic tick: workout reminders, membership alerts, streak_at_risk, weekly digest.
  * Never throws to the caller for per-client failures.
  */
 async function runTick() {
@@ -372,7 +500,6 @@ async function runTick() {
   let processed = 0;
   for (const client of clients) {
     try {
-      // Lazy-create settings row with defaults when missing
       if (client.timezone == null || client.workout_reminder_hour == null) {
         await notificationSettingsService.ensureDefaults(client.client_id);
       }
@@ -381,6 +508,7 @@ async function runTick() {
       await processMembershipAlerts(client);
       await processGymMembershipAlert(client);
       await processStreakAtRisk(client);
+      await processWeeklyClientDigest(client);
       processed += 1;
     } catch (error) {
       console.error(
@@ -397,4 +525,5 @@ module.exports = {
   runTick,
   hasCompletedRoutineOnLocalDate,
   hasCompletedAnyWorkoutOnLocalDate,
+  processWeeklyClientDigest,
 };

@@ -45,6 +45,7 @@ const { ensureTrainerMembershipTypesTable } = require('./db/ensureTrainerMembers
 const { ensurePersonalRecordsTable } = require('./db/ensurePersonalRecordsTable');
 const { ensureClientStreaksTable } = require('./db/ensureClientStreaksTable');
 const { ensureDietPlansTables } = require('./db/ensureDietPlansTables');
+const { ensureDietMealAdherenceTable } = require('./db/ensureDietMealAdherenceTable');
 const { ensureSaasColumns } = require('./db/ensureSaasColumns');
 const { ensureUsuariosEmailResetColumns } = require('./db/ensureUsuariosEmailResetColumns');
 const {
@@ -236,6 +237,12 @@ async function start() {
     await ensureDietPlansTables();
   } catch (error) {
     console.error('No se pudo asegurar las tablas de planes de dieta:', error.message);
+  }
+
+  try {
+    await ensureDietMealAdherenceTable();
+  } catch (error) {
+    console.error('No se pudo asegurar diet_meal_adherence:', error.message);
   }
 
   try {

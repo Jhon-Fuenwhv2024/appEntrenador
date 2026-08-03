@@ -656,9 +656,9 @@ Deep copy a `rutinas` / `ejercicios` del alumno. Body:
 
 UI: `/trainer/library` (`LibraryView` · hub **Recursos**); “Guardar en Recursos” desde ficha de alumno.
 
-### `GET /me/today` (client) — Feature 038
+### `GET /me/today` (client) — Feature 038 + 083
 
-Agregador del dashboard immersivo del alumno. Una sola petición con la rutina de hoy, hábitos del día y objetivos de macros.
+Agregador del dashboard immersivo del alumno. Una sola petición con la rutina de hoy, hábitos, macros, consistencia, check-in, chat, dieta y insight.
 
 Headers: `Authorization: Bearer <token>` · rol `client`
 
@@ -668,33 +668,50 @@ Query:
 |-------|-------------|-------------|
 | `date` | recomendado | Fecha civil local `YYYY-MM-DD` (misma convención que `/habits/today`). Si se omite, usa UTC del servidor. |
 
-Respuesta exitosa:
+Respuesta exitosa (campos 083 ampliados):
 
 ```json
 {
   "success": true,
   "data": {
-    "todayRoutine": {
-      "id": 12,
-      "alumno_id": 5,
-      "dia_semana": "Jueves",
-      "nombre_rutina": "Full Body A",
-      "ejercicios": []
+    "todayRoutine": { "id": 12, "nombre_rutina": "Cardio", "ejercicios": [] },
+    "todayCompleted": false,
+    "habits": [{ "id": 1, "title": "Beber 2L de agua", "is_completed": false }],
+    "macros": { "calories": 2200, "protein_g": 160, "carbs_g": 220, "fats_g": 70 },
+    "date": "2026-08-01",
+    "weekday": "Sábado",
+    "membership": {},
+    "membershipBlocked": false,
+    "consistency": {
+      "current_streak": 0,
+      "best_streak": 5,
+      "week_goal": 4,
+      "workouts_this_week": 2,
+      "score": 58
     },
-    "habits": [
-      { "id": 1, "title": "Beber 2L de agua", "is_completed": false }
-    ],
-    "macros": {
-      "id": 3,
-      "client_id": 5,
-      "trainer_id": 1,
-      "calories": 2200,
-      "protein_g": 160,
-      "carbs_g": 220,
-      "fats_g": 70
+    "checkinDue": true,
+    "lastCheckinAt": null,
+    "chatPreview": {
+      "total": 1,
+      "partnerId": 3,
+      "preview": "¿Cómo te fue hoy?",
+      "lastMessageAt": "2026-08-01T15:00:00.000Z"
     },
-    "date": "2026-07-16",
-    "weekday": "Jueves"
+    "diet": {
+      "planId": 9,
+      "title": "Plan mensual",
+      "planned": { "calories": 1264, "protein_g": 89, "carbs_g": 148, "fats_g": 38 },
+      "eaten": null,
+      "nextMeal": {
+        "id": 41,
+        "name": "Desayuno",
+        "time_hint": "09:00",
+        "calories": 348,
+        "status": null
+      },
+      "mealAdherence": [{ "diet_meal_id": 41, "status": null }]
+    },
+    "weekInsight": "2/4 entrenos · proteína plan ~89g · falta entreno hoy"
   }
 }
 ```
@@ -702,7 +719,26 @@ Respuesta exitosa:
 - `todayRoutine` es `null` si no hay rutina para ese `weekday` (estado UI “Día de descanso”).
 - `todayCompleted` es `true` si existe una `workout_sessions` `completed` de esa rutina con fecha civil = `date`.
 - `macros` es `null` si el trainer aún no asignó `nutrition_targets`.
-- Shape de rutina/ejercicios = mismo enriquecimiento que `GET /me/routines` (media, `last_log`, superseries, etc.).
+- `checkinDue`: sin check-in en los últimos 7 días civiles.
+- `diet.eaten`: suma de macros de comidas marcadas `eaten`; `null` si ninguna.
+- Shape de rutina/ejercicios = mismo enriquecimiento que `GET /me/routines`.
+
+### `PUT /me/diet-meals/:mealId/adherence` (client) — Feature 083
+
+Marca una comida del plan activo como `eaten` o `skipped` para una fecha civil.
+
+Headers: `Authorization: Bearer <token>` · rol `client`
+
+Body:
+
+```json
+{ "date": "2026-08-01", "status": "eaten" }
+```
+
+- `status`: `eaten` | `skipped`
+- Soft-lock membresía (mismo que plan de dieta)
+- Ownership: la comida debe pertenecer a un `diet_plans` del cliente autenticado
+- Upsert UNIQUE `(client_id, diet_meal_id, local_date)`
 
 ### `GET /me/routines` (client)
 

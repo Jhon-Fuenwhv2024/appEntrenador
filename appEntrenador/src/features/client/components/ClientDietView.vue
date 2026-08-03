@@ -9,7 +9,8 @@ import {
   getApiErrorMessage,
   isMembershipBlockedError,
 } from '../../../shared/api/http.js';
-import { getMyDietPlan, getMyDietPlanWeek } from '../api/dietPlansApi.js';
+import { getMyDietPlan, getMyDietPlanWeek, upsertMealAdherence } from '../api/dietPlansApi.js';
+import { todayLocalDate } from '../../../shared/utils/localDate.js';
 
 const router = useRouter();
 
@@ -33,7 +34,24 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /** Resumen dieta desde GET /me/today (083). */
+  dietSummary: {
+    type: Object,
+    default: null,
+  },
+  /** Destacar próxima comida (postWorkout). */
+  highlightNext: {
+    type: Boolean,
+    default: false,
+  },
+  /** Objetivos nutricionales del entrenador (031) para snapshot unificado en home. */
+  macroTargets: {
+    type: Object,
+    default: null,
+  },
 });
+
+const emit = defineEmits(['adherence-changed']);
 
 const MEMBERSHIP_BLOCKED_MSG = 'Membresía vencida — habla con tu entrenador';
 
@@ -64,17 +82,17 @@ const weekPreview = shallowRef(null);
 const empty = shallowRef(false);
 const expandedIds = ref([]);
 const selectedDia = ref(null);
+const detailsOpen = shallowRef(false);
+const adherenceByMeal = ref(new Map());
+const savingMealId = shallowRef(null);
+const celebrateMealId = shallowRef(null);
 
 const isLocked = computed(
   () => props.membershipBlocked || blockedByMembership.value,
 );
 
 function todayYmd() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  return todayLocalDate();
 }
 
 const resolved = computed(() => plan.value?.resolved || null);
@@ -212,6 +230,102 @@ const headerSubtitle = computed(() => {
   return `${label} · Semana ${week} · ${viewingDia.value}`;
 });
 
+function mealStatus(mealId) {
+  return adherenceByMeal.value.get(Number(mealId)) || null;
+}
+
+const nextMeal = computed(() => {
+  // Mantener la comida recién marcada para que lean la confirmación.
+  if (celebrateMealId.value) {
+    const justMarked = meals.value.find(
+      (m) => Number(m.id) === Number(celebrateMealId.value),
+    );
+    if (justMarked) return justMarked;
+  }
+  if (props.dietSummary?.nextMeal && isTodayView.value) {
+    const fromPlan = meals.value.find(
+      (m) => Number(m.id) === Number(props.dietSummary.nextMeal.id),
+    );
+    if (fromPlan) return fromPlan;
+  }
+  const pending = meals.value.find((m) => {
+    const s = mealStatus(m.id);
+    return s !== 'eaten' && s !== 'skipped';
+  });
+  return pending || meals.value[0] || null;
+});
+
+const nextMealStatus = computed(() => mealStatus(nextMeal.value?.id));
+
+/** Snapshot unificado: plan del día vs meta del entrenador (una sola tarjeta en home). */
+const planSnapshot = computed(() => {
+  const fromDiet = props.dietSummary?.planned || props.dietSummary?.eaten;
+  const fromDay = isTodayView.value && dayPayload.value
+    ? {
+        calories: dayPayload.value.calories,
+        protein_g: dayPayload.value.protein_g,
+        carbs_g: dayPayload.value.carbs_g,
+        fats_g: dayPayload.value.fats_g,
+      }
+    : null;
+  return fromDiet || fromDay || null;
+});
+
+const goalSnapshot = computed(() => props.macroTargets || null);
+
+const showHomeSnapshot = computed(() => (
+  props.compact && plan.value && !isLocked.value && (planSnapshot.value || goalSnapshot.value)
+));
+
+const snapshotMacros = computed(() => {
+  const dayPlan = planSnapshot.value;
+  const goal = goalSnapshot.value;
+  if (!dayPlan && !goal) return [];
+  return [
+    {
+      key: 'protein',
+      short: 'P',
+      label: 'Proteína',
+      plan: dayPlan?.protein_g,
+      goal: goal?.protein_g,
+      color: MACRO_COLORS.protein,
+    },
+    {
+      key: 'carbs',
+      short: 'C',
+      label: 'Carbs',
+      plan: dayPlan?.carbs_g,
+      goal: goal?.carbs_g,
+      color: MACRO_COLORS.carbs,
+    },
+    {
+      key: 'fats',
+      short: 'G',
+      label: 'Grasas',
+      plan: dayPlan?.fats_g,
+      goal: goal?.fats_g,
+      color: MACRO_COLORS.fats,
+    },
+  ];
+});
+
+function macroBarPct(planG, goalG) {
+  const goal = Number(goalG);
+  const plan = Number(planG);
+  if (!Number.isFinite(goal) || goal <= 0 || !Number.isFinite(plan)) return 0;
+  return Math.min(100, Math.round((plan / goal) * 100));
+}
+
+function syncAdherenceFromSummary(summary) {
+  const map = new Map(adherenceByMeal.value);
+  for (const row of summary?.mealAdherence || []) {
+    if (row?.diet_meal_id != null && row.status) {
+      map.set(Number(row.diet_meal_id), row.status);
+    }
+  }
+  adherenceByMeal.value = map;
+}
+
 function isExpanded(mealId) {
   return expandedIds.value.includes(mealId);
 }
@@ -310,6 +424,41 @@ function goShoppingList() {
   router.push({ name: 'ClientShoppingList' });
 }
 
+async function setAdherence(meal, status) {
+  const mealId = Number(meal?.id);
+  if (!mealId || !isTodayView.value || isLocked.value) return;
+  if (savingMealId.value === mealId) return;
+
+  const prev = mealStatus(mealId);
+  const map = new Map(adherenceByMeal.value);
+  map.set(mealId, status);
+  adherenceByMeal.value = map;
+
+  try {
+    savingMealId.value = mealId;
+    await upsertMealAdherence(mealId, {
+      date: todayYmd(),
+      status,
+    });
+    if (status === 'eaten' || status === 'skipped') {
+      celebrateMealId.value = mealId;
+      setTimeout(() => {
+        if (celebrateMealId.value === mealId) celebrateMealId.value = null;
+      }, 2200);
+    }
+    emit('adherence-changed', { mealId, status });
+  } catch (error) {
+    const rollback = new Map(adherenceByMeal.value);
+    if (prev) rollback.set(mealId, prev);
+    else rollback.delete(mealId);
+    adherenceByMeal.value = rollback;
+    console.error('Error guardando adherencia:', error);
+    loadError.value = getApiErrorMessage(error, 'No se pudo guardar la comida');
+  } finally {
+    savingMealId.value = null;
+  }
+}
+
 watch(
   () => [props.skipFetch, props.initialPlan, props.membershipBlocked],
   async () => {
@@ -331,6 +480,14 @@ watch(
   },
 );
 
+watch(
+  () => props.dietSummary,
+  (next) => {
+    if (next) syncAdherenceFromSummary(next);
+  },
+  { immediate: true },
+);
+
 onMounted(() => {
   loadPlan();
 });
@@ -339,12 +496,17 @@ onMounted(() => {
 <template>
   <section
     class="cdv"
-    :class="{ 'cdv--compact': compact, 'cdv--locked': isLocked }"
-    aria-label="Plan de dieta del día"
+    :class="{
+      'cdv--compact': compact,
+      'cdv--locked': isLocked,
+      'cdv--highlight': highlightNext && compact,
+      'cdv--home': compact,
+    }"
+    aria-label="Alimentación de hoy"
   >
     <div class="cdv__head">
       <div class="cdv__head-row">
-        <h3 class="cdv__title">Mi plan de dieta</h3>
+        <h3 class="cdv__title">{{ compact ? 'Alimentación de hoy' : 'Mi plan de dieta' }}</h3>
         <button
           v-if="plan && !isLocked"
           type="button"
@@ -395,6 +557,146 @@ onMounted(() => {
     </p>
 
     <template v-else-if="plan">
+      <!-- Snapshot kcal/macros: una sola tarjeta con el plan (sin Nutrición aparte) -->
+      <div
+        v-if="showHomeSnapshot"
+        class="cdv__snap"
+        aria-label="Resumen del plan frente a tu meta"
+      >
+        <div class="cdv__snap-kcal">
+          <div class="cdv__snap-kcal-main">
+            <span class="cdv__snap-kcal-value">
+              {{ formatNum(planSnapshot?.calories ?? goalSnapshot?.calories) }}
+            </span>
+            <span class="cdv__snap-kcal-unit">kcal del plan</span>
+          </div>
+          <p v-if="goalSnapshot?.calories != null" class="cdv__snap-kcal-meta">
+            Meta del entrenador: {{ formatNum(goalSnapshot.calories) }} kcal
+          </p>
+        </div>
+        <div class="cdv__snap-macros" role="list">
+          <div
+            v-for="row in snapshotMacros"
+            :key="row.key"
+            class="cdv__snap-row"
+            role="listitem"
+          >
+            <div class="cdv__snap-row-top">
+              <span class="cdv__snap-row-label">
+                <span class="cdv__snap-dot" :style="{ background: row.color }" />
+                {{ row.label }}
+              </span>
+              <span class="cdv__snap-row-nums">
+                <template v-if="row.plan != null && row.goal != null">
+                  <strong :style="{ color: row.color }">{{ formatNum(row.plan) }}g</strong>
+                  <span class="cdv__snap-muted"> / meta {{ formatNum(row.goal) }}g</span>
+                </template>
+                <template v-else-if="row.plan != null">
+                  <strong :style="{ color: row.color }">{{ formatNum(row.plan) }}g</strong>
+                </template>
+                <template v-else>
+                  <span class="cdv__snap-muted">meta {{ formatNum(row.goal) }}g</span>
+                </template>
+              </span>
+            </div>
+            <div
+              v-if="row.goal != null && row.plan != null"
+              class="cdv__snap-track"
+              role="progressbar"
+              :aria-valuenow="macroBarPct(row.plan, row.goal)"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              :aria-label="row.label + ': ' + formatNum(row.plan) + 'g del plan, meta ' + formatNum(row.goal) + 'g'"
+            >
+              <div
+                class="cdv__snap-fill"
+                :style="{
+                  width: macroBarPct(row.plan, row.goal) + '%',
+                  backgroundColor: row.color,
+                }"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="compact && nextMeal && isTodayView && !dayEmpty"
+        class="cdv__next"
+        :class="{
+          'cdv__next--celebrate': celebrateMealId === nextMeal.id,
+          'cdv__next--done': nextMealStatus === 'eaten',
+          'cdv__next--skipped': nextMealStatus === 'skipped',
+        }"
+      >
+        <p class="cdv__next-label">Próxima comida</p>
+        <div class="cdv__next-row">
+          <span class="cdv__next-icon" aria-hidden="true">
+            <v-icon :icon="mealAccent(nextMeal.name).icon" size="22" />
+          </span>
+          <div class="cdv__next-copy">
+            <p class="cdv__next-name">{{ nextMeal.name }}</p>
+            <p class="cdv__next-meta">
+              <template v-if="nextMeal.time_hint">{{ nextMeal.time_hint }} · </template>
+              {{ formatNum(nextMeal.calories) }} kcal
+            </p>
+          </div>
+        </div>
+
+        <p
+          v-if="nextMealStatus"
+          class="cdv__next-feedback"
+          :class="nextMealStatus === 'eaten' ? 'cdv__next-feedback--done' : 'cdv__next-feedback--skip'"
+          role="status"
+        >
+          {{ nextMealStatus === 'eaten'
+            ? 'Marcada como cumplida'
+            : 'Marcada como saltada' }}
+        </p>
+
+        <div
+          class="cdv__adhere"
+          role="group"
+          :aria-label="`¿Cumpliste ${nextMeal.name}?`"
+        >
+          <button
+            type="button"
+            class="cdv__adhere-btn"
+            :class="{ 'cdv__adhere-btn--on': nextMealStatus === 'eaten' }"
+            :disabled="savingMealId === nextMeal.id"
+            :aria-pressed="nextMealStatus === 'eaten'"
+            @click="setAdherence(nextMeal, 'eaten')"
+          >
+            <v-icon icon="mdi-check" size="18" />
+            Cumplí
+          </button>
+          <button
+            type="button"
+            class="cdv__adhere-btn cdv__adhere-btn--skip"
+            :class="{ 'cdv__adhere-btn--on': nextMealStatus === 'skipped' }"
+            :disabled="savingMealId === nextMeal.id"
+            :aria-pressed="nextMealStatus === 'skipped'"
+            @click="setAdherence(nextMeal, 'skipped')"
+          >
+            <v-icon icon="mdi-close" size="18" />
+            Salté
+          </button>
+        </div>
+        <button
+          type="button"
+          class="cdv__expand-toggle"
+          :aria-expanded="detailsOpen"
+          @click="detailsOpen = !detailsOpen"
+        >
+          {{ detailsOpen ? 'Ocultar comidas' : 'Ver todas las comidas' }}
+          <v-icon
+            :icon="detailsOpen ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+            size="18"
+          />
+        </button>
+      </div>
+
+      <div v-show="!compact || detailsOpen || dayEmpty || !isTodayView || !nextMeal">
       <div
         v-if="weekStrip.length"
         class="cdv__strip"
@@ -429,7 +731,7 @@ onMounted(() => {
       </template>
 
       <template v-else-if="dayPayload">
-        <div class="cdv__summary" aria-label="Totales del día">
+        <div v-if="!compact" class="cdv__summary" aria-label="Totales del día">
           <div class="cdv__summary-kcal">
             <span class="cdv__summary-kcal-value">{{ formatNum(dayPayload.calories) }}</span>
             <span class="cdv__summary-kcal-unit">kcal del día</span>
@@ -474,6 +776,13 @@ onMounted(() => {
                 <span class="cdv__meal-name">{{ meal.name }}</span>
                 <span v-if="meal.time_hint" class="cdv__meal-time">{{ meal.time_hint }}</span>
               </span>
+              <span
+                v-if="isTodayView && mealStatus(meal.id)"
+                class="cdv__meal-status"
+                :class="`cdv__meal-status--${mealStatus(meal.id)}`"
+              >
+                {{ mealStatus(meal.id) === 'eaten' ? 'Cumplida' : 'Saltada' }}
+              </span>
               <span class="cdv__meal-kcal">{{ formatNum(meal.calories) }} kcal</span>
               <v-icon
                 class="cdv__meal-chevron"
@@ -482,15 +791,15 @@ onMounted(() => {
               />
             </button>
 
-            <div
-              v-show="isExpanded(meal.id || meal.name)"
-              :id="`cdv-meal-${meal.id || meal.name}`"
-              class="cdv__meal-body"
-            >
-              <ul
-                v-if="Array.isArray(meal.items) && meal.items.length"
-                class="cdv__items"
+              <div
+                v-show="isExpanded(meal.id || meal.name)"
+                :id="`cdv-meal-${meal.id || meal.name}`"
+                class="cdv__meal-body"
               >
+                <ul
+                  v-if="Array.isArray(meal.items) && meal.items.length"
+                  class="cdv__items"
+                >
                 <li
                   v-for="item in meal.items"
                   :key="item.id || item.food_name"
@@ -519,8 +828,9 @@ onMounted(() => {
               <p v-else class="cdv__items-empty">Sin alimentos en esta comida.</p>
             </div>
           </article>
-        </div>
-      </template>
+          </div>
+        </template>
+      </div>
     </template>
   </section>
 </template>
@@ -946,5 +1256,339 @@ onMounted(() => {
   padding: 0.45rem 0.35rem;
   font-size: 0.75rem;
   color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.cdv--highlight {
+  border-color: rgba(0, 229, 255, 0.35);
+  box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.12);
+}
+
+.cdv__next {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 4px;
+  padding: 10px 10px 4px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: box-shadow 0.25s ease;
+}
+
+.cdv__next--celebrate {
+  box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.45);
+}
+
+.cdv__next-label {
+  margin: 0;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(var(--v-theme-primary));
+}
+
+.cdv__next-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cdv__next-icon {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(0, 229, 255, 0.12);
+  color: rgb(var(--v-theme-primary));
+}
+
+.cdv__next-copy {
+  min-width: 0;
+}
+
+.cdv__next-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.cdv__next-meta {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.cdv__next-feedback {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.cdv__next-feedback--done {
+  color: rgb(var(--v-theme-primary));
+}
+
+.cdv__next-feedback--skip {
+  color: #ffb74d;
+}
+
+.cdv__snap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0.45rem 0 0.55rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cdv__snap-kcal-main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.cdv__snap-kcal-value {
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: rgb(var(--v-theme-primary));
+}
+
+.cdv__snap-kcal-unit {
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.cdv__snap-kcal-meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.72rem;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.cdv__snap-macros {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.cdv__snap-row-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.cdv__snap-row-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--tf-on-surface, #e8eaed);
+}
+
+.cdv__snap-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cdv__snap-row-nums {
+  font-size: 0.72rem;
+  text-align: right;
+  color: var(--tf-on-surface, #e8eaed);
+}
+
+.cdv__snap-muted {
+  color: var(--tf-on-surface-muted, #a8b0bc);
+  font-weight: 500;
+}
+
+.cdv__snap-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.cdv__snap-fill {
+  height: 100%;
+  border-radius: inherit;
+  min-width: 0;
+  transition: width 0.25s ease;
+}
+
+.cdv__next--done {
+  border-color: rgba(0, 229, 255, 0.35);
+}
+
+.cdv__next--skip {
+  border-color: rgba(255, 167, 38, 0.4);
+}
+
+.cdv__status {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.cdv__status--pending {
+  border-color: rgba(0, 229, 255, 0.22);
+  background: rgba(0, 229, 255, 0.06);
+  color: rgb(var(--v-theme-primary));
+}
+
+.cdv__status--done {
+  border-color: rgba(0, 229, 255, 0.35);
+  background: rgba(0, 229, 255, 0.1);
+  color: rgb(var(--v-theme-primary));
+}
+
+.cdv__status--skip {
+  border-color: rgba(255, 167, 38, 0.4);
+  background: rgba(255, 167, 38, 0.1);
+  color: #ffb74d;
+}
+
+.cdv__status-copy {
+  min-width: 0;
+}
+
+.cdv__status-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 750;
+  line-height: 1.25;
+  color: inherit;
+}
+
+.cdv__status-detail {
+  margin: 2px 0 0;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.cdv__adhere {
+  display: flex;
+  gap: 8px;
+}
+
+.cdv__adhere--inline {
+  flex-direction: column;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.cdv__adhere-row {
+  display: flex;
+  gap: 8px;
+}
+
+.cdv__adhere-q {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--tf-on-surface, #e8eaed);
+}
+
+.cdv__adhere-hint {
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+  text-align: center;
+}
+
+.cdv__adhere--inline .cdv__adhere-hint {
+  text-align: left;
+}
+
+.cdv__adhere-btn {
+  flex: 1;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--tf-on-surface, #e8eaed);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cdv__adhere-btn:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: 2px;
+}
+
+.cdv__adhere-btn--on {
+  border-color: rgba(0, 229, 255, 0.55);
+  background: rgba(0, 229, 255, 0.16);
+  color: rgb(var(--v-theme-primary));
+}
+
+.cdv__adhere-btn--skip.cdv__adhere-btn--on {
+  border-color: rgba(255, 167, 38, 0.55);
+  background: rgba(255, 167, 38, 0.14);
+  color: #ffb74d;
+}
+
+.cdv__adhere-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.cdv__expand-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 36px;
+  margin: 0 auto;
+  padding: 4px 8px;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--v-theme-primary));
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cdv__expand-toggle:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: 2px;
+}
+
+.cdv__meal-status {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgb(var(--v-theme-primary));
+}
+
+.cdv__meal-status--skipped {
+  color: #ffb74d;
 }
 </style>

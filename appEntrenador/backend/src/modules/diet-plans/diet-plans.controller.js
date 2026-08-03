@@ -196,6 +196,25 @@ async function getMineShoppingList(req, res) {
   }
 }
 
+async function upsertMealAdherence(req, res) {
+  try {
+    await membershipsService.assertClientMembershipAccess(req.user.id);
+    const data = await dietPlansService.upsertMealAdherence(
+      req.user.id,
+      req.params.mealId,
+      req.body,
+    );
+
+    return res.json({
+      success: true,
+      message: 'Adherencia guardada',
+      data,
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error guardando adherencia de comida:');
+  }
+}
+
 module.exports = {
   list,
   getById,
@@ -208,4 +227,5 @@ module.exports = {
   getMine,
   getMineWeek,
   getMineShoppingList,
+  upsertMealAdherence,
 };

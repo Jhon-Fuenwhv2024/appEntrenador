@@ -1,19 +1,24 @@
 <script setup>
-import { computed, onMounted, shallowRef } from 'vue';
+import { computed, onMounted, shallowRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
 import SessionHeaderActions from '../../shared/layout/SessionHeaderActions.vue';
-import MacroSummaryCard from './components/MacroSummaryCard.vue';
 import ClientDietView from './components/ClientDietView.vue';
 import ConsistencyRing from './components/ConsistencyRing.vue';
 import DailyHabitsChecklist from './components/DailyHabitsChecklist.vue';
 import MembershipHomeCard from './components/MembershipHomeCard.vue';
+import HomeDayActions from './components/HomeDayActions.vue';
+import WeeklyCheckinDialog from './components/WeeklyCheckinDialog.vue';
+import ClientMembershipContactActions from './components/ClientMembershipContactActions.vue';
 import { useClientToday } from './composables/useClientToday.js';
+import { useClientHomeMode } from './composables/useClientHomeMode.js';
 
 const router = useRouter();
 const userName = shallowRef('');
 const heroReady = shallowRef(false);
+const checkinDialogOpen = shallowRef(false);
+const habitsCelebrate = shallowRef(false);
 
 const {
   loading,
@@ -26,8 +31,50 @@ const {
   membershipBlocked,
   workoutLocked,
   heroMeta,
+  consistency,
+  checkinDue,
+  chatPreview,
+  diet,
+  weekInsight,
+  currentStreak,
   loadToday,
 } = useClientToday();
+
+const {
+  activityMode,
+  heroEyebrow,
+  heroTitle,
+  heroMetaLine,
+  showMembershipBanner,
+  celebratePostWorkout,
+  reengageTone,
+} = useClientHomeMode({
+  membership,
+  membershipBlocked,
+  todayRoutine,
+  todayCompleted,
+  currentStreak,
+  heroMeta,
+});
+
+const membershipBannerTitle = computed(() => {
+  const days = membership.value?.days_remaining == null
+    ? null
+    : Number(membership.value.days_remaining);
+  if (membershipBlocked.value || (days != null && days < 0)) {
+    return 'Membresía vencida';
+  }
+  if (days === 0) return 'Tu membresía vence hoy';
+  if (days === 1) return 'Tu membresía vence mañana';
+  if (days != null && Number.isFinite(days)) {
+    return `Tu membresía vence en ${days} días`;
+  }
+  return 'Tu membresía necesita atención';
+});
+
+const showHeaderMembership = computed(() => (
+  !loading.value && membership.value && !showMembershipBanner.value
+));
 
 const fechaCorta = computed(() => {
   const raw = new Date().toLocaleDateString('es-ES', {
@@ -42,6 +89,33 @@ const firstName = computed(() => {
   const name = (userName.value || '').trim();
   return name.split(/\s+/)[0] || 'athlete';
 });
+
+watch(
+  () => habits.value,
+  (list) => {
+    if (!Array.isArray(list) || !list.length) return;
+    const allDone = list.every((h) => h.is_completed);
+    if (allDone) {
+      habitsCelebrate.value = true;
+      setTimeout(() => {
+        habitsCelebrate.value = false;
+      }, 1200);
+    }
+  },
+  { deep: true },
+);
+
+function openCheckin() {
+  checkinDialogOpen.value = true;
+}
+
+function openChat() {
+  router.push({ name: 'ClientMessages' });
+}
+
+async function onAdherenceChanged() {
+  await loadToday();
+}
 
 onMounted(async () => {
   const user = getSessionUser();
@@ -66,9 +140,8 @@ onMounted(async () => {
           <h1 class="client-home__hello">
             Hola, <span class="text-cyan">{{ firstName }}</span>
           </h1>
-          <!-- Estado de plan como meta del saludo (estilo apps fitness), no junto al avatar -->
           <MembershipHomeCard
-            v-if="!loading && membership"
+            v-if="showHeaderMembership"
             :membership="membership"
             :forced-blocked="membershipBlocked"
           />
@@ -101,11 +174,30 @@ onMounted(async () => {
           </template>
         </v-alert>
 
+        <div
+          v-if="!loading && !loadError && showMembershipBanner"
+          class="client-home__mem-banner"
+          role="status"
+        >
+          <p class="client-home__mem-banner-title">{{ membershipBannerTitle }}</p>
+          <p class="client-home__mem-banner-copy">
+            Renueva o regulariza con tu entrenador para no perder el acceso.
+          </p>
+          <ClientMembershipContactActions
+            note="Contactar entrenador"
+            prefill-text="Hola, quiero renovar / regularizar mi membresía."
+          />
+        </div>
+
         <v-slide-y-transition>
           <section
             v-if="!loading && !loadError && heroReady"
             class="today-hero"
-            :class="{ 'today-hero--locked': workoutLocked }"
+            :class="{
+              'today-hero--locked': workoutLocked,
+              'today-hero--celebrate': celebratePostWorkout,
+              [`today-hero--${activityMode}`]: true,
+            }"
             aria-label="Entrenamiento de hoy"
           >
             <template v-if="todayRoutine">
@@ -114,19 +206,9 @@ onMounted(async () => {
                 :class="{ 'today-hero__row--done': todayCompleted }"
               >
                 <div class="today-hero__copy">
-                  <p class="today-hero__eyebrow">
-                    <template v-if="todayCompleted">Completado</template>
-                    <template v-else-if="workoutLocked">Bloqueado</template>
-                    <template v-else>Hoy</template>
-                  </p>
-                  <h2 class="today-hero__title">{{ todayRoutine.nombre_rutina }}</h2>
-                  <p class="today-hero__meta">
-                    <template v-if="todayCompleted">Ya entrenaste esta rutina hoy</template>
-                    <template v-else-if="workoutLocked">
-                      Membresía vencida — habla con tu entrenador
-                    </template>
-                    <template v-else>{{ heroMeta }}</template>
-                  </p>
+                  <p class="today-hero__eyebrow">{{ heroEyebrow }}</p>
+                  <h2 class="today-hero__title">{{ heroTitle }}</h2>
+                  <p class="today-hero__meta">{{ heroMetaLine }}</p>
                 </div>
                 <div
                   v-if="todayCompleted"
@@ -169,7 +251,7 @@ onMounted(async () => {
                   prepend-icon="mdi-play"
                   :to="{ name: 'WorkoutPlayer', params: { routineId: todayRoutine.id } }"
                 >
-                  Empezar
+                  {{ activityMode === 'reengage' ? 'Retomar' : 'Empezar' }}
                 </v-btn>
                 <v-btn
                   v-else
@@ -189,8 +271,8 @@ onMounted(async () => {
               <div class="today-hero__rest">
                 <v-icon icon="mdi-weather-night" size="28" color="primary" />
                 <div>
-                  <h2 class="today-hero__title today-hero__title--rest">Día de descanso</h2>
-                  <p class="today-hero__meta mb-0">Sin rutina hoy · recupera bien</p>
+                  <h2 class="today-hero__title today-hero__title--rest">{{ heroTitle }}</h2>
+                  <p class="today-hero__meta mb-0">{{ heroMetaLine }}</p>
                 </div>
               </div>
             </template>
@@ -198,8 +280,26 @@ onMounted(async () => {
         </v-slide-y-transition>
 
         <div class="client-home__secondary">
-          <div class="client-home__duo">
-            <ConsistencyRing v-if="!loading" compact />
+          <HomeDayActions
+            v-if="!loading && !loadError"
+            :checkin-due="checkinDue"
+            :chat-preview="chatPreview"
+            :week-insight="weekInsight"
+            @open-checkin="openCheckin"
+            @open-chat="openChat"
+          />
+
+          <div
+            class="client-home__duo"
+            :class="{ 'client-home__duo--celebrate': habitsCelebrate }"
+          >
+            <ConsistencyRing
+              v-if="!loading"
+              compact
+              :reengage="reengageTone"
+              :initial="consistency"
+              :skip-fetch="Boolean(consistency)"
+            />
 
             <DailyHabitsChecklist
               v-if="!loading"
@@ -209,22 +309,23 @@ onMounted(async () => {
             />
           </div>
 
-          <MacroSummaryCard
-            v-if="!loading && userId && macros"
-            compact
-            :client-id="userId"
-            :initial-target="macros"
-            :skip-fetch="true"
-          />
-
           <ClientDietView
             v-if="!loading"
             compact
             :membership-blocked="membershipBlocked"
+            :diet-summary="diet"
+            :macro-targets="macros"
+            :highlight-next="celebratePostWorkout || activityMode === 'restDay'"
+            @adherence-changed="onAdherenceChanged"
           />
         </div>
       </div>
     </main>
+
+    <WeeklyCheckinDialog
+      v-model="checkinDialogOpen"
+      @submitted="loadToday"
+    />
   </AppShell>
 </template>
 

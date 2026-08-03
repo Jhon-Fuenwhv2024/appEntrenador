@@ -49,6 +49,7 @@
 45. **063 · Session header actions** — Cluster compartido campana + menú de cuenta (logout con confirmación) cliente/trainer; badge numérico. Spec: `063-session-header-actions`.
 46. **051 · PWA + notificaciones push** — App instalable + Web Push (VAPID); fan-out desde in-app + chat. Spec: `051-pwa-push-notifications`.
 47. **075 · Notificaciones: UX + recordatorio + membresía + racha** — Rediseño campana/push UI, guía iOS, recordatorio de entrenamiento, avisos membresía, `streak_at_risk`. Spec: `075-notifications-reminders-membership-streak`.
+48. **083 · Inicio cliente context-aware** — Home por modos (membresía/post-entreno/descanso/reengage), dieta compacta + Comí/No comí, chips del día, macros vs plan, insight + digest email. Spec: `083-client-home-context-aware`.
 
 ## Siguiente (Epic Fitness)
 
