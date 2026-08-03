@@ -1,3 +1,4 @@
+import { nextTick } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import LoginView from './features/auth/LoginView.vue';
 import Dashboard from './components/Dashboard.vue';
@@ -18,6 +19,12 @@ import ClientChatView from './features/messaging/ClientChatView.vue';
 import SuperAdminDashboardView from './features/saas/SuperAdminDashboardView.vue';
 import ExerciseTaggerView from './features/admin/ExerciseTaggerView.vue';
 import { getSessionUser, isAuthenticated } from './shared/auth/session.js';
+import { scrollAppToTop } from './shared/navigation/scrollToTop.js';
+
+/** Evita que el navegador restaure el scroll al volver a una ruta. */
+if (typeof history !== 'undefined' && 'scrollRestoration' in history) {
+  history.scrollRestoration = 'manual';
+}
 
 const routes = [
   {
@@ -150,6 +157,12 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior(to) {
+    if (to.hash) {
+      return { el: to.hash, top: 0 };
+    }
+    return { top: 0, left: 0 };
+  },
 });
 
 router.beforeEach((to) => {
@@ -173,6 +186,16 @@ router.beforeEach((to) => {
   }
 
   return true;
+});
+
+/** Tras montar la vista: window + `.main-content` (scroll real del shell). */
+router.afterEach(() => {
+  nextTick(() => {
+    scrollAppToTop();
+    requestAnimationFrame(() => {
+      scrollAppToTop();
+    });
+  });
 });
 
 export default router;

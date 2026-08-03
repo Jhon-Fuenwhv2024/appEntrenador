@@ -1,10 +1,12 @@
 /**
  * Text scale preference for low-vision / large phone font.
  *
- * Many mobile browsers / PWAs do NOT pass OS font size into the page root,
- * so rem alone is unreliable. We apply `--tf-font-scale` via CSS `zoom` on
- * `html` (scales rem + px + layout). Pinch-zoom stays available via viewport.
+ * Many mobile browsers / PWAs do NOT pass OS font size into the page root.
+ * We set `--tf-font-scale` and apply it as `font-size` on `html` (see
+ * theme-base.css). Do NOT use CSS `zoom` on `html`: it breaks `100dvh`,
+ * `position: fixed` (bottom nav) and clips the chat composer.
  *
+ * Pinch-zoom stays available via the viewport meta.
  * localStorage key is device-local (no account sync).
  */
 

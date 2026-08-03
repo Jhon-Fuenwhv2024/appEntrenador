@@ -8,24 +8,26 @@ alwaysApply: true
 
 ## Problema
 
-`AppBottomNav` es `position: fixed`. Si el área scrollable no deja espacio inferior, el **último contenido queda tapado** (p. ej. última comida del plan de dieta, últimas filas de listas).
+`AppBottomNav` es `position: fixed`. Si el área scrollable no deja espacio inferior, el **último contenido queda tapado** (p. ej. última comida del plan de dieta, composer del chat).
 
 ## Fuente de verdad
 
-- Variable CSS: `--tf-bottom-nav-clearance` en [`src/assets/theme-base.css`](src/assets/theme-base.css)
-- Aplicación estructural: `padding-bottom: var(--tf-bottom-nav-clearance)` en `.shell-body` ([`src/assets/appShell.css`](src/assets/appShell.css))
-- Shell: [`src/shared/layout/AppShell.vue`](src/shared/layout/AppShell.vue)
+- Variable CSS: `--tf-bottom-nav-clearance` en [`src/assets/theme-base.css`](src/assets/theme-base.css) (`5.5rem` + safe-area en ≤960px)
+- Shell: `padding-bottom: var(--tf-bottom-nav-clearance)` en `.shell-body` ([`src/assets/appShell.css`](src/assets/appShell.css))
+- Scroller: `.main-content` también suma la variable en su `padding-bottom` (así el final del scroll es alcanzable)
+- Escala tipográfica: `--tf-font-scale` → `font-size` en `html` (**nunca** CSS `zoom` en `html`)
 
 ## Reglas obligatorias
 
-1. **Nunca** anular el clearance del shell con `padding` / `padding-bottom: 0` / `16px` en `.main-content` sin sumar `var(--tf-bottom-nav-clearance)` **o** confiar en el padding de `.shell-body` (preferido).
-2. Vistas dentro de `AppShell`: el scroll va en `.main-content` (o hijo directo del slot). No usar `height: 100vh` que ignore el shell.
-3. Si una vista fija un footer propio (player, preview), usar `env(safe-area-inset-bottom)` + altura del footer; **no** mezclar con bottom nav (esas rutas no montan `AppBottomNav`).
-4. Al tocar CSS de dashboards (`clientDashboard.css`, `trainerDashboard.css`, etc.), revisar media queries `≤960px`: no pisar el espacio inferior.
-5. Preferir la variable `--tf-bottom-nav-clearance` a números mágicos (`56px`, `72px`).
+1. **Nunca** anular el padding inferior de `.main-content` / `.shell-body` con `0` / `16px` / `20px` sin sumar `var(--tf-bottom-nav-clearance)`.
+2. **Nunca** aplicar CSS `zoom` en `html` para la escala tipográfica (rompe nav fija, `100dvh` y el chat).
+3. Vistas dentro de `AppShell`: scroll en `.main-content` (o hijo del slot). Preferir `flex: 1` + `min-height: 0` / `height: 100%`.
+4. Player / preview (sin bottom nav): usar `env(safe-area-inset-bottom)` en su propio footer.
+5. Preferir `--tf-bottom-nav-clearance` a números mágicos (`56px`, `72px`, `80px`).
 
 ## Checklist al tocar UI móvil
 
-- [ ] En ~390px de ancho, scrollear hasta el final: el último bloque es totalmente visible encima de Inicio/Progreso/Chat/Perfil (o nav trainer)
-- [ ] No hay doble scroll raro (body + main) ni contenido bajo la barra
-- [ ] Safe-area iOS respetada (`env(safe-area-inset-bottom)` vía la variable)
+- [ ] Bottom nav visible
+- [ ] Scroll hasta el final: último bloque visible encima de la nav (también con texto Grande / Muy grande)
+- [ ] Chat: campo “Escribe un mensaje…” visible encima de la nav
+- [ ] Safe-area iOS respetada

@@ -80,9 +80,15 @@ onMounted(() => {
 
 <style scoped>
 .client-chat {
-  height: calc(100dvh - 4.5rem);
-  max-height: calc(100dvh - 4.5rem);
-  min-height: 20rem;
+  /* Llenar .shell-body (el padding-bottom del shell deja hueco para la nav). */
+  flex: 1 1 auto;
+  align-self: stretch;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.06);

@@ -23,7 +23,7 @@ WCAG **2.2 AA** (criterios visuales): 1.4.3, 1.4.11, 1.4.4/1.4.10, 2.4.7, 2.5.8.
 | `--tf-on-surface-muted` | `#A8B0BC` | Secundario ≥4.5:1 sobre bg/surface |
 | `--tf-border` | `rgba(255,255,255,0.28)` | Bordes UI ≥3:1 aprox. |
 | Focus ring | `2px solid var(--tf-primary)` | Sin reactivar `__overlay` Vuetify |
-| `--tf-font-scale` | `1` / `1.2` / `1.35` | Escala in-app vía `zoom` en `html` (`textScale.js`) y compatibilidad con el tamaño del SO/navegador |
+| `--tf-font-scale` | `1` / `1.2` / `1.35` | Escala in-app vía `font-size` en `html` (`textScale.js` + `theme-base.css`); no usar CSS `zoom` |
 | `--tf-text-xs` … `--tf-text-2xl` | `rem` | Tokens tipográficos relativos al sistema y a la escala in-app |
 | `html` font root | `100%` + iOS `-apple-system-body` | Respeta Font size / Dynamic Type |
 
@@ -32,13 +32,13 @@ WCAG **2.2 AA** (criterios visuales): 1.4.3, 1.4.11, 1.4.4/1.4.10, 2.4.7, 2.5.8.
 | Superficie | Estado | Hallazgo | Fix / notas |
 |------------|--------|----------|-------------|
 | **Sistema** tema + Vuetify | pass | Muted `#8b929e` borderline en elevated; border 0.08 &lt; 3:1; sin focus global | P0: muted `#A8B0BC`, border 0.28, `:focus-visible`, `medium-emphasis` ↑ |
-| **Sistema** text scaling | pass | El SO/navegador no siempre llega a la PWA y el viewport podía bloquear pellizcar | Viewport abierto; `--tf-font-scale` + `TextScaleCard` en Perfil/Ajustes; tipografía en `rem`/tokens |
+| **Sistema** text scaling | pass | El SO/navegador no siempre llega a la PWA; CSS `zoom` en `html` rompía shell/chat | Viewport abierto; `--tf-font-scale` → `font-size` en `html` + `TextScaleCard`; tipografía en `rem`/tokens |
 | **Auth** login / register / reset | pass* | `text-medium-emphasis` dependía de opacity baja | Cubierto por P0 tokens |
 | **Shell** sidebar + bottom nav | pass | Inactivo `#5E6673` bajo contraste; sin focus-visible en items | P1: muted token + focus ring en `appShell.css` |
 | **Shell** session actions (063) | pass | Badge solo color; logout suelto | Badge numérico + menú cuenta (`aria-label`); logout con confirmación |
 | **Cliente** Inicio / hábitos | pass | Peek usaba `outline: none` en focus-visible | P1: ring + borde primary |
 | **Cliente** Workout Player / sets | pass | Inputs `outline: none`; `×` `#5E6673` | P1: focus-visible + muted |
-| **Cliente** preview / dieta / progreso / chat / perfil | pass* | Captions hardcoded `#8b929e` | P0/P1: variable CSS |
+| **Cliente** preview / dieta / progreso / chat / perfil | pass* | Captions hardcoded `#8b929e`; zoom tipográfico rompía scroll/composer | Escala por `font-size`; clearance en `.shell-body` + `.main-content`; composer sticky |
 | **Trainer** dashboard search | pass | Placeholder `#6B7280`; input sin anillo | P1: placeholder muted + focus-within |
 | **Trainer** Alumnos / invitaciones | pass | Close con `aria-label` OK | — |
 | **Trainer** Client 360 resumen | pass* | Captions `#8b929e` | Variable muted |

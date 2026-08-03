@@ -1,7 +1,8 @@
 <script setup>
 /**
  * In-app text size control — PWAs often ignore OS font size.
- * Keeps pinch-zoom; scales UI via --tf-font-scale (see theme-base.css).
+ * Keeps pinch-zoom; scales UI via --tf-font-scale → html font-size
+ * (see theme-base.css). Avoid CSS zoom on html (breaks shell/chat layout).
  */
 import { useTextScale } from '../composables/useTextScale.js';
 

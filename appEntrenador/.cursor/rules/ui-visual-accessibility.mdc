@@ -26,10 +26,10 @@ WCAG **2.2 AA** visual: contraste texto 4.5:1 / grande 3:1; no-texto 3:1; zoom 2
 5. Controles solo-icono: `aria-label` (o texto visible).
 6. Estados no solo por color: badge + texto/icono.
 7. Al tocar layout: verificar ~390px y zoom ~200% sin overflow horizontal bloqueante.
-8. Preferir `var(--tf-bottom-nav-clearance)` para no tapar contenido (regla bottom-nav).
-9. Tipografía UI en `rem`/`em` o tokens `--tf-text-*` (evitar `font-size` en `px` cuando sea posible); así escala con el tamaño de fuente del SO y con la escala in-app.
+8. Bottom nav móvil `fixed` + `--tf-bottom-nav-clearance` en `.shell-body` y `.main-content` (regla bottom-nav).
+9. Tipografía UI en `rem`/`em` o tokens `--tf-text-*` (evitar `font-size` en `px` cuando sea posible).
 10. **Nunca** `maximum-scale` / `user-scalable=no` en el viewport (pellizcar debe funcionar).
-11. Escala tipográfica in-app: `--tf-font-scale` + `TextScaleCard` / `textScale.js` para ajustes rápidos cuando la PWA no hereda el tamaño del SO.
+11. Escala tipográfica in-app: `--tf-font-scale` → `font-size` en `html` (`TextScaleCard` / `textScale.js`). **Nunca** CSS `zoom` en `html`.
 
 ## Checklist al tocar UI
 

@@ -737,8 +737,8 @@ RESPONSIVE
 
 @media (max-width: 960px) {
   .main-content {
-    /* No anular el clearance del shell: solo padding de contenido */
-    padding: 16px 16px 20px;
+    /* Incluir clearance de bottom nav (no anularlo) */
+    padding: 16px 16px calc(1.25rem + var(--tf-bottom-nav-clearance));
   }
 
   .stats-grid {

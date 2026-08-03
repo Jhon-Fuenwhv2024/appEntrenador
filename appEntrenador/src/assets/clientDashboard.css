@@ -196,8 +196,8 @@ FEATURE 038 — Home cliente compacto
   display: flex;
   flex-direction: column;
   gap: 10px;
-  /* Extra air so the last card clears residual overlap on short viewports */
-  padding-bottom: 8px;
+  /* Aire bajo el último bloque (dieta/comidas) dentro del scroller */
+  padding-bottom: 1.25rem;
 }
 
 .client-home__duo {
@@ -747,8 +747,8 @@ RESPONSIVE
 
 @media (max-width: 960px) {
   .main-content {
-    /* No anular el clearance del shell: solo padding de contenido */
-    padding: 16px 16px 20px;
+    /* Incluir clearance de bottom nav (no anularlo) */
+    padding: 16px 16px calc(1.25rem + var(--tf-bottom-nav-clearance));
   }
 
   .stats-grid {

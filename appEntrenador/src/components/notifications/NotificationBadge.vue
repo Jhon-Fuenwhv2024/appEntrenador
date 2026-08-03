@@ -339,12 +339,12 @@ const handleDismiss = async (notif) => {
   border-radius: 16px !important;
   width: auto !important;
   height: fit-content !important;
-  max-width: calc((100vw / var(--tf-font-scale, 1)) - 1.5rem) !important;
+  max-width: calc(100vw - 1.5rem) !important;
   max-height: min(70dvh, 28rem) !important;
 }
 
 .tf-notif-panel {
-  width: min(22.5rem, calc((100vw / var(--tf-font-scale, 1)) - 1.5rem));
+  width: min(22.5rem, calc(100vw - 1.5rem));
   height: fit-content;
   max-height: min(70dvh, 28rem);
   display: flex;
@@ -654,7 +654,7 @@ const handleDismiss = async (notif) => {
   border-radius: 20px !important;
   overflow: hidden;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5) !important;
-  max-width: calc((100vw / var(--tf-font-scale, 1)) - 1.5rem) !important;
+  max-width: calc(100vw - 1.5rem) !important;
 }
 
 .tf-notif-detail {

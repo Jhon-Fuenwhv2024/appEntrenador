@@ -15,7 +15,8 @@ body,
 
 html,
 body {
-  overflow-x: hidden;
+  /* El scroll vive en `.main-content` / paneles del shell, no en document. */
+  overflow: hidden;
 }
 
 body {

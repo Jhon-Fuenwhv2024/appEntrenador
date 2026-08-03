@@ -59,11 +59,15 @@ const submit = () => {
 
 <style scoped>
 .chat-composer {
-  flex-shrink: 0;
-  padding: 0.85rem 1rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
+  /* Anclado al fondo del hilo; no ceder altura al historial. */
+  flex: 0 0 auto;
+  position: sticky;
+  bottom: 0;
+  padding: 0.85rem 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(17, 20, 28, 0.94);
+  background: rgba(17, 20, 28, 0.96);
   backdrop-filter: blur(10px);
+  z-index: 2;
 }
 
 .chat-composer__shell {

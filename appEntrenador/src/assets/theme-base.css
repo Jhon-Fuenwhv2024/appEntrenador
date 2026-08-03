@@ -29,10 +29,8 @@
   /* Bottom nav clearance (mobile shell ≤960px). Desktop = 0. */
   --tf-bottom-nav-clearance: 0px;
   /*
-   * Escala tipográfica in-app (localStorage + TextScaleCard) y del sistema.
-   * PWA/Chrome móvil a menudo NO heredan el tamaño de fuente del SO;
-   * --tf-font-scale + zoom cubre rem y px, y además respetamos el tamaño de
-   * fuente del navegador/SO.
+   * Escala tipográfica in-app (localStorage + TextScaleCard).
+   * Se aplica como font-size en html (ver abajo). No usar CSS zoom en html.
    */
   --tf-font-scale: 1;
   --tf-font-body: var(--v-font-body, 'Roboto', 'Inter', system-ui, sans-serif);
@@ -46,32 +44,26 @@
 }
 
 /*
- * Respetar preferencia de texto del navegador/SO y aplicar la escala in-app con zoom.
- * Preferir estos tokens o rem/em; no fijar texto UI en px.
+ * Escala tipográfica in-app vía font-size del root (NO usar CSS zoom en html:
+ * rompe 100dvh, position:fixed y el composer del chat).
+ * Preferir tokens rem/em; no fijar texto UI en px.
  */
 html {
-  font-size: 100%;
+  font-size: calc(100% * var(--tf-font-scale, 1));
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  zoom: var(--tf-font-scale);
-}
-
-@supports not (zoom: 1) {
-  html {
-    font-size: calc(100% * var(--tf-font-scale));
-  }
 }
 
 /*
  * Respetar tamaño de fuente del sistema (Android Font size / iOS Dynamic Type).
  * text-size-adjust: 100% — no desactivar con none.
- * -apple-system-body en html hereda la métrica de texto del SO en Safari/iOS;
- * body restaura la familia tipográfica de la app.
+ * -apple-system-body aporta la métrica del SO; reaplicamos la escala in-app.
  */
 
 @supports (font: -apple-system-body) {
   html {
     font: -apple-system-body;
+    font-size: calc(100% * var(--tf-font-scale, 1));
   }
 
   body {
@@ -85,7 +77,7 @@ html {
      * Altura aprox. nav (icono+label+paddings) + buffer + safe-area iOS.
      * Usar SIEMPRE esta variable; no hardcodear 56/72 en vistas.
      */
-    --tf-bottom-nav-clearance: calc(80px + env(safe-area-inset-bottom, 0px));
+    --tf-bottom-nav-clearance: calc(5.5rem + env(safe-area-inset-bottom, 0px));
   }
 }
 
