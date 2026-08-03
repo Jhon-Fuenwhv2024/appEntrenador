@@ -25,7 +25,7 @@
 
     <div class="tf-notif-panel">
       <header class="tf-notif-panel__header">
-        <div>
+        <div class="tf-notif-panel__heading">
           <h3 class="tf-notif-panel__title">Notificaciones</h3>
           <p class="tf-notif-panel__subtitle">
             {{ unreadCount > 0 ? `${unreadCount} sin leer` : 'Todo al día' }}
@@ -318,7 +318,7 @@ const handleDismiss = async (notif) => {
   background: #ef5350;
   border: 1.5px solid #13161d;
   color: #ffffff;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   line-height: 15px;
   text-align: center;
@@ -337,56 +337,74 @@ const handleDismiss = async (notif) => {
 .tf-notif-menu .v-overlay__content,
 .v-overlay-container .tf-notif-menu {
   border-radius: 16px !important;
+  width: auto !important;
+  height: fit-content !important;
+  max-width: calc((100vw / var(--tf-font-scale, 1)) - 1.5rem) !important;
+  max-height: min(70dvh, 28rem) !important;
 }
 
 .tf-notif-panel {
-  width: min(360px, calc(100vw - 24px));
-  max-height: 440px;
+  width: min(22.5rem, calc((100vw / var(--tf-font-scale, 1)) - 1.5rem));
+  height: fit-content;
+  max-height: min(70dvh, 28rem);
   display: flex;
   flex-direction: column;
   background: #13161D;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .tf-notif-panel__header {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  padding: 16px 16px 12px;
+  gap: 0.35rem 0.75rem;
+  flex: 0 0 auto;
+  padding: 0.85rem 1rem 0.65rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.02);
 }
 
+.tf-notif-panel__heading {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .tf-notif-panel__title {
   margin: 0;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 650;
   letter-spacing: 0.01em;
   color: var(--tf-on-surface, #e8ecf1);
   line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .tf-notif-panel__subtitle {
-  margin: 2px 0 0;
-  font-size: 12px;
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
   color: var(--tf-on-surface-muted, #a8b0bc);
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
 .tf-notif-panel__action {
-  flex-shrink: 0;
+  flex: 0 0 auto;
   border: none;
   background: transparent;
   color: #00E5FF;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  padding: 8px 4px;
-  min-height: 36px;
+  padding: 0.15rem 0;
+  min-height: 0;
   border-radius: 8px;
+  white-space: nowrap;
+  text-align: right;
+  line-height: 1.3;
 }
 
 .tf-notif-panel__action:hover {
@@ -398,60 +416,66 @@ const handleDismiss = async (notif) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 36px 28px;
+  gap: 0.4rem;
+  padding: 2.25rem 1.5rem;
   text-align: center;
 }
 
 .tf-notif-panel__empty-icon {
-  width: 48px;
-  height: 48px;
+  width: 3rem;
+  height: 3rem;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 6px;
+  margin-bottom: 0.4rem;
 }
 
 .tf-notif-panel__empty-title {
   margin: 0;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--tf-on-surface, #e8ecf1);
 }
 
 .tf-notif-panel__empty-desc {
   margin: 0;
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.5;
   color: var(--tf-on-surface-muted, #a8b0bc);
-  max-width: 260px;
+  max-width: 16rem;
+  overflow-wrap: anywhere;
 }
 
 .tf-notif-panel__list {
   list-style: none;
   margin: 0;
-  padding: 8px;
+  padding: 0.5rem;
   overflow-y: auto;
-  max-height: 360px;
+  flex: 0 1 auto;
+  max-height: min(50dvh, 20rem);
 }
 
 .tf-notif-panel__item {
   position: relative;
   border-radius: 12px;
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
+  height: auto;
 }
 
 .tf-notif-panel__item-btn {
-  flex: 1;
+  flex: 1 1 auto;
+  width: 100%;
   min-width: 0;
+  height: auto;
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 12px 40px 12px 12px;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 2.5rem 0.75rem 0.75rem;
   border: none;
   border-radius: 12px;
   background: transparent;
@@ -459,7 +483,6 @@ const handleDismiss = async (notif) => {
   text-align: left;
   cursor: pointer;
   transition: background 0.2s ease;
-  min-height: 56px;
 }
 
 .tf-notif-panel__item-btn:hover {
@@ -477,10 +500,10 @@ const handleDismiss = async (notif) => {
 
 .tf-notif-panel__dismiss {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 32px;
-  height: 32px;
+  top: 0.35rem;
+  right: 0.35rem;
+  width: 2rem;
+  height: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -505,8 +528,8 @@ const handleDismiss = async (notif) => {
 
 .tf-notif-panel__icon {
   flex-shrink: 0;
-  width: 38px;
-  height: 38px;
+  width: 2.375rem;
+  height: 2.375rem;
   border-radius: 11px;
   display: flex;
   align-items: center;
@@ -569,47 +592,60 @@ const handleDismiss = async (notif) => {
 }
 
 .tf-notif-panel__body {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  align-self: flex-start;
+  gap: 0.2rem;
 }
 
 .tf-notif-panel__row {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 3px;
+  justify-content: flex-start;
+  gap: 0.15rem 0.65rem;
+  margin: 0;
 }
 
 .tf-notif-panel__item-title {
-  font-size: 13px;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--tf-on-surface, #e8ecf1);
-  line-height: 1.3;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .tf-notif-panel__time {
-  flex-shrink: 0;
-  font-size: 11px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: 0.6875rem;
   color: var(--tf-on-surface-muted, #a8b0bc);
+  line-height: 1.35;
 }
 
 .tf-notif-panel__message {
   margin: 0;
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.45;
   color: var(--tf-on-surface-muted, #a8b0bc);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .tf-notif-panel__unread-dot {
   flex-shrink: 0;
-  width: 8px;
-  height: 8px;
-  margin-top: 6px;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: 0.4rem;
   border-radius: 50%;
   background: #00E5FF;
 }
@@ -618,27 +654,29 @@ const handleDismiss = async (notif) => {
   border-radius: 20px !important;
   overflow: hidden;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5) !important;
+  max-width: calc((100vw / var(--tf-font-scale, 1)) - 1.5rem) !important;
 }
 
 .tf-notif-detail {
-  padding: 24px 22px 18px;
+  padding: 1.5rem 1.25rem 1.1rem;
   background: #13161D;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
   color: var(--tf-on-surface, #e8ecf1);
+  box-sizing: border-box;
 }
 
 .tf-notif-detail__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .tf-notif-detail__icon {
-  width: 56px;
-  height: 56px;
+  width: 3.5rem;
+  height: 3.5rem;
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -648,8 +686,8 @@ const handleDismiss = async (notif) => {
 }
 
 .tf-notif-detail__close {
-  width: 44px;
-  height: 44px;
+  width: 2.75rem;
+  height: 2.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -672,41 +710,43 @@ const handleDismiss = async (notif) => {
 }
 
 .tf-notif-detail__title {
-  margin: 0 0 6px;
-  font-size: 20px;
+  margin: 0 0 0.4rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.3;
   letter-spacing: 0.01em;
   color: var(--tf-on-surface, #e8ecf1);
+  overflow-wrap: anywhere;
 }
 
 .tf-notif-detail__time {
-  margin: 0 0 14px;
-  font-size: 13px;
+  margin: 0 0 0.85rem;
+  font-size: 0.8125rem;
   color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .tf-notif-detail__message {
-  margin: 0 0 22px;
-  font-size: 15px;
+  margin: 0 0 1.35rem;
+  font-size: 0.9375rem;
   line-height: 1.55;
   color: var(--tf-on-surface, #e8ecf1);
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .tf-notif-detail__actions {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.4rem;
 }
 
 .tf-notif-detail__cta {
-  min-height: 44px;
+  min-height: 2.75rem;
   font-weight: 700;
 }
 
 .tf-notif-detail__secondary {
-  min-height: 44px;
+  min-height: 2.75rem;
   color: var(--tf-on-surface-muted, #a8b0bc) !important;
 }
 

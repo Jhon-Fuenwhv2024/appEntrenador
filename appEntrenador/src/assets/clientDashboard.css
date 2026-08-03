@@ -114,12 +114,12 @@ HEADER
   align-items: center;
   gap: 8px;
   color: var(--tf-on-surface-muted, #a8b0bc);
-  font-size: 13px;
+  font-size: 0.8125rem;
   margin-bottom: 8px;
 }
 
 .header-title {
-  font-size: 28px;
+  font-size: 1.75rem;
   font-weight: 700;
   color: #FFFFFF;
   margin: 0 0 6px;
@@ -129,7 +129,7 @@ HEADER
 .header-greeting {
   margin: 0;
   color: var(--tf-on-surface-muted, #a8b0bc);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .header-right {
@@ -173,7 +173,7 @@ FEATURE 038 — Home cliente compacto
 
 .client-home__date {
   margin: 0 0 2px;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--tf-on-surface-muted, #a8b0bc);
   letter-spacing: 0.02em;
 }
@@ -414,7 +414,7 @@ STAT CARDS
 }
 
 .stat-value {
-  font-size: 28px;
+  font-size: 1.75rem;
   font-weight: 700;
   color: #FFFFFF;
   line-height: 1;
@@ -422,7 +422,7 @@ STAT CARDS
 }
 
 .stat-label {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
@@ -431,7 +431,7 @@ STAT CARDS
   border-radius: 8px;
   background: rgba(34, 197, 94, 0.15);
   color: #22C55E;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
 }
 
@@ -447,14 +447,14 @@ CONTENT GRID (CHART + ACTIONS)
 }
 
 .section-title {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 700;
   color: #FFFFFF;
   margin: 0 0 4px;
 }
 
 .section-subtitle {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--tf-on-surface-muted, #a8b0bc);
   margin: 0;
 }
@@ -481,7 +481,7 @@ CONTENT GRID (CHART + ACTIONS)
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
@@ -533,7 +533,7 @@ CONTENT GRID (CHART + ACTIONS)
   flex-direction: column;
   justify-content: space-between;
   color: #6D7480;
-  font-size: 11px;
+  font-size: 0.6875rem;
   padding-bottom: 8px;
 }
 
@@ -614,14 +614,14 @@ QUICK ACTIONS
 
 .invite-title {
   color: #FFFFFF;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
   margin-bottom: 4px;
 }
 
 .invite-desc {
   color: var(--tf-on-surface-muted, #a8b0bc);
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.4;
 }
 
@@ -632,7 +632,7 @@ QUICK ACTIONS
   border-radius: 12px;
   background: #00E5FF;
   color: #0B0D12;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -682,11 +682,11 @@ SCROLL GLOBAL
   display: flex;
   align-items: center;
 }
-.stat-label { color: var(--tf-on-surface-muted, #a8b0bc); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
-.stat-value { color: white; font-weight: bold; font-size: 18px; }
+.stat-label { color: var(--tf-on-surface-muted, #a8b0bc); font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 1px; }
+.stat-value { color: white; font-weight: bold; font-size: 1.125rem; }
 
-.card-section-title { color: white; font-size: 18px; font-weight: bold; }
-.card-section-subtitle { color: #00E5FF; font-size: 14px; }
+.card-section-title { color: white; font-size: 1.125rem; font-weight: bold; }
+.card-section-subtitle { color: #00E5FF; font-size: 0.875rem; }
 
 .exercise-item {
   display: flex;
@@ -696,9 +696,9 @@ SCROLL GLOBAL
   padding: 12px;
   border-radius: 12px;
 }
-.exercise-num { color: #00E5FF; font-weight: bold; margin-right: 15px; font-size: 18px; }
-.exercise-name { color: white; font-size: 14px; font-weight: 500; }
-.exercise-meta { color: var(--tf-on-surface-muted, #a8b0bc); font-size: 12px; }
+.exercise-num { color: #00E5FF; font-weight: bold; margin-right: 15px; font-size: 1.125rem; }
+.exercise-name { color: white; font-size: 0.875rem; font-weight: 500; }
+.exercise-meta { color: var(--tf-on-surface-muted, #a8b0bc); font-size: 0.75rem; }
 
 .text-cyan { color: #00E5FF; }
 .text-green { color: #4CAF50; }
@@ -721,14 +721,14 @@ CLIENT DASHBOARD
 }
 
 .client-empty-title {
-  font-size: 20px;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #FFFFFF;
   margin: 0 0 10px;
 }
 
 .client-empty-desc {
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--tf-on-surface-muted, #a8b0bc);
   margin: 0;
   max-width: 520px;

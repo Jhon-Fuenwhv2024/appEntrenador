@@ -11,9 +11,10 @@ WCAG **2.2 AA** (criterios visuales): 1.4.3, 1.4.11, 1.4.4/1.4.10, 2.4.7, 2.5.8.
 ## Cómo verificar
 
 1. **Contraste:** DevTools → Inspect → Accessibility / contrast; o calculadora WCAG sobre tokens `--tf-*`.
-2. **Zoom:** Chrome 200% + viewport ~390px; recorrer login, dashboard, player, Client 360.
-3. **Focus:** Tab con teclado; anillo cian (`:focus-visible`) en botones, nav, campos.
-4. **Icon-only:** cada botón solo-icono debe tener nombre accesible (`aria-label` o texto).
+2. **Zoom / pellizcar:** Chrome 200% + viewport ~390px; en móvil, pellizcar debe funcionar (viewport sin `user-scalable=no`).
+3. **Tamaño del texto in-app:** Perfil (cliente) o Ajustes (entrenador) → **Tamaño del texto** → Grande / Muy grande. Toda la UI debe agrandarse al instante. Preferencia en `localStorage` (`tf_text_scale`).
+4. **Focus:** Tab con teclado; anillo cian (`:focus-visible`) en botones, nav, campos.
+5. **Icon-only:** cada botón solo-icono debe tener nombre accesible (`aria-label` o texto).
 
 ## Tokens clave (P0)
 
@@ -22,12 +23,15 @@ WCAG **2.2 AA** (criterios visuales): 1.4.3, 1.4.11, 1.4.4/1.4.10, 2.4.7, 2.5.8.
 | `--tf-on-surface-muted` | `#A8B0BC` | Secundario ≥4.5:1 sobre bg/surface |
 | `--tf-border` | `rgba(255,255,255,0.28)` | Bordes UI ≥3:1 aprox. |
 | Focus ring | `2px solid var(--tf-primary)` | Sin reactivar `__overlay` Vuetify |
+| `--tf-font-scale` | `1` / `1.2` / `1.35` | Escala in-app vía `zoom` en `html` (`textScale.js`) |
+| `--tf-text-xs` … `--tf-text-2xl` | `rem` | Tokens tipográficos relativos |
 
 ## Matriz de auditoría
 
 | Superficie | Estado | Hallazgo | Fix / notas |
 |------------|--------|----------|-------------|
 | **Sistema** tema + Vuetify | pass | Muted `#8b929e` borderline en elevated; border 0.08 &lt; 3:1; sin focus global | P0: muted `#A8B0BC`, border 0.28, `:focus-visible`, `medium-emphasis` ↑ |
+| **Sistema** text scaling | pass | SO a menudo no llega a PWA; viewport bloqueaba pellizcar | Viewport abierto; `--tf-font-scale` + `TextScaleCard` en Perfil/Ajustes |
 | **Auth** login / register / reset | pass* | `text-medium-emphasis` dependía de opacity baja | Cubierto por P0 tokens |
 | **Shell** sidebar + bottom nav | pass | Inactivo `#5E6673` bajo contraste; sin focus-visible en items | P1: muted token + focus ring en `appShell.css` |
 | **Shell** session actions (063) | pass | Badge solo color; logout suelto | Badge numérico + menú cuenta (`aria-label`); logout con confirmación |
@@ -46,6 +50,6 @@ WCAG **2.2 AA** (criterios visuales): 1.4.3, 1.4.11, 1.4.4/1.4.10, 2.4.7, 2.5.8.
 
 ## Fuera de alcance (062)
 
-- Preferencias “texto grande / alto contraste” en ajustes.
+- Sincronizar tamaño de texto entre dispositivos (hoy es `localStorage` local).
 - Screen reader / teclado completo end-to-end.
 - Dependencias axe/pa11y.

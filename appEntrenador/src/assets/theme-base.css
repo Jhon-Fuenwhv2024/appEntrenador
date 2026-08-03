@@ -28,6 +28,47 @@
   --tf-focus-offset: 2px;
   /* Bottom nav clearance (mobile shell ≤960px). Desktop = 0. */
   --tf-bottom-nav-clearance: 0px;
+  /*
+   * Escala tipográfica in-app (localStorage + TextScaleCard).
+   * PWA/Chrome móvil a menudo NO heredan el tamaño de fuente del SO;
+   * --tf-font-scale + zoom cubre rem y px. Pellizcar sigue activo (viewport).
+   */
+  --tf-font-scale: 1;
+  --tf-font-body: var(--v-font-body, 'Roboto', 'Inter', system-ui, sans-serif);
+  --tf-text-xs: 0.6875rem;
+  --tf-text-sm: 0.75rem;
+  --tf-text-md: 0.875rem;
+  --tf-text-base: 1rem;
+  --tf-text-lg: 1.125rem;
+  --tf-text-xl: 1.375rem;
+  --tf-text-2xl: 1.75rem;
+}
+
+/*
+ * Respetar preferencia de texto cuando el navegador sí la expone,
+ * y aplicar la escala in-app con zoom (afecta también font-size en px).
+ */
+html {
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  zoom: var(--tf-font-scale);
+}
+
+@supports not (zoom: 1) {
+  html {
+    font-size: calc(100% * var(--tf-font-scale));
+  }
+}
+
+@supports (font: -apple-system-body) {
+  html {
+    font: -apple-system-body;
+  }
+
+  body {
+    font-family: var(--tf-font-body);
+  }
 }
 
 @media (max-width: 960px) {

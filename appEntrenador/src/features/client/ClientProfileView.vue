@@ -19,6 +19,7 @@ import SessionHeaderActions from '../../shared/layout/SessionHeaderActions.vue';
 import ChangePasswordForm from '../../shared/components/ChangePasswordForm.vue';
 import ProfileFormCard from '../../shared/components/ProfileFormCard.vue';
 import PushOptInCard from '../../shared/components/PushOptInCard.vue';
+import TextScaleCard from '../../shared/components/TextScaleCard.vue';
 import { getMyMembership } from './api/membershipApi.js';
 import { getMyGymMembership } from './api/gymMembershipApi.js';
 import ClientProfileMembershipCard from './components/ClientProfileMembershipCard.vue';
@@ -210,6 +211,7 @@ onMounted(() => {
             <h2 id="tf-sec-prefs" class="tf-profile-section__label">
               Preferencias
             </h2>
+            <TextScaleCard />
             <PushOptInCard show-workout-reminder @notify="notify" />
           </section>
 

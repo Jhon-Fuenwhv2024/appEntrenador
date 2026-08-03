@@ -18,6 +18,7 @@ import AppShell from '../../shared/layout/AppShell.vue';
 import SessionHeaderActions from '../../shared/layout/SessionHeaderActions.vue';
 import ChangePasswordForm from '../../shared/components/ChangePasswordForm.vue';
 import PushOptInCard from '../../shared/components/PushOptInCard.vue';
+import TextScaleCard from '../../shared/components/TextScaleCard.vue';
 import TrainerAccountCard from '../../shared/components/TrainerAccountCard.vue';
 import TrainerSaasPlanCard from '../saas/components/TrainerSaasPlanCard.vue';
 
@@ -169,6 +170,7 @@ onMounted(() => {
             <h2 id="tf-tr-prefs" class="tf-profile-section__label">
               Preferencias
             </h2>
+            <TextScaleCard />
             <PushOptInCard @notify="notify" />
           </section>
 

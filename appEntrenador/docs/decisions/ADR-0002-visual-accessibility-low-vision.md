@@ -15,7 +15,8 @@ Sin esta política, cada pantalla reintroduce grises `#8b929e`, `outline: none` 
 1. **Estándar:** WCAG **2.2 nivel AA**, criterios visuales:
    - 1.4.3 Contraste de texto (≥4.5:1 normal; ≥3:1 texto grande)
    - 1.4.11 Contraste no-texto (≥3:1 bordes/iconos funcionales/focus)
-   - 1.4.4 / 1.4.10 Zoom y reflow (usable al **200%**, ~390px sin scroll horizontal bloqueante)
+   - 1.4.4 / 1.4.10 Zoom y reflow (usable al **200%**, ~390px sin scroll horizontal bloqueante); viewport **sin** `maximum-scale` / `user-scalable=no` (pellizcar permitido)
+   - 1.4.4 Text scaling: tipografía relativa (`rem`) + escala in-app `--tf-font-scale` (CSS `zoom` en `html`) porque muchas PWA/Chrome móvil **no** heredan el tamaño de fuente del SO; UI en Perfil/Ajustes (`TextScaleCard`)
    - 2.4.7 Focus visible
    - 2.5.8 Target size (mín. 24×24 CSS px; preferir ≥44px en touch)
 
@@ -32,7 +33,7 @@ Sin esta política, cada pantalla reintroduce grises `#8b929e`, `outline: none` 
 
 ## Relación con ADR-0001
 
-ADR-0001 sigue vigente para CTAs `on-primary`/`on-success` y overlays de menú. ADR-0002 **extiende** el alcance a muted, focus, zoom y targets; no sustituye ADR-0001.
+ADR-0001 sigue vigente para CTAs `on-primary`/`on-success` y overlays de menú. ADR-0002 **extiende** el alcance a muted, focus, zoom, **escala tipográfica** y targets; no sustituye ADR-0001.
 
 ## Consecuencias
 
@@ -40,3 +41,4 @@ ADR-0001 sigue vigente para CTAs `on-primary`/`on-success` y overlays de menú. 
 - Focus keyboard visible en shell, botones y campos.
 - Checklist obligatoria en PRs/UI para agentes y humanos.
 - Deuda P2 (backoffice) documentada, no bloqueante del cierre de 062.
+- Usuarios con baja visión pueden subir el texto en **Mi Perfil / Ajustes** (Normal / Grande / Muy grande) aunque el SO no llegue a la PWA; pellizcar sigue disponible.

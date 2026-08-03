@@ -134,17 +134,6 @@ const accessBlocked = computed(() => (
   state.value?.blocked || isMembershipAccessBlocked(normalized.value)
 ));
 
-const accessLabel = computed(() => {
-  if (!normalized.value) return '—';
-  if (accessBlocked.value) return 'Bloqueado';
-  if (state.value?.inGrace) {
-    const left = getMembershipGraceDaysLeft(normalized.value.days_remaining);
-    return left === 1 ? 'Gracia (último día)' : `Gracia (${left} días)`;
-  }
-  if (normalized.value.block_on_unpaid) return 'Activo (bloqueo al vencer + 3d gracia)';
-  return 'Permitido';
-});
-
 const progressPct = computed(() => {
   const s = state.value;
   if (s) return Math.round((s.progress ?? 0) * 100);
@@ -254,10 +243,6 @@ const contactPrefill = computed(() => (
         <div v-if="!showPaymentBreakdown">
           <dt>Pago</dt>
           <dd>{{ paymentLabel }}</dd>
-        </div>
-        <div>
-          <dt>Rutinas</dt>
-          <dd :class="{ 'pmc__dd--danger': accessBlocked }">{{ accessLabel }}</dd>
         </div>
       </dl>
 

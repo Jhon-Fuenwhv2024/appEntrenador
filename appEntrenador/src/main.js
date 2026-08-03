@@ -3,8 +3,11 @@ import App from './App.vue'
 import vuetify from './plugin/vuetify'
 import router from './router'
 import { APP_NAME, APP_FAVICON } from './config/app.js'
+import { initTextScale } from './shared/textScale.js'
 import '@mdi/font/css/materialdesignicons.css'
 import './assets/theme-base.css'
+
+initTextScale()
 
 document.title = APP_NAME
 
