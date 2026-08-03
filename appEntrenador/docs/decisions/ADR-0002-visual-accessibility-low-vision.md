@@ -16,6 +16,7 @@ Sin esta política, cada pantalla reintroduce grises `#8b929e`, `outline: none` 
    - 1.4.3 Contraste de texto (≥4.5:1 normal; ≥3:1 texto grande)
    - 1.4.11 Contraste no-texto (≥3:1 bordes/iconos funcionales/focus)
    - 1.4.4 / 1.4.10 Zoom y reflow (usable al **200%**, ~390px sin scroll horizontal bloqueante)
+   - 1.4.4 Text scaling: tipografía UI en **`rem`/`em`** (o tokens `--tf-text-*`); el viewport **no** usa `maximum-scale` / `user-scalable=no`; `html` respeta el tamaño de fuente del SO (`font-size: 100%`, `text-size-adjust: 100%`, iOS `-apple-system-body`)
    - 2.4.7 Focus visible
    - 2.5.8 Target size (mín. 24×24 CSS px; preferir ≥44px en touch)
 
@@ -32,7 +33,7 @@ Sin esta política, cada pantalla reintroduce grises `#8b929e`, `outline: none` 
 
 ## Relación con ADR-0001
 
-ADR-0001 sigue vigente para CTAs `on-primary`/`on-success` y overlays de menú. ADR-0002 **extiende** el alcance a muted, focus, zoom y targets; no sustituye ADR-0001.
+ADR-0001 sigue vigente para CTAs `on-primary`/`on-success` y overlays de menú. ADR-0002 **extiende** el alcance a muted, focus, zoom, **escala tipográfica del sistema** y targets; no sustituye ADR-0001.
 
 ## Consecuencias
 
@@ -40,3 +41,4 @@ ADR-0001 sigue vigente para CTAs `on-primary`/`on-success` y overlays de menú. 
 - Focus keyboard visible en shell, botones y campos.
 - Checklist obligatoria en PRs/UI para agentes y humanos.
 - Deuda P2 (backoffice) documentada, no bloqueante del cierre de 062.
+- Shell / login / dashboards globales escalan con el tamaño de fuente del teléfono; componentes `.vue` con `font-size` en `px` quedan como deuda a migrar a `rem`.

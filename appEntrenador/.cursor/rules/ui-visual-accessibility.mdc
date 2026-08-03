@@ -27,6 +27,8 @@ WCAG **2.2 AA** visual: contraste texto 4.5:1 / grande 3:1; no-texto 3:1; zoom 2
 6. Estados no solo por color: badge + texto/icono.
 7. Al tocar layout: verificar ~390px y zoom ~200% sin overflow horizontal bloqueante.
 8. Preferir `var(--tf-bottom-nav-clearance)` para no tapar contenido (regla bottom-nav).
+9. Tipografía UI en `rem` / `em` o tokens `--tf-text-*` (no `font-size` en `px`); así escala con el tamaño de fuente del SO.
+10. **Nunca** `maximum-scale` / `user-scalable=no` en el viewport de `index.html`.
 
 ## Checklist al tocar UI
 
@@ -37,3 +39,4 @@ WCAG **2.2 AA** visual: contraste texto 4.5:1 / grande 3:1; no-texto 3:1; zoom 2
 - [ ] Target táctil razonable (≥24px; ideal ≥44px en móvil)
 - [ ] Zoom 200% / móvil: sin texto cortado ni scroll-X forzado
 - [ ] Sin regresión overlays blancos (ADR-0001)
+- [ ] Tipografía nueva en `rem`/`em` (no `px`); viewport sin bloquear zoom

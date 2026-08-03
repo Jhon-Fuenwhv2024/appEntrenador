@@ -28,6 +28,40 @@
   --tf-focus-offset: 2px;
   /* Bottom nav clearance (mobile shell ≤960px). Desktop = 0. */
   --tf-bottom-nav-clearance: 0px;
+  /*
+   * Tipografía relativa (rem): escala con el tamaño de fuente del SO / navegador.
+   * Preferir estos tokens o rem/em; no fijar texto UI en px.
+   */
+  --tf-font-body: var(--v-font-body, 'Roboto', 'Inter', system-ui, sans-serif);
+  --tf-text-xs: 0.6875rem; /* 11px @ 16 */
+  --tf-text-sm: 0.75rem; /* 12px */
+  --tf-text-md: 0.875rem; /* 14px */
+  --tf-text-base: 1rem; /* 16px */
+  --tf-text-lg: 1.125rem; /* 18px */
+  --tf-text-xl: 1.375rem; /* 22px */
+  --tf-text-2xl: 1.75rem; /* 28px */
+}
+
+/*
+ * Respetar tamaño de fuente del sistema (Android Font size / iOS Dynamic Type).
+ * text-size-adjust: 100% — no desactivar con none.
+ * -apple-system-body en html hereda la métrica de texto del SO en Safari/iOS;
+ * body restaura la familia tipográfica de la app.
+ */
+html {
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@supports (font: -apple-system-body) {
+  html {
+    font: -apple-system-body;
+  }
+
+  body {
+    font-family: var(--tf-font-body);
+  }
 }
 
 @media (max-width: 960px) {

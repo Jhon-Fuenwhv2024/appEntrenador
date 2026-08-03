@@ -11,9 +11,10 @@ WCAG **2.2 AA** (criterios visuales): 1.4.3, 1.4.11, 1.4.4/1.4.10, 2.4.7, 2.5.8.
 ## Cómo verificar
 
 1. **Contraste:** DevTools → Inspect → Accessibility / contrast; o calculadora WCAG sobre tokens `--tf-*`.
-2. **Zoom:** Chrome 200% + viewport ~390px; recorrer login, dashboard, player, Client 360.
-3. **Focus:** Tab con teclado; anillo cian (`:focus-visible`) en botones, nav, campos.
-4. **Icon-only:** cada botón solo-icono debe tener nombre accesible (`aria-label` o texto).
+2. **Zoom:** Chrome 200% + viewport ~390px; recorrer login, dashboard, player, Client 360. Pinch-zoom debe estar permitido (sin `user-scalable=no`).
+3. **Tamaño de fuente del sistema:** en el teléfono, Ajustes → tamaño de fuente / Texto más grande → abrir o recargar la PWA/navegador. Login, shell (bottom nav) e inicio cliente/entrenador deben verse más grandes. En DevTools: subir el font size por defecto del navegador o emular.
+4. **Focus:** Tab con teclado; anillo cian (`:focus-visible`) en botones, nav, campos.
+5. **Icon-only:** cada botón solo-icono debe tener nombre accesible (`aria-label` o texto).
 
 ## Tokens clave (P0)
 
@@ -22,12 +23,15 @@ WCAG **2.2 AA** (criterios visuales): 1.4.3, 1.4.11, 1.4.4/1.4.10, 2.4.7, 2.5.8.
 | `--tf-on-surface-muted` | `#A8B0BC` | Secundario ≥4.5:1 sobre bg/surface |
 | `--tf-border` | `rgba(255,255,255,0.28)` | Bordes UI ≥3:1 aprox. |
 | Focus ring | `2px solid var(--tf-primary)` | Sin reactivar `__overlay` Vuetify |
+| `--tf-text-xs` … `--tf-text-2xl` | `rem` | Escala tipográfica relativa al SO |
+| `html` font root | `100%` + iOS `-apple-system-body` | Respeta Font size / Dynamic Type |
 
 ## Matriz de auditoría
 
 | Superficie | Estado | Hallazgo | Fix / notas |
 |------------|--------|----------|-------------|
 | **Sistema** tema + Vuetify | pass | Muted `#8b929e` borderline en elevated; border 0.08 &lt; 3:1; sin focus global | P0: muted `#A8B0BC`, border 0.28, `:focus-visible`, `medium-emphasis` ↑ |
+| **Sistema** text scaling | pass* | Viewport con `maximum-scale`/`user-scalable=no`; tipografía CSS en `px` | Viewport abierto; `theme-base` root rem; `appShell` / dashboards / `login` en `rem` |
 | **Auth** login / register / reset | pass* | `text-medium-emphasis` dependía de opacity baja | Cubierto por P0 tokens |
 | **Shell** sidebar + bottom nav | pass | Inactivo `#5E6673` bajo contraste; sin focus-visible en items | P1: muted token + focus ring en `appShell.css` |
 | **Shell** session actions (063) | pass | Badge solo color; logout suelto | Badge numérico + menú cuenta (`aria-label`); logout con confirmación |
@@ -41,11 +45,13 @@ WCAG **2.2 AA** (criterios visuales): 1.4.3, 1.4.11, 1.4.4/1.4.10, 2.4.7, 2.5.8.
 | **Trainer** Catálogo / Recursos | pass* | Muted hardcode | Variable |
 | **Backoffice** `/backoffice` | P2 | Texto `rgba(255,255,255,0.4–0.45)` | Deuda documentada; no bloquea 062 |
 | **Admin** exercise tagger | P2 | Misma familia de opacidades bajas | Deuda P2 |
+| **Componentes** `.vue` con `font-size` px | deuda | Notificaciones, charts, menús, etc. aún en `px` | Migrar a `rem` / `--tf-text-*` al tocar cada archivo |
 
-\*pass = criterios visuales AA tras fixes 062 en tokens/locales; no implica auditoría exhaustiva de cada pixel.
+\*pass = criterios visuales AA tras fixes 062 en tokens/locales; no implica auditoría exhaustiva de cada pixel. Text scaling pass* = shell/login/dashboards globales; deuda en componentes sueltos.
 
 ## Fuera de alcance (062)
 
-- Preferencias “texto grande / alto contraste” en ajustes.
+- Preferencias “texto grande / alto contraste” **in-app** en ajustes (sí se respeta el tamaño del SO vía navegador).
 - Screen reader / teclado completo end-to-end.
 - Dependencias axe/pa11y.
+- Migración exhaustiva de todos los `font-size` en `px` de cada `.vue`.

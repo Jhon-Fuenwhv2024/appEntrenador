@@ -153,7 +153,7 @@ SIDEBAR (desktop) — rail moderno
   background: rgb(var(--v-theme-primary));
   border: 1.5px solid #11141b;
   color: rgb(var(--v-theme-on-primary));
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   line-height: 15px;
   text-align: center;
@@ -240,7 +240,7 @@ BOTTOM NAV (mobile)
   border-radius: 12px;
   background: transparent;
   color: var(--tf-on-surface-muted, #a8b0bc);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   line-height: 1.2;
   cursor: pointer;
@@ -298,7 +298,7 @@ BOTTOM NAV (mobile)
   background: rgb(var(--v-theme-primary));
   border: 1.5px solid #0b0d12;
   color: rgb(var(--v-theme-on-primary));
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   line-height: 15px;
   text-align: center;
@@ -341,12 +341,12 @@ BOTTOM NAV (mobile)
   align-items: center;
   gap: 8px;
   color: var(--tf-on-surface-muted, #a8b0bc);
-  font-size: 13px;
+  font-size: 0.8125rem;
   margin-bottom: 8px;
 }
 
 .header-title {
-  font-size: 28px;
+  font-size: 1.75rem;
   font-weight: 700;
   color: #ffffff;
   margin: 0 0 6px;
@@ -356,7 +356,7 @@ BOTTOM NAV (mobile)
 .header-greeting {
   margin: 0;
   color: var(--tf-on-surface-muted, #a8b0bc);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 /* ===========================
@@ -417,10 +417,10 @@ MOBILE ≤960px
   }
 
   .header-title {
-    font-size: 22px;
+    font-size: 1.375rem;
   }
 
   .header-greeting {
-    font-size: 13px;
+    font-size: 0.8125rem;
   }
 }
