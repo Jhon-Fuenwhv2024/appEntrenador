@@ -12,7 +12,7 @@ WCAG **2.2 AA** (criterios visuales): 1.4.3, 1.4.11, 1.4.4/1.4.10, 2.4.7, 2.5.8.
 
 1. **Contraste:** DevTools → Inspect → Accessibility / contrast; o calculadora WCAG sobre tokens `--tf-*`.
 2. **Zoom / pellizcar:** Chrome 200% + viewport ~390px; en móvil, pellizcar debe funcionar (viewport sin `user-scalable=no`).
-3. **Tamaño del texto in-app:** Perfil (cliente) o Ajustes (entrenador) → **Tamaño del texto** → Grande / Muy grande. Toda la UI debe agrandarse al instante. Preferencia en `localStorage` (`tf_text_scale`).
+3. **Tamaño del texto in-app y del sistema:** Perfil (cliente) o Ajustes (entrenador) → **Tamaño del texto** → Grande / Muy grande; además, si el sistema o el navegador exponen texto más grande, la UI debe respetarlo. La preferencia in-app puede guardarse en `localStorage` (`tf_text_scale`) y complementarse con `--tf-font-scale`.
 4. **Focus:** Tab con teclado; anillo cian (`:focus-visible`) en botones, nav, campos.
 5. **Icon-only:** cada botón solo-icono debe tener nombre accesible (`aria-label` o texto).
 
@@ -23,15 +23,16 @@ WCAG **2.2 AA** (criterios visuales): 1.4.3, 1.4.11, 1.4.4/1.4.10, 2.4.7, 2.5.8.
 | `--tf-on-surface-muted` | `#A8B0BC` | Secundario ≥4.5:1 sobre bg/surface |
 | `--tf-border` | `rgba(255,255,255,0.28)` | Bordes UI ≥3:1 aprox. |
 | Focus ring | `2px solid var(--tf-primary)` | Sin reactivar `__overlay` Vuetify |
-| `--tf-font-scale` | `1` / `1.2` / `1.35` | Escala in-app vía `zoom` en `html` (`textScale.js`) |
-| `--tf-text-xs` … `--tf-text-2xl` | `rem` | Tokens tipográficos relativos |
+| `--tf-font-scale` | `1` / `1.2` / `1.35` | Escala in-app vía `zoom` en `html` (`textScale.js`) y compatibilidad con el tamaño del SO/navegador |
+| `--tf-text-xs` … `--tf-text-2xl` | `rem` | Tokens tipográficos relativos al sistema y a la escala in-app |
+| `html` font root | `100%` + iOS `-apple-system-body` | Respeta Font size / Dynamic Type |
 
 ## Matriz de auditoría
 
 | Superficie | Estado | Hallazgo | Fix / notas |
 |------------|--------|----------|-------------|
 | **Sistema** tema + Vuetify | pass | Muted `#8b929e` borderline en elevated; border 0.08 &lt; 3:1; sin focus global | P0: muted `#A8B0BC`, border 0.28, `:focus-visible`, `medium-emphasis` ↑ |
-| **Sistema** text scaling | pass | SO a menudo no llega a PWA; viewport bloqueaba pellizcar | Viewport abierto; `--tf-font-scale` + `TextScaleCard` en Perfil/Ajustes |
+| **Sistema** text scaling | pass | El SO/navegador no siempre llega a la PWA y el viewport podía bloquear pellizcar | Viewport abierto; `--tf-font-scale` + `TextScaleCard` en Perfil/Ajustes; tipografía en `rem`/tokens |
 | **Auth** login / register / reset | pass* | `text-medium-emphasis` dependía de opacity baja | Cubierto por P0 tokens |
 | **Shell** sidebar + bottom nav | pass | Inactivo `#5E6673` bajo contraste; sin focus-visible en items | P1: muted token + focus ring en `appShell.css` |
 | **Shell** session actions (063) | pass | Badge solo color; logout suelto | Badge numérico + menú cuenta (`aria-label`); logout con confirmación |
@@ -45,11 +46,13 @@ WCAG **2.2 AA** (criterios visuales): 1.4.3, 1.4.11, 1.4.4/1.4.10, 2.4.7, 2.5.8.
 | **Trainer** Catálogo / Recursos | pass* | Muted hardcode | Variable |
 | **Backoffice** `/backoffice` | P2 | Texto `rgba(255,255,255,0.4–0.45)` | Deuda documentada; no bloquea 062 |
 | **Admin** exercise tagger | P2 | Misma familia de opacidades bajas | Deuda P2 |
+| **Componentes** `.vue` con `font-size` px | deuda | Notificaciones, charts, menús, etc. aún en `px` | Migrar a `rem` / `--tf-text-*` al tocar cada archivo |
 
-\*pass = criterios visuales AA tras fixes 062 en tokens/locales; no implica auditoría exhaustiva de cada pixel.
+\*pass = criterios visuales AA tras fixes 062 en tokens/locales; no implica auditoría exhaustiva de cada pixel. Text scaling pass* = shell/login/dashboards globales; deuda en componentes sueltos.
 
 ## Fuera de alcance (062)
 
-- Sincronizar tamaño de texto entre dispositivos (hoy es `localStorage` local).
+- Sincronizar tamaño de texto entre dispositivos (hoy es `localStorage` local) y preferencias “texto grande / alto contraste” **in-app** en ajustes; el tamaño del SO/navegador se respeta vía navegador.
 - Screen reader / teclado completo end-to-end.
 - Dependencias axe/pa11y.
+- Migración exhaustiva de todos los `font-size` en `px` de cada `.vue`.

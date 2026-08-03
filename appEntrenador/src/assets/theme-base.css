@@ -29,9 +29,10 @@
   /* Bottom nav clearance (mobile shell ≤960px). Desktop = 0. */
   --tf-bottom-nav-clearance: 0px;
   /*
-   * Escala tipográfica in-app (localStorage + TextScaleCard).
+   * Escala tipográfica in-app (localStorage + TextScaleCard) y del sistema.
    * PWA/Chrome móvil a menudo NO heredan el tamaño de fuente del SO;
-   * --tf-font-scale + zoom cubre rem y px. Pellizcar sigue activo (viewport).
+   * --tf-font-scale + zoom cubre rem y px, y además respetamos el tamaño de
+   * fuente del navegador/SO.
    */
   --tf-font-scale: 1;
   --tf-font-body: var(--v-font-body, 'Roboto', 'Inter', system-ui, sans-serif);
@@ -45,8 +46,8 @@
 }
 
 /*
- * Respetar preferencia de texto cuando el navegador sí la expone,
- * y aplicar la escala in-app con zoom (afecta también font-size en px).
+ * Respetar preferencia de texto del navegador/SO y aplicar la escala in-app con zoom.
+ * Preferir estos tokens o rem/em; no fijar texto UI en px.
  */
 html {
   font-size: 100%;
@@ -60,6 +61,13 @@ html {
     font-size: calc(100% * var(--tf-font-scale));
   }
 }
+
+/*
+ * Respetar tamaño de fuente del sistema (Android Font size / iOS Dynamic Type).
+ * text-size-adjust: 100% — no desactivar con none.
+ * -apple-system-body en html hereda la métrica de texto del SO en Safari/iOS;
+ * body restaura la familia tipográfica de la app.
+ */
 
 @supports (font: -apple-system-body) {
   html {
