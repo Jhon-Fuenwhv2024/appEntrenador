@@ -41,6 +41,7 @@ const { ensureCheckinsTables } = require('./db/ensureCheckinsTables');
 const { ensureMessagesTable } = require('./db/ensureMessagesTable');
 const { ensureClientMembershipsTable } = require('./db/ensureClientMembershipsTable');
 const { ensureClientGymMembershipsTable } = require('./db/ensureClientGymMembershipsTable');
+const { ensureRefreshTokensTable } = require('./db/ensureRefreshTokensTable');
 const { ensureTrainerMembershipTypesTable } = require('./db/ensureTrainerMembershipTypesTable');
 const { ensurePersonalRecordsTable } = require('./db/ensurePersonalRecordsTable');
 const { ensureClientStreaksTable } = require('./db/ensureClientStreaksTable');
@@ -212,6 +213,12 @@ async function start() {
     await ensureClientGymMembershipsTable();
   } catch (error) {
     console.error('No se pudo asegurar la tabla client_gym_memberships:', error.message);
+  }
+
+  try {
+    await ensureRefreshTokensTable();
+  } catch (error) {
+    console.error('No se pudo asegurar la tabla refresh_tokens:', error.message);
   }
 
   try {

@@ -1,4 +1,5 @@
 const TOKEN_KEY = 'authToken';
+const REFRESH_KEY = 'refreshToken';
 const ROLE_KEY = 'userRole';
 const NAME_KEY = 'userName';
 const ID_KEY = 'userId';
@@ -13,6 +14,10 @@ function toBool(value) {
 
 export function getAuthToken() {
   return localStorage.getItem(TOKEN_KEY);
+}
+
+export function getRefreshToken() {
+  return localStorage.getItem(REFRESH_KEY);
 }
 
 export function getSessionUser() {
@@ -31,9 +36,13 @@ export function getSessionUser() {
   };
 }
 
-export function setSession({ user, token }) {
+export function setSession({ user, token, refreshToken }) {
   if (token) {
     localStorage.setItem(TOKEN_KEY, token);
+  }
+
+  if (refreshToken) {
+    localStorage.setItem(REFRESH_KEY, refreshToken);
   }
 
   if (user) {
@@ -51,6 +60,7 @@ export function setSession({ user, token }) {
 
 export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(ROLE_KEY);
   localStorage.removeItem(NAME_KEY);
   localStorage.removeItem(ID_KEY);
@@ -60,6 +70,12 @@ export function clearSession() {
   localStorage.removeItem(ACCOUNT_EMAIL_KEY);
 }
 
+/**
+ * Session is valid if we have user identity plus an access or refresh token.
+ * Expired access is OK while refresh remains (Feature 083).
+ */
 export function isAuthenticated() {
-  return Boolean(getAuthToken() && getSessionUser());
+  const user = getSessionUser();
+  if (!user) return false;
+  return Boolean(getAuthToken() || getRefreshToken());
 }

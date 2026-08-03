@@ -2,12 +2,13 @@
 
 ## Login y sesión
 
-1. Frontend `POST /login` → backend valida bcrypt y firma JWT.
+1. Frontend `POST /login` → backend valida bcrypt, firma **access JWT** corto y emite **refresh** opaco (hash en `refresh_tokens`).
 2. Credenciales inválidas → error **inline** en el campo correspondiente: usuario inexistente (`404`) o contraseña incorrecta (`401`, mensaje específico solo en ese caso).
-3. Respuesta exitosa incluye `user` + `token` (JWT con claim `is_superadmin`).
+3. Respuesta exitosa incluye `user` + `token` + `refreshToken` (Feature 083).
 4. Frontend guarda sesión en `localStorage` (`setSession` / `shared/auth/session.js`) y navega al dashboard según rol.
-5. Axios envía `Authorization: Bearer` en cada request; el middleware pobla `req.user` y los roles restringen endpoints.
-6. Ante `401` fuera del login, el interceptor limpia sesión y redirige al login.
+5. Axios envía `Authorization: Bearer` (access) en cada request; el middleware pobla `req.user` y los roles restringen endpoints.
+6. Ante `401` en rutas protegidas: el interceptor intenta **un** `POST /auth/refresh` (single-flight), actualiza tokens y reintenta la request. Si el refresh falla → limpia sesión y redirige al login.
+7. **Cerrar sesión** → `POST /auth/logout` (Bearer y/o `refreshToken`) revoca refreshes en servidor y luego limpia `localStorage`.
 
 ## Invitación → cliente del trainer (Feature 023)
 

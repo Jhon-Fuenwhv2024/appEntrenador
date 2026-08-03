@@ -1,7 +1,8 @@
 import { computed, onMounted, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { getMyAccount } from '../api/accountApi.js';
-import { clearSession, getSessionUser } from '../auth/session.js';
+import { logoutSession } from '../../features/auth/api/authApi.js';
+import { clearSession, getRefreshToken, getSessionUser } from '../auth/session.js';
 import { usePushNotifications } from './usePushNotifications.js';
 import { resolveEffectiveSaasPlan, toDateOnlyString } from '../saas/effectivePlan.js';
 import { resolveAvatarSrc } from '../utils/avatar.js';
@@ -226,7 +227,15 @@ export function useSessionAccount(options = {}) {
 
   function logout() {
     const { unbindOnLogout } = usePushNotifications();
+    const refreshToken = getRefreshToken();
     Promise.resolve()
+      .then(async () => {
+        try {
+          await logoutSession({ refreshToken });
+        } catch (error) {
+          console.warn('[auth] logout API:', error);
+        }
+      })
       .then(async () => {
         const { clearAppPresence } = await import('./useAppPresence.js');
         await clearAppPresence();

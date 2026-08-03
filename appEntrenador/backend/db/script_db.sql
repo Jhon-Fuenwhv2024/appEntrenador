@@ -467,6 +467,24 @@ CREATE TABLE client_gym_memberships (
       FOREIGN KEY (client_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- 18c. REFRESH TOKENS (Feature 083) — sesión persistente
+CREATE TABLE refresh_tokens (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    revoked_at DATETIME NULL,
+    replaced_by_id BIGINT NULL,
+    user_agent VARCHAR(512) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_used_at DATETIME NULL,
+    UNIQUE KEY uq_refresh_tokens_hash (token_hash),
+    INDEX idx_refresh_tokens_user_active (user_id, revoked_at),
+    INDEX idx_refresh_tokens_expires (expires_at),
+    CONSTRAINT fk_refresh_tokens_user
+      FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- 19. RÉCORDS PERSONALES / PRs (Feature 041)
 CREATE TABLE personal_records (
     id INT AUTO_INCREMENT PRIMARY KEY,

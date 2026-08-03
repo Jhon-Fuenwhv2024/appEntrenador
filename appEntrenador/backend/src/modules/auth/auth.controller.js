@@ -27,11 +27,17 @@ function sendError(res, error, context) {
   });
 }
 
+function requestMeta(req) {
+  return {
+    userAgent: req.get('user-agent') || '',
+  };
+}
+
 async function login(req, res) {
   try {
-    const result = await authService.login(req.body);
+    const result = await authService.login(req.body, requestMeta(req));
 
-    if (!result?.token || !result?.user) {
+    if (!result?.token || !result?.user || !result?.refreshToken) {
       const error = new Error(
         'No se pudo emitir el token de sesión. Reinicia el backend con el código actualizado.',
       );
@@ -44,6 +50,7 @@ async function login(req, res) {
       message: '¡Login correcto!',
       user: result.user,
       token: result.token,
+      refreshToken: result.refreshToken,
     });
   } catch (error) {
     return sendError(res, error, 'Error en login:');
@@ -60,6 +67,41 @@ async function register(req, res) {
     });
   } catch (error) {
     return sendError(res, error, 'Error en registro:');
+  }
+}
+
+async function refresh(req, res) {
+  try {
+    const result = await authService.refreshSession({
+      refreshToken: req.body?.refreshToken,
+      ...requestMeta(req),
+    });
+
+    return res.json({
+      success: true,
+      message: 'Sesión renovada.',
+      user: result.user,
+      token: result.token,
+      refreshToken: result.refreshToken,
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error en refresh:');
+  }
+}
+
+async function logout(req, res) {
+  try {
+    await authService.logout({
+      userId: req.user?.id || null,
+      refreshToken: req.body?.refreshToken,
+    });
+
+    return res.json({
+      success: true,
+      message: 'Sesión cerrada.',
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error en logout:');
   }
 }
 
@@ -92,6 +134,8 @@ async function resetPassword(req, res) {
 module.exports = {
   login,
   register,
+  refresh,
+  logout,
   forgotPassword,
   resetPassword,
 };

@@ -92,10 +92,10 @@ const handleLogin = async () => {
       password: password.value,
     });
 
-    const { success, user, token } = response.data || {};
+    const { success, user, token, refreshToken } = response.data || {};
 
     if (success && token && user) {
-      setSession({ user, token });
+      setSession({ user, token, refreshToken });
       router.push('/dashboard');
       return;
     }

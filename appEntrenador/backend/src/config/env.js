@@ -1,7 +1,10 @@
 require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
+/** Access JWT TTL (Feature 083). Short-lived; refresh renews silently. */
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
+/** Opaque refresh token TTL (Feature 083). Sliding window on each /auth/refresh. */
+const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || '30d';
 const PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
@@ -98,6 +101,7 @@ const VAPID = {
 module.exports = {
   JWT_SECRET: JWT_SECRET || 'trainfit-dev-only-change-me',
   JWT_EXPIRES_IN,
+  REFRESH_TOKEN_EXPIRES_IN,
   PORT,
   NODE_ENV,
   SMTP,

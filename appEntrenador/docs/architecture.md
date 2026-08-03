@@ -5,7 +5,7 @@ Trainfit usa una migración modular gradual. La estructura actual mantiene compa
 ## Frontend
 
 - `src/config/api.js`: resolución automática local vs producción (`localhost` → API local; host público → `VITE_API_URL` o Render).
-- `src/shared/api/http.js`: instancia Axios única (`baseURL` desde `resolveApiBaseUrl()`), Bearer JWT e interceptor de errores/401.
+- `src/shared/api/http.js`: instancia Axios única (`baseURL` desde `resolveApiBaseUrl()`), Bearer JWT, refresh silencioso en 401 (Feature 083) e interceptor de errores.
 - `src/shared/auth/session.js`: persistencia de token + datos de usuario en `localStorage`.
 - `src/shared/layout/AppShell.vue` + `AppBottomNav.vue`: shell autenticado (sidebar desktop / bottom nav móvil ≤960px). Estilos en `src/assets/appShell.css`.
   - **Trainer (4 slots):** Inicio (`/dashboard`), Alumnos (`/trainer/clients`), Recursos (`/trainer/library`), Ajustes (`/trainer/settings`). Logout: menú de cuenta en header (Feature 063) + pie sidebar desktop.

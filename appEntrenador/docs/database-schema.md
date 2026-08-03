@@ -41,6 +41,7 @@ erDiagram
   usuarios ||--o{ progress_photos : "client_id"
   usuarios ||--o{ messages : "sender_id"
   usuarios ||--o{ messages : "receiver_id"
+  usuarios ||--o{ refresh_tokens : "user_id"
 
   usuarios {
     int id PK
@@ -331,6 +332,12 @@ npm run test:feature-033
 Chat 1:1 trainer↔cliente. `sender_id` / `receiver_id` → `usuarios`. `is_read` por defecto `FALSE`. Índices en ambos FKs. Tiempo real vía SSE in-process (no Pub/Sub).
 
 Migración: [`backend/db/migrations/017_messages.sql`](../backend/db/migrations/017_messages.sql). Al arrancar, `ensureMessagesTable` aplica `CREATE TABLE IF NOT EXISTS`.
+
+## Refresh tokens (Feature 083)
+
+Tabla `refresh_tokens`: tokens opacos hasheados (SHA-256) para renovar el access JWT. Campos: `user_id`, `token_hash` UNIQUE, `expires_at`, `revoked_at`, `replaced_by_id` (rotación), `user_agent`, `last_used_at`.
+
+Migración: [`034_refresh_tokens.sql`](../backend/db/migrations/034_refresh_tokens.sql). Al arrancar, `ensureRefreshTokensTable`.
 
 ## Seed del catálogo
 

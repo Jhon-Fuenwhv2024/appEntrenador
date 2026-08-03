@@ -50,6 +50,36 @@ function authenticate(req, res, next) {
 }
 
 /**
+ * Like authenticate, but continues without req.user if missing/invalid.
+ * Used for logout when access JWT may already be expired (refresh still present).
+ */
+function optionalAuthenticate(req, _res, next) {
+  const header = req.headers.authorization || '';
+  const [scheme, token] = header.split(' ');
+
+  if (scheme !== 'Bearer' || !token) {
+    return next();
+  }
+
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    if (payload?.id && payload?.rol) {
+      req.user = {
+        id: Number(payload.id),
+        username: payload.username,
+        nombre: payload.nombre,
+        rol: payload.rol,
+        is_superadmin: payload.is_superadmin === true,
+      };
+    }
+  } catch {
+    // Ignore expired/invalid access; logout can still revoke via refreshToken body.
+  }
+
+  return next();
+}
+
+/**
  * Exige que req.user.rol esté en la lista de roles permitidos.
  * Usar después de authenticate.
  */
@@ -69,6 +99,7 @@ function requireRole(...allowedRoles) {
 
 module.exports = {
   authenticate,
+  optionalAuthenticate,
   requireRole,
   createHttpError,
 };

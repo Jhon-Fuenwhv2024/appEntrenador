@@ -15,13 +15,13 @@ Axios adjunta `Authorization: Bearer <token>` y normaliza errores con `{ success
 
 **CORS en local:** en desarrollo el backend siempre permite `http://localhost:5173` (y `127.0.0.1` / preview `4173`), aunque `CORS_ORIGINS` apunte a un túnel. Si ves `CORS blocked for origin: http://localhost:5173`, reinicia el backend tras actualizar `backend/.env`.
 
-Secretos del backend: copiar `backend/.env.example` a `backend/.env` (`JWT_SECRET`, `JWT_EXPIRES_IN`, `PORT`, SMTP y `APP_PUBLIC_URL` para Feature 056).
+Secretos del backend: copiar `backend/.env.example` a `backend/.env` (`JWT_SECRET`, `JWT_EXPIRES_IN`, `REFRESH_TOKEN_EXPIRES_IN`, `PORT`, SMTP y `APP_PUBLIC_URL` para Feature 056).
 
 ## Auth
 
 ### `POST /login`
 
-Autentica un usuario trainer o client y emite un JWT.
+Autentica un usuario trainer o client y emite un **access JWT** corto + **refresh token** opaco (Feature 083).
 
 Body:
 
@@ -45,15 +45,42 @@ Respuesta exitosa:
     "rol": "trainer",
     "is_superadmin": false
   },
-  "token": "<jwt>"
+  "token": "<jwt-access>",
+  "refreshToken": "<opaque-refresh>"
 }
 ```
 
-El JWT incluye el claim `is_superadmin` (boolean). No es un tercer rol: los roles siguen siendo `trainer` | `client`.
+- `token` (access): TTL vía `JWT_EXPIRES_IN` (default `15m`). Claim `is_superadmin` (boolean). Roles: `trainer` | `client`.
+- `refreshToken`: TTL vía `REFRESH_TOKEN_EXPIRES_IN` (default `30d`); se guarda hasheado en `refresh_tokens`; el frontend lo persiste y lo rota en cada renovación.
 
 Credenciales inválidas (UI inline, sin banner):
 - Usuario inexistente → `404` `"El usuario ingresado no existe."` (mensaje bajo el campo usuario).
 - Contraseña incorrecta → `401` `"La contraseña es incorrecta."` (mensaje solo bajo el campo contraseña).
+
+### `POST /auth/refresh` (público · Feature 083)
+
+Renueva access + refresh (rotación). Body:
+
+```json
+{
+  "refreshToken": "<opaque-refresh>"
+}
+```
+
+Respuesta `200`: mismo shape que login (`user`, `token`, `refreshToken`).  
+Errores: `400` sin token; `401` inválido/vencido/reutilizado (reuse → revoca todos los refresh del usuario).
+
+### `POST /auth/logout` (Feature 083)
+
+Revoca refresh tokens del usuario. Auth Bearer **opcional** (si el access ya venció, enviar `refreshToken` en el body).
+
+```json
+{
+  "refreshToken": "<opaque-refresh>"
+}
+```
+
+Respuesta `200` `{ success: true, message: "Sesión cerrada." }`.
 
 ### `POST /register`
 

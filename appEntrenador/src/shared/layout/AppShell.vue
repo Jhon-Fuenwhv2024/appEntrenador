@@ -8,7 +8,8 @@ import { computed, onMounted, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import AppLogo from '../../components/AppLogo.vue';
 import { useUnreadMessages } from '../../features/messaging/composables/useUnreadMessages.js';
-import { clearSession, getSessionUser } from '../auth/session.js';
+import { logoutSession } from '../../features/auth/api/authApi.js';
+import { clearSession, getRefreshToken, getSessionUser } from '../auth/session.js';
 import { clearSessionAccountCache } from '../composables/useSessionAccount.js';
 import { clearAppPresence, useAppPresence } from '../composables/useAppPresence.js';
 import { usePushNotifications } from '../composables/usePushNotifications.js';
@@ -63,6 +64,12 @@ const messagesAriaLabel = computed(() => {
 });
 
 const handleLogout = async () => {
+  const refreshToken = getRefreshToken();
+  try {
+    await logoutSession({ refreshToken });
+  } catch (error) {
+    console.warn('[auth] logout API:', error);
+  }
   try {
     await clearAppPresence();
   } catch (error) {

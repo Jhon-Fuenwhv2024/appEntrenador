@@ -2,7 +2,12 @@ const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../../config/db');
-const { JWT_SECRET, JWT_EXPIRES_IN, APP_PUBLIC_URL } = require('../../config/env');
+const {
+  JWT_SECRET,
+  JWT_EXPIRES_IN,
+  REFRESH_TOKEN_EXPIRES_IN,
+  APP_PUBLIC_URL,
+} = require('../../config/env');
 const invitesService = require('../invites/invites.service');
 const { sendMail, isSmtpConfigured } = require('../../shared/mail/mailer');
 
@@ -10,6 +15,14 @@ const GENERIC_FORGOT_MESSAGE =
   'Si la cuenta existe y tiene un correo registrado, te hemos enviado un enlace para restablecer tu contraseña.';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DURATION_RE = /^(\d+)(ms|s|m|h|d)$/i;
+const UNIT_MS = {
+  ms: 1,
+  s: 1000,
+  m: 60_000,
+  h: 3_600_000,
+  d: 86_400_000,
+};
 
 function createHttpError(message, code) {
   const error = new Error(message);
@@ -30,8 +43,43 @@ function isValidEmail(email) {
   return Boolean(email) && email.length <= 255 && EMAIL_RE.test(email);
 }
 
-function hashResetToken(token) {
+function hashOpaqueToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+function hashResetToken(token) {
+  return hashOpaqueToken(token);
+}
+
+function parseDurationMs(value, fallbackMs) {
+  if (typeof value !== 'string' || !value.trim()) return fallbackMs;
+  const match = value.trim().match(DURATION_RE);
+  if (!match) return fallbackMs;
+  const amount = Number(match[1]);
+  const unit = match[2].toLowerCase();
+  return amount * UNIT_MS[unit];
+}
+
+function refreshExpiresAt() {
+  const ms = parseDurationMs(REFRESH_TOKEN_EXPIRES_IN, 30 * UNIT_MS.d);
+  return new Date(Date.now() + ms);
+}
+
+function truncateUserAgent(userAgent) {
+  if (typeof userAgent !== 'string') return null;
+  const trimmed = userAgent.trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, 512);
+}
+
+function toSafeUser(row) {
+  return {
+    id: row.id,
+    username: row.username,
+    nombre: row.nombre,
+    rol: row.rol,
+    is_superadmin: toBool(row.is_superadmin),
+  };
 }
 
 function signToken(user) {
@@ -48,7 +96,50 @@ function signToken(user) {
   );
 }
 
-async function login({ username, password }) {
+/**
+ * Inserts a new refresh token row. Returns the raw token (never store raw).
+ */
+async function issueRefreshToken(userId, { userAgent, connection } = {}) {
+  const raw = crypto.randomBytes(48).toString('hex');
+  const tokenHash = hashOpaqueToken(raw);
+  const expiresAt = refreshExpiresAt();
+  const ua = truncateUserAgent(userAgent);
+  const executor = connection || db;
+
+  const [result] = await executor.query(
+    `INSERT INTO refresh_tokens (user_id, token_hash, expires_at, user_agent)
+     VALUES (?, ?, ?, ?)`,
+    [userId, tokenHash, expiresAt, ua],
+  );
+
+  return {
+    refreshToken: raw,
+    refreshTokenId: result.insertId,
+  };
+}
+
+async function revokeAllRefreshTokensForUser(userId, connection) {
+  const executor = connection || db;
+  await executor.query(
+    `UPDATE refresh_tokens
+     SET revoked_at = COALESCE(revoked_at, NOW())
+     WHERE user_id = ?
+       AND revoked_at IS NULL`,
+    [userId],
+  );
+}
+
+async function buildAuthSession(user, { userAgent } = {}) {
+  const safeUser = toSafeUser(user);
+  const { refreshToken } = await issueRefreshToken(safeUser.id, { userAgent });
+  return {
+    user: safeUser,
+    token: signToken(safeUser),
+    refreshToken,
+  };
+}
+
+async function login({ username, password }, meta = {}) {
   const [rows] = await db.query(
     'SELECT id, username, nombre, rol, password, is_superadmin FROM usuarios WHERE username = ?',
     [username],
@@ -65,18 +156,7 @@ async function login({ username, password }) {
     throw createHttpError('La contraseña es incorrecta.', 401);
   }
 
-  const safeUser = {
-    id: user.id,
-    username: user.username,
-    nombre: user.nombre,
-    rol: user.rol,
-    is_superadmin: toBool(user.is_superadmin),
-  };
-
-  return {
-    user: safeUser,
-    token: signToken(safeUser),
-  };
+  return buildAuthSession(user, meta);
 }
 
 async function register({ username, password, nombre, email, token }) {
@@ -133,6 +213,131 @@ async function register({ username, password, nombre, email, token }) {
   } finally {
     connection.release();
   }
+}
+
+/**
+ * Rotate refresh token: validate → issue new pair → mark old as revoked/replaced.
+ * Reuse of an already-rotated token revokes all sessions for that user.
+ */
+async function refreshSession({ refreshToken, userAgent }) {
+  const raw = typeof refreshToken === 'string' ? refreshToken.trim() : '';
+  if (!raw) {
+    throw createHttpError('Refresh token requerido.', 400);
+  }
+
+  const tokenHash = hashOpaqueToken(raw);
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [rows] = await connection.query(
+      `SELECT id, user_id, expires_at, revoked_at, replaced_by_id
+       FROM refresh_tokens
+       WHERE token_hash = ?
+       LIMIT 1
+       FOR UPDATE`,
+      [tokenHash],
+    );
+
+    if (rows.length === 0) {
+      throw createHttpError('Sesión inválida o expirada.', 401);
+    }
+
+    const row = rows[0];
+
+    if (row.revoked_at || row.replaced_by_id) {
+      await revokeAllRefreshTokensForUser(row.user_id, connection);
+      await connection.commit();
+      throw createHttpError('Sesión inválida o expirada.', 401);
+    }
+
+    if (new Date(row.expires_at).getTime() <= Date.now()) {
+      await connection.query(
+        `UPDATE refresh_tokens
+         SET revoked_at = COALESCE(revoked_at, NOW())
+         WHERE id = ?`,
+        [row.id],
+      );
+      await connection.commit();
+      throw createHttpError('Sesión inválida o expirada.', 401);
+    }
+
+    const [users] = await connection.query(
+      `SELECT id, username, nombre, rol, is_superadmin
+       FROM usuarios
+       WHERE id = ?
+       LIMIT 1`,
+      [row.user_id],
+    );
+
+    if (users.length === 0) {
+      await revokeAllRefreshTokensForUser(row.user_id, connection);
+      await connection.commit();
+      throw createHttpError('Sesión inválida o expirada.', 401);
+    }
+
+    const safeUser = toSafeUser(users[0]);
+    const { refreshToken: nextRefresh, refreshTokenId } = await issueRefreshToken(
+      safeUser.id,
+      { userAgent, connection },
+    );
+
+    await connection.query(
+      `UPDATE refresh_tokens
+       SET revoked_at = NOW(),
+           replaced_by_id = ?,
+           last_used_at = NOW()
+       WHERE id = ?`,
+      [refreshTokenId, row.id],
+    );
+
+    await connection.commit();
+
+    return {
+      user: safeUser,
+      token: signToken(safeUser),
+      refreshToken: nextRefresh,
+    };
+  } catch (error) {
+    try {
+      await connection.rollback();
+    } catch {
+      // ignore rollback errors after commit/failed begin
+    }
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+/**
+ * Logout: revoke by Bearer user and/or by presented refresh token.
+ */
+async function logout({ userId, refreshToken }) {
+  const raw = typeof refreshToken === 'string' ? refreshToken.trim() : '';
+
+  if (userId) {
+    await revokeAllRefreshTokensForUser(userId);
+    return { revoked: true };
+  }
+
+  if (!raw) {
+    return { revoked: false };
+  }
+
+  const tokenHash = hashOpaqueToken(raw);
+  const [rows] = await db.query(
+    `SELECT user_id FROM refresh_tokens WHERE token_hash = ? LIMIT 1`,
+    [tokenHash],
+  );
+
+  if (rows.length === 0) {
+    return { revoked: false };
+  }
+
+  await revokeAllRefreshTokensForUser(rows[0].user_id);
+  return { revoked: true };
 }
 
 /**
@@ -250,13 +455,16 @@ async function resetPassword({ token, password }) {
     throw createHttpError('El enlace no es válido o ha expirado.', 400);
   }
 
+  const userId = rows[0].id;
   const hashed = await bcrypt.hash(newPassword, 10);
   await db.query(
     `UPDATE usuarios
      SET password = ?, reset_password_token = NULL, reset_password_expires = NULL
      WHERE id = ?`,
-    [hashed, rows[0].id],
+    [hashed, userId],
   );
+
+  await revokeAllRefreshTokensForUser(userId);
 
   return { changed: true };
 }
@@ -264,6 +472,8 @@ async function resetPassword({ token, password }) {
 module.exports = {
   login,
   register,
+  refreshSession,
+  logout,
   forgotPassword,
   resetPassword,
   GENERIC_FORGOT_MESSAGE,
