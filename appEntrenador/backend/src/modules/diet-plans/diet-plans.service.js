@@ -1439,6 +1439,156 @@ async function copyWeek(trainerId, planId, payload) {
   return getFullPlanById(planId);
 }
 
+/**
+ * Feature 083 — resumen dieta para GET /me/today.
+ */
+async function buildDietTodaySummary(clientId, dateYmd) {
+  const plan = await getActiveDietPlanForClient(clientId, dateYmd);
+  if (!plan?.day?.meals?.length) {
+    return null;
+  }
+
+  const meals = plan.day.meals;
+  const mealIds = meals.map((m) => Number(m.id)).filter((id) => Number.isInteger(id) && id > 0);
+  const adherenceMap = await listAdherenceForMeals(clientId, dateYmd, mealIds);
+
+  const mealAdherence = meals.map((meal) => ({
+    diet_meal_id: Number(meal.id),
+    status: adherenceMap.get(Number(meal.id)) || null,
+  }));
+
+  const planned = {
+    calories: Number(plan.day.calories) || 0,
+    protein_g: Number(plan.day.protein_g) || 0,
+    carbs_g: Number(plan.day.carbs_g) || 0,
+    fats_g: Number(plan.day.fats_g) || 0,
+  };
+
+  let eaten = { calories: 0, protein_g: 0, carbs_g: 0, fats_g: 0 };
+  let hasAnyEaten = false;
+  for (const meal of meals) {
+    const status = adherenceMap.get(Number(meal.id));
+    if (status === 'eaten') {
+      hasAnyEaten = true;
+      eaten.calories += Number(meal.calories) || 0;
+      eaten.protein_g += Number(meal.protein_g) || 0;
+      eaten.carbs_g += Number(meal.carbs_g) || 0;
+      eaten.fats_g += Number(meal.fats_g) || 0;
+    }
+  }
+  if (hasAnyEaten) {
+    eaten = {
+      calories: roundMacro(eaten.calories),
+      protein_g: roundMacro(eaten.protein_g),
+      carbs_g: roundMacro(eaten.carbs_g),
+      fats_g: roundMacro(eaten.fats_g),
+    };
+  } else {
+    eaten = null;
+  }
+
+  const nextMeal = pickNextMeal(meals, adherenceMap);
+
+  return {
+    planId: plan.id,
+    title: plan.title,
+    resolved: plan.resolved,
+    planned,
+    eaten,
+    nextMeal: nextMeal
+      ? {
+          id: nextMeal.id,
+          name: nextMeal.name,
+          time_hint: nextMeal.time_hint,
+          calories: nextMeal.calories,
+          protein_g: nextMeal.protein_g,
+          carbs_g: nextMeal.carbs_g,
+          fats_g: nextMeal.fats_g,
+          status: adherenceMap.get(Number(nextMeal.id)) || null,
+        }
+      : null,
+    mealAdherence,
+  };
+}
+
+function pickNextMeal(meals, adherenceMap) {
+  const pending = meals.filter((m) => {
+    const status = adherenceMap.get(Number(m.id));
+    return status !== 'eaten' && status !== 'skipped';
+  });
+  if (pending.length) return pending[0];
+  return meals[0] || null;
+}
+
+async function listAdherenceForMeals(clientId, dateYmd, mealIds) {
+  const map = new Map();
+  if (!mealIds.length) return map;
+
+  const placeholders = mealIds.map(() => '?').join(',');
+  const [rows] = await db.query(
+    `SELECT diet_meal_id, status
+     FROM diet_meal_adherence
+     WHERE client_id = ? AND local_date = ? AND diet_meal_id IN (${placeholders})`,
+    [clientId, dateYmd, ...mealIds],
+  );
+
+  for (const row of rows) {
+    map.set(Number(row.diet_meal_id), row.status);
+  }
+  return map;
+}
+
+async function assertMealOwnedByClient(clientId, mealId) {
+  const id = Number(mealId);
+  if (!Number.isInteger(id) || id < 1) {
+    throw createHttpError('Comida inválida.', 400);
+  }
+
+  const [rows] = await db.query(
+    `SELECT dm.id
+     FROM diet_meals dm
+     INNER JOIN diet_plan_days dd ON dd.id = dm.diet_day_id
+     INNER JOIN diet_plans dp ON dp.id = dd.diet_plan_id
+     WHERE dm.id = ? AND dp.client_id = ?
+     LIMIT 1`,
+    [id, clientId],
+  );
+
+  if (!rows.length) {
+    throw createHttpError('Comida no encontrada.', 404);
+  }
+  return id;
+}
+
+/**
+ * Feature 083 — PUT /me/diet-meals/:mealId/adherence
+ */
+async function upsertMealAdherence(clientId, mealIdParam, payload) {
+  const mealId = await assertMealOwnedByClient(clientId, mealIdParam);
+  const date = payload?.date && String(payload.date).trim() !== ''
+    ? (sqlDateToYmd(payload.date) || String(payload.date).trim().slice(0, 10))
+    : todayYmd();
+  parseYmd(date);
+
+  const status = String(payload?.status || '').toLowerCase();
+  if (status !== 'eaten' && status !== 'skipped') {
+    throw createHttpError('status debe ser eaten o skipped.', 400);
+  }
+
+  await db.query(
+    `INSERT INTO diet_meal_adherence (client_id, diet_meal_id, local_date, status)
+     VALUES (?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE status = VALUES(status)`,
+    [clientId, mealId, date, status],
+  );
+
+  return {
+    diet_meal_id: mealId,
+    local_date: date,
+    status,
+  };
+}
+
 module.exports = {
   DAYS,
   listDietPlans,
@@ -1455,5 +1605,7 @@ module.exports = {
   validateDietPlanPayload,
   resolveCyclePosition,
   toMondayYmd,
+  buildDietTodaySummary,
+  upsertMealAdherence,
   createHttpError,
 };

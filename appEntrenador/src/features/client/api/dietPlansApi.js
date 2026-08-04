@@ -18,3 +18,8 @@ export function getMyDietPlanWeek(date) {
 export function getMyShoppingList() {
   return http.get('/me/diet-plan/shopping-list');
 }
+
+/** PUT /api/me/diet-meals/:mealId/adherence — Comí / No comí (083). */
+export function upsertMealAdherence(mealId, payload) {
+  return http.put(`/me/diet-meals/${mealId}/adherence`, payload);
+}

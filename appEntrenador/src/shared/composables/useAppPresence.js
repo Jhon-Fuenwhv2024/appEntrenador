@@ -4,13 +4,40 @@
  */
 import { onMounted, onUnmounted } from 'vue';
 import { clearPushPresence, touchPushPresence } from '../api/pushApi.js';
-import { isAuthenticated } from '../auth/session.js';
+import { refreshSessionTokens } from '../api/http.js';
+import { getAuthToken, getRefreshToken, isAuthenticated } from '../auth/session.js';
 
 const HEARTBEAT_MS = 20_000;
 
 let heartbeatTimer = null;
 let started = false;
 let listenerBound = false;
+
+/** True if access JWT is missing or expires within skewSec (no signature check). */
+function isAccessExpiredSoon(skewSec = 90) {
+  const token = getAuthToken();
+  if (!token) return true;
+  try {
+    const [, payloadPart] = token.split('.');
+    if (!payloadPart) return true;
+    const json = atob(payloadPart.replace(/-/g, '+').replace(/_/g, '/'));
+    const payload = JSON.parse(json);
+    if (!payload?.exp) return true;
+    return payload.exp * 1000 <= Date.now() + skewSec * 1000;
+  } catch {
+    return true;
+  }
+}
+
+async function ensureFreshAccess() {
+  if (!isAuthenticated() || !getRefreshToken()) return;
+  if (!isAccessExpiredSoon()) return;
+  try {
+    await refreshSessionTokens();
+  } catch {
+    // Soft: interceptor / login flow handles hard failures.
+  }
+}
 
 async function ping() {
   if (!isAuthenticated()) return;
@@ -36,8 +63,11 @@ async function markAway() {
 
 function onVisibilityChange() {
   if (document.visibilityState === 'visible') {
-    ping();
-    startHeartbeat();
+    // Renew access before presence / other calls after tab switch.
+    ensureFreshAccess().finally(() => {
+      ping();
+      startHeartbeat();
+    });
   } else {
     stopHeartbeat();
     markAway();

@@ -26,4 +26,5 @@ Las guías actuales para SPAs (access corto + refresh largo, rotación, reuse de
 - Positivo: compatible con middleware y módulos actuales.
 - Negativo (Fase A): refresh en `localStorage` sigue expuesto a XSS → mitigar con CSP/higiene FE; Fase B lo mejora.
 - Negativo: más complejidad en interceptor (single-flight) y tabla a limpiar (tokens vencidos).
+- Mitigación multi-pestaña: `navigator.locks` + ventana de gracia (~60s) si un refresh recién rotado se reutiliza por carrera; presence (`/push/presence`) no fuerza logout si el refresh falla.
 - Fuera: BFF + sesión server-only queda como evolución si el producto exige cumplimiento más estricto.

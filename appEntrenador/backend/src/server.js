@@ -47,6 +47,7 @@ const { ensurePersonalRecordsTable } = require('./db/ensurePersonalRecordsTable'
 const { ensureClientStreaksTable } = require('./db/ensureClientStreaksTable');
 const { ensureDietPlansTables } = require('./db/ensureDietPlansTables');
 const { ensureSetPrescriptionColumns } = require('./db/ensureSetPrescriptionColumns');
+const { ensureDietMealAdherenceTable } = require('./db/ensureDietMealAdherenceTable');
 const { ensureSaasColumns } = require('./db/ensureSaasColumns');
 const { ensureUsuariosEmailResetColumns } = require('./db/ensureUsuariosEmailResetColumns');
 const {
@@ -250,6 +251,12 @@ async function start() {
     await ensureSetPrescriptionColumns();
   } catch (error) {
     console.error('No se pudo asegurar set_prescription (Feature 085):', error.message);
+  }
+
+  try {
+    await ensureDietMealAdherenceTable();
+  } catch (error) {
+    console.error('No se pudo asegurar la tabla diet_meal_adherence:', error.message);
   }
 
   try {

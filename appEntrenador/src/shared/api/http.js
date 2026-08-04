@@ -31,6 +31,14 @@ const AUTH_PUBLIC_PATHS = [
   '/auth/reset-password',
 ];
 
+/**
+ * Soft endpoints: may 401 when access expired while switching tabs/apps.
+ * Still attempt refresh, but never wipe the session if refresh fails.
+ */
+const SOFT_AUTH_PATHS = [
+  '/push/presence',
+];
+
 function normalizeRequestPath(url = '') {
   const path = String(url).split('?')[0];
   if (path.startsWith('http')) {
@@ -48,15 +56,33 @@ function isAuthPublicRequest(config) {
   return AUTH_PUBLIC_PATHS.some((p) => path === p || path.endsWith(p));
 }
 
+function isSoftAuthRequest(config) {
+  if (config?.softAuth) return true;
+  const path = normalizeRequestPath(config?.url || '');
+  return SOFT_AUTH_PATHS.some((p) => path === p || path.endsWith(p));
+}
+
 let refreshPromise = null;
 
+async function runExclusiveRefresh(task) {
+  if (typeof navigator !== 'undefined' && navigator.locks?.request) {
+    try {
+      return await navigator.locks.request('trainfit-auth-refresh', task);
+    } catch (error) {
+      // Locks can fail in private mode / unsupported contexts — fall through.
+      console.warn('[auth] locks unavailable:', error?.message || error);
+    }
+  }
+  return task();
+}
+
 /**
- * Single-flight refresh: concurrent 401s share one POST /auth/refresh.
+ * Single-flight refresh (same tab + Web Locks across tabs when available).
  */
 export function refreshSessionTokens() {
   if (refreshPromise) return refreshPromise;
 
-  refreshPromise = (async () => {
+  refreshPromise = runExclusiveRefresh(async () => {
     const refreshToken = getRefreshToken();
     if (!refreshToken) {
       throw new Error('No refresh token');
@@ -75,7 +101,7 @@ export function refreshSessionTokens() {
 
     setSession({ user, token, refreshToken: nextRefresh });
     return { token, refreshToken: nextRefresh, user };
-  })().finally(() => {
+  }).finally(() => {
     refreshPromise = null;
   });
 
@@ -118,6 +144,7 @@ http.interceptors.response.use(
       || error.message
       || 'Error de conexión con el servidor.';
     const original = error.config;
+    const softAuth = isSoftAuthRequest(original);
 
     if (status === 401 && original && !isAuthPublicRequest(original)) {
       if (!original._retry && getRefreshToken()) {
@@ -128,11 +155,17 @@ http.interceptors.response.use(
           original.headers.Authorization = `Bearer ${token}`;
           return http(original);
         } catch (refreshError) {
-          forceLogoutRedirect();
+          if (!softAuth) {
+            forceLogoutRedirect();
+          }
           error.normalized = {
             success: false,
-            error: 'Sesión expirada. Vuelve a iniciar sesión.',
-            message: 'Sesión expirada. Vuelve a iniciar sesión.',
+            error: softAuth
+              ? message
+              : 'Sesión expirada. Vuelve a iniciar sesión.',
+            message: softAuth
+              ? message
+              : 'Sesión expirada. Vuelve a iniciar sesión.',
             code: 401,
             details: refreshError?.response?.data,
           };
@@ -140,7 +173,9 @@ http.interceptors.response.use(
         }
       }
 
-      forceLogoutRedirect();
+      if (!softAuth) {
+        forceLogoutRedirect();
+      }
     }
 
     error.normalized = {

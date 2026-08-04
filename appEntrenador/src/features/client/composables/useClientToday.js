@@ -48,9 +48,6 @@ async function resolveCompletedToday(routineId, localDate) {
   }
 }
 
-/**
- * Fallback si GET /me/today no está disponible (backend sin reiniciar).
- */
 async function loadMembershipSafe() {
   try {
     const response = await getMyMembership();
@@ -98,11 +95,17 @@ async function loadTodayFallback(localDate) {
     date: localDate,
     membership,
     membershipBlocked,
+    consistency: null,
+    checkinDue: false,
+    lastCheckinAt: null,
+    chatPreview: null,
+    diet: null,
+    weekInsight: null,
   };
 }
 
 /**
- * Feature 038 — carga el agregador GET /me/today para el dashboard immersivo.
+ * Feature 038 + 083 — carga el agregador GET /me/today para el dashboard immersivo.
  */
 export function useClientToday() {
   const loading = shallowRef(true);
@@ -115,12 +118,17 @@ export function useClientToday() {
   const membershipBlocked = shallowRef(false);
   const weekday = shallowRef('');
   const date = shallowRef('');
+  const consistency = shallowRef(null);
+  const checkinDue = shallowRef(false);
+  const lastCheckinAt = shallowRef(null);
+  const chatPreview = shallowRef(null);
+  const diet = shallowRef(null);
+  const weekInsight = shallowRef('');
 
   const exerciseCount = computed(() => (
     todayRoutine.value?.ejercicios?.length || 0
   ));
 
-  /** Estimación simple: ~2.5 min por serie prescrita (solo UI). */
   const estimatedMinutes = computed(() => {
     const exercises = todayRoutine.value?.ejercicios;
     if (!Array.isArray(exercises) || exercises.length === 0) return null;
@@ -142,6 +150,11 @@ export function useClientToday() {
     membershipBlocked.value || isMembershipAccessBlocked(membership.value)
   ));
 
+  const currentStreak = computed(() => {
+    if (consistency.value?.current_streak == null) return null;
+    return Number(consistency.value.current_streak);
+  });
+
   function applyBundle(data, localDate) {
     todayRoutine.value = data.todayRoutine ?? null;
     todayCompleted.value = Boolean(data.todayCompleted);
@@ -153,11 +166,20 @@ export function useClientToday() {
       || isMembershipAccessBlocked(mem);
     weekday.value = data.weekday || '';
     date.value = data.date || localDate;
+    consistency.value = data.consistency ?? null;
+    checkinDue.value = Boolean(data.checkinDue);
+    lastCheckinAt.value = data.lastCheckinAt ?? null;
+    chatPreview.value = data.chatPreview ?? null;
+    diet.value = data.diet ?? null;
+    weekInsight.value = data.weekInsight || '';
   }
 
-  async function loadToday() {
+  async function loadToday(options = {}) {
+    const silent = Boolean(options?.silent);
     try {
-      loading.value = true;
+      if (!silent) {
+        loading.value = true;
+      }
       loadError.value = '';
       const localDate = todayLocalDate();
 
@@ -166,13 +188,11 @@ export function useClientToday() {
         const data = response.data.data ?? {};
         applyBundle(data, localDate);
 
-        // Backend antiguo sin membership en /me/today → cargar aparte.
         if (!('membership' in data)) {
           membership.value = await loadMembershipSafe();
           membershipBlocked.value = isMembershipAccessBlocked(membership.value);
         }
 
-        // Si el backend aún no envía todayCompleted, resolverlo con sesiones.
         if (data.todayCompleted == null && data.todayRoutine?.id) {
           todayCompleted.value = await resolveCompletedToday(
             data.todayRoutine.id,
@@ -191,16 +211,30 @@ export function useClientToday() {
       }
     } catch (error) {
       console.error('Error cargando resumen de hoy:', error);
-      loadError.value = getApiErrorMessage(error, 'No se pudo cargar tu día');
-      todayRoutine.value = null;
-      todayCompleted.value = false;
-      habits.value = [];
-      macros.value = null;
-      membership.value = null;
-      membershipBlocked.value = false;
+      if (!silent) {
+        loadError.value = getApiErrorMessage(error, 'No se pudo cargar tu día');
+        todayRoutine.value = null;
+        todayCompleted.value = false;
+        habits.value = [];
+        macros.value = null;
+        membership.value = null;
+        membershipBlocked.value = false;
+        consistency.value = null;
+        checkinDue.value = false;
+        lastCheckinAt.value = null;
+        chatPreview.value = null;
+        diet.value = null;
+        weekInsight.value = '';
+      }
     } finally {
-      loading.value = false;
+      if (!silent) {
+        loading.value = false;
+      }
     }
+  }
+
+  function patchDietSummary(nextDiet) {
+    diet.value = nextDiet;
   }
 
   return {
@@ -215,9 +249,17 @@ export function useClientToday() {
     workoutLocked,
     weekday,
     date,
+    consistency,
+    checkinDue,
+    lastCheckinAt,
+    chatPreview,
+    diet,
+    weekInsight,
+    currentStreak,
     exerciseCount,
     estimatedMinutes,
     heroMeta,
     loadToday,
+    patchDietSummary,
   };
 }

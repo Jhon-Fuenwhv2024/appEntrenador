@@ -28,6 +28,14 @@ router.get(
   dietPlansController.getMineShoppingList,
 );
 
+/** Cliente: marcar comida Comí / No comí (Feature 083) */
+router.put(
+  '/me/diet-meals/:mealId/adherence',
+  authenticate,
+  requireRole('client'),
+  dietPlansController.upsertMealAdherence,
+);
+
 /** Entrenador: CRUD de planes de dieta */
 router.get(
   '/trainer/diets',

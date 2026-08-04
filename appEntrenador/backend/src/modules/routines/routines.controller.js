@@ -69,6 +69,12 @@ async function getToday(req, res) {
         weekday: bundle.weekday,
         membership: bundle.membership ?? null,
         membershipBlocked: Boolean(bundle.membershipBlocked),
+        consistency: bundle.consistency ?? null,
+        checkinDue: Boolean(bundle.checkinDue),
+        lastCheckinAt: bundle.lastCheckinAt ?? null,
+        chatPreview: bundle.chatPreview ?? null,
+        diet: bundle.diet ?? null,
+        weekInsight: bundle.weekInsight ?? null,
       },
     });
   } catch (error) {

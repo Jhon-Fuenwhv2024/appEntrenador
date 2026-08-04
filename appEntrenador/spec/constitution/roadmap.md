@@ -49,8 +49,9 @@
 45. **063 · Session header actions** — Cluster compartido campana + menú de cuenta (logout con confirmación) cliente/trainer; badge numérico. Spec: `063-session-header-actions`.
 46. **051 · PWA + notificaciones push** — App instalable + Web Push (VAPID); fan-out desde in-app + chat. Spec: `051-pwa-push-notifications`.
 47. **075 · Notificaciones: UX + recordatorio + membresía + racha** — Rediseño campana/push UI, guía iOS, recordatorio de entrenamiento, avisos membresía, `streak_at_risk`. Spec: `075-notifications-reminders-membership-streak`.
-48. **084 · Preview en vivo del builder de rutinas** — Split preview + media GIF/video al programar (Client 360). Spec: `084-routine-builder-live-preview`.
-49. **085 · Prescripción por serie** — Peso y reps distintos por serie (`set_prescription`); builder + player. Spec: `085-per-set-prescription`.
+48. **083 · Inicio cliente context-aware** — Home por modos (membresía/post-entreno/descanso/reengage), dieta compacta + Comí/No comí, chips del día, macros vs plan, insight + digest email. Spec: `083-client-home-context-aware`.
+49. **084 · Preview en vivo del builder de rutinas** — Split preview + media GIF/video al programar (Client 360). Spec: `084-routine-builder-live-preview`.
+50. **085 · Prescripción por serie** — Peso y reps distintos por serie (`set_prescription`); builder + player. Spec: `085-per-set-prescription`.
 
 ## Siguiente (Epic Fitness)
 

@@ -12,6 +12,8 @@ const props = defineProps({
   skipFetch: { type: Boolean, default: false },
   /** Densidad reducida para fila lado a lado con Hábitos. */
   compact: { type: Boolean, default: false },
+  /** Feature 083: tono de reenganche (racha 0). */
+  reengage: { type: Boolean, default: false },
 });
 
 const loading = shallowRef(!props.initial);
@@ -63,7 +65,10 @@ defineExpose({ reload: load });
 <template>
   <section
     class="consistency-ring"
-    :class="{ 'consistency-ring--compact': compact }"
+    :class="{
+      'consistency-ring--compact': compact,
+      'consistency-ring--reengage': reengage,
+    }"
     aria-label="Racha y meta semanal"
   >
     <v-progress-linear v-if="loading" indeterminate color="primary" height="2" class="mb-2" />
@@ -88,14 +93,22 @@ defineExpose({ reload: load });
 
       <div class="consistency-ring__copy">
         <p class="consistency-ring__title">
-          Racha:
-          <span class="text-cyan">{{ streak }}</span>
-          día{{ streak === 1 ? '' : 's' }}
+          <template v-if="reengage">
+            Vuelve hoy
+          </template>
+          <template v-else>
+            Racha:
+            <span class="text-cyan">{{ streak }}</span>
+            día{{ streak === 1 ? '' : 's' }}
+          </template>
         </p>
         <p class="consistency-ring__meta">
           Meta {{ workouts }}/{{ weekGoal }} · Score {{ score }}
         </p>
-        <p v-if="best > 0" class="consistency-ring__best">
+        <p v-if="reengage" class="consistency-ring__best">
+          Un entreno reinicia tu racha
+        </p>
+        <p v-else-if="best > 0" class="consistency-ring__best">
           Mejor racha: {{ best }} días
         </p>
       </div>
@@ -120,6 +133,11 @@ defineExpose({ reload: load });
 .consistency-ring--compact {
   padding: 10px 12px;
   border-radius: 12px;
+}
+
+.consistency-ring--reengage {
+  border-color: rgba(0, 229, 255, 0.28);
+  background: rgba(0, 229, 255, 0.06);
 }
 
 .consistency-ring__row {

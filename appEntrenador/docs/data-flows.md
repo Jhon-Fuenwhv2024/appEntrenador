@@ -101,16 +101,18 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 3. `DELETE /me/gym-membership` borra la fila (deja de avisar).
 4. Job diario (hora 9, TZ del alumno): si `notify_enabled` y `days_remaining` ∈ {7,3,1,0} → notificación `gym_membership_expiring` / `gym_membership_expired` → `/client/profile` (+ push 051). Independiente de `client_memberships` (040).
 
-## Dashboard immersivo del cliente (Feature 038)
+## Dashboard immersivo del cliente (Feature 038 + 083)
 
 1. Cliente en Inicio (`ClientDashboardView`) llama `GET /me/today?date=YYYY-MM-DD` (fecha civil local del dispositivo).
-2. El service agrega en paralelo: rutinas del alumno → match por `dia_semana`, hábitos de `/habits/today`, `nutrition_targets` (o `null`), y membresía (040).
-3. Si no hay rutina para ese weekday, `todayRoutine = null` → UI “Día de descanso”; si hay, hero + CTA **Empezar** → `/client/workout/:routineId`.
-4. Hábitos y macros se hidratan desde la misma respuesta (sin round-trips extra); el toggle de hábitos sigue siendo `POST /habits/:id/toggle`.
-5. Meta bajo el saludo (“N días restantes”); si `membershipBlocked`, hero con CTA Bloqueado (Player también responde 403 `MEMBERSHIP_BLOCKED`).
-6. Perfil cliente (`/client/profile`): `ProfileFormCard` (datos/foto), resumen de plan entrenador (`GET /me/membership`), card editable de gym físico (`GET/PUT/DELETE /me/gym-membership`, Feature 082), y preferencias push.
-7. Plan de dieta activo (043/064): `ClientDietView` llama `GET /me/diet-plan?date=` (día resuelto del ciclo) y `GET /me/diet-plan/week` (strip L–D).
-8. Lista de compra (071): botón carrito en `ClientDietView` → `/client/shopping-list` (`ClientShoppingListView` + `GET /me/diet-plan/shopping-list`); checklist en `localStorage` por `planId`.
+2. El service agrega en paralelo: rutinas → match `dia_semana`, hábitos, `nutrition_targets`, membresía (040), consistencia (042), check-in due (033), chat preview (073), resumen dieta + adherencia (043/083).
+3. `useClientHomeMode` deriva modo: `membershipCritical` | `postWorkout` | `restDay` | `reengage` | `activeDay` → copy/CTAs del hero.
+4. Fila `HomeDayActions`: agua one-tap, kcal plan/meta, chip check-in, chip chat; insight de 1 línea (`weekInsight`).
+5. Hábitos y macros se hidratan desde la misma respuesta; toggle hábitos `POST /habits/:id/toggle`.
+6. Dieta compacta: próxima comida + Comí/No comí (`PUT /me/diet-meals/:mealId/adherence`) → refresca bundle; expandir muestra strip L–D + lista.
+7. Macros card: barras planificado/eaten vs objetivo.
+8. Meta bajo el saludo; si `membershipBlocked` / crítico ≤3 días → banner contacto entrenador.
+9. Digest email semanal (lunes ~09:00 TZ alumno) vía notification-jobs + Resend/mailer — distinto del informe trainer (**052**).
+10. Perfil / shopping-list sin cambio de flujo respecto a 082 / 071.
 
 ## Planes de dieta (Feature 043 + 064 ciclo)
 

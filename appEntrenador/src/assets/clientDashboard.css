@@ -207,6 +207,32 @@ FEATURE 038 — Home cliente compacto
   align-items: stretch;
 }
 
+.client-home__duo--celebrate {
+  box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.35);
+  border-radius: 14px;
+}
+
+.client-home__mem-banner {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 167, 38, 0.4);
+  background: rgba(255, 167, 38, 0.1);
+}
+
+.client-home__mem-banner-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #ffb74d;
+}
+
+.client-home__mem-banner-copy {
+  margin: 4px 0 10px;
+  font-size: 0.78rem;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
 .client-home__duo > * {
   min-width: 0;
   min-height: 0;
@@ -236,6 +262,19 @@ FEATURE 038 — Home cliente compacto
   background:
     radial-gradient(110% 80% at 0% 0%, rgba(244, 67, 54, 0.12), transparent 55%),
     #13161D;
+}
+
+.today-hero--celebrate {
+  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 24px rgba(0, 229, 255, 0.12);
+}
+
+.today-hero--reengage {
+  border-color: rgba(0, 229, 255, 0.28);
+}
+
+.today-hero--restDay {
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .today-hero--locked .today-hero__eyebrow {

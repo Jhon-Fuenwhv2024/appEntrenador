@@ -217,7 +217,8 @@ async function register({ username, password, nombre, email, token }) {
 
 /**
  * Rotate refresh token: validate → issue new pair → mark old as revoked/replaced.
- * Reuse of an already-rotated token revokes all sessions for that user.
+ * Concurrent refresh from another tab (recently rotated parent) gets a grace
+ * re-issue instead of nuking the whole session family.
  */
 async function refreshSession({ refreshToken, userAgent }) {
   const raw = typeof refreshToken === 'string' ? refreshToken.trim() : '';
@@ -227,12 +228,14 @@ async function refreshSession({ refreshToken, userAgent }) {
 
   const tokenHash = hashOpaqueToken(raw);
   const connection = await db.getConnection();
+  /** Overlap window for multi-tab / visibility races (ms). */
+  const ROTATION_GRACE_MS = 60_000;
 
   try {
     await connection.beginTransaction();
 
     const [rows] = await connection.query(
-      `SELECT id, user_id, expires_at, revoked_at, replaced_by_id
+      `SELECT id, user_id, expires_at, revoked_at, replaced_by_id, last_used_at, created_at
        FROM refresh_tokens
        WHERE token_hash = ?
        LIMIT 1
@@ -247,6 +250,34 @@ async function refreshSession({ refreshToken, userAgent }) {
     const row = rows[0];
 
     if (row.revoked_at || row.replaced_by_id) {
+      const rotatedAt = row.last_used_at || row.revoked_at || row.created_at;
+      const rotatedMs = rotatedAt ? new Date(rotatedAt).getTime() : 0;
+      const withinGrace = rotatedMs > 0
+        && (Date.now() - rotatedMs) <= ROTATION_GRACE_MS;
+
+      if (withinGrace && row.user_id) {
+        const [users] = await connection.query(
+          `SELECT id, username, nombre, rol, is_superadmin
+           FROM usuarios
+           WHERE id = ?
+           LIMIT 1`,
+          [row.user_id],
+        );
+        if (users.length) {
+          const safeUser = toSafeUser(users[0]);
+          const { refreshToken: nextRefresh } = await issueRefreshToken(
+            safeUser.id,
+            { userAgent, connection },
+          );
+          await connection.commit();
+          return {
+            user: safeUser,
+            token: signToken(safeUser),
+            refreshToken: nextRefresh,
+          };
+        }
+      }
+
       await revokeAllRefreshTokensForUser(row.user_id, connection);
       await connection.commit();
       throw createHttpError('Sesión inválida o expirada.', 401);
