@@ -746,7 +746,7 @@ Respuesta exitosa (campos 083 ampliados):
 ```
 
 - `todayRoutine` es `null` si no hay rutina para ese `weekday` (estado UI “Día de descanso”).
-- `todayCompleted` es `true` si existe una `workout_sessions` `completed` de esa rutina con fecha civil = `date`.
+- `todayCompleted` es `true` si existe una `workout_sessions` `completed` de esa rutina cuya fecha civil (en la timezone del alumno, default `America/Bogota`) coincide con `date`. No usa `DATE()` MySQL en UTC.
 - `macros` es `null` si el trainer aún no asignó `nutrition_targets`.
 - `checkinDue`: sin check-in en los últimos 7 días civiles.
 - `diet.eaten`: suma de macros de comidas marcadas `eaten`; `null` si ninguna.
@@ -988,6 +988,8 @@ Body:
 ```
 
 `client_id` siempre es `req.user.id`. `routine_id` debe pertenecer al cliente.
+
+Además, la rutina solo se puede **iniciar/guardar** el día programado (`rutinas.dia_semana` = weekday civil en la timezone del alumno, default `America/Bogota`). Si hoy no es ese día → `403` con `error`/`code`: `ROUTINE_DAY_LOCKED` (preview/ver sigue permitido).
 
 Respuesta `201` (Feature 041 / 042): además de la sesión y `sets[]`, incluye:
 

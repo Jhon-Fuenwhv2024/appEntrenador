@@ -7,6 +7,11 @@ const membershipsService = require('../memberships/memberships.service');
 const consistencyService = require('../consistency/consistency.service');
 const dietPlansService = require('../diet-plans/diet-plans.service');
 const messagesService = require('../messages/messages.service');
+const {
+  DEFAULT_TIMEZONE,
+  normalizeTimeZone,
+  toZonedDateStr,
+} = require('../notification-jobs/timezone');
 const { assertClientWritableUnderPlan } = require('../../shared/saas/trainerSeats');
 const {
   normalizeSetPrescription,
@@ -473,23 +478,44 @@ function fallbackUtcDateString() {
 }
 
 /**
+ * Client IANA timezone for civil-date matching (default America/Bogota).
+ * Read-only: does not ensure/insert settings row.
+ */
+async function resolveClientTimeZone(clientId) {
+  try {
+    const [rows] = await db.query(
+      `SELECT timezone FROM client_notification_settings WHERE client_id = ? LIMIT 1`,
+      [clientId],
+    );
+    return normalizeTimeZone(rows[0]?.timezone || DEFAULT_TIMEZONE);
+  } catch (error) {
+    console.warn('[routines] timezone fallback:', error.message);
+    return DEFAULT_TIMEZONE;
+  }
+}
+
+/**
  * True if the client finished this routine on the given civil date (YYYY-MM-DD).
+ * Matches in the client's timezone — NOT MySQL DATE() in UTC (breaks after ~19:00 COT).
  */
 async function hasCompletedRoutineOnDate(clientId, routineId, dateStr) {
-  if (!routineId) return false;
+  if (!routineId || !dateStr) return false;
 
+  const tz = await resolveClientTimeZone(clientId);
   const [rows] = await db.query(
-    `SELECT id
+    `SELECT finished_at, created_at
      FROM workout_sessions
      WHERE client_id = ?
        AND routine_id = ?
        AND status = 'completed'
-       AND DATE(COALESCE(finished_at, created_at)) = ?
-     LIMIT 1`,
-    [clientId, routineId, dateStr],
+       AND COALESCE(finished_at, created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 3 DAY)`,
+    [clientId, routineId],
   );
 
-  return rows.length > 0;
+  return rows.some((row) => {
+    const key = toZonedDateStr(row.finished_at || row.created_at, tz);
+    return key === dateStr;
+  });
 }
 
 /**

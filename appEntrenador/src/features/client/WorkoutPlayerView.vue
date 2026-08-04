@@ -7,6 +7,7 @@ import {
 } from '../../shared/api/http.js';
 import { getSessionUser } from '../../shared/auth/session.js';
 import { normalizeMembershipPeriod } from '../../shared/membership/period.js';
+import { isRoutineScheduledForDate } from '../../shared/utils/weekdays.js';
 import { getMyMembership } from './api/membershipApi.js';
 import { getMyRoutines } from './api/routinesApi.js';
 import { createMyWorkoutSession } from './api/workoutSessionsApi.js';
@@ -28,6 +29,8 @@ const router = useRouter();
 const loading = shallowRef(true);
 const loadError = shallowRef('');
 const membershipBlocked = shallowRef(false);
+const dayLocked = shallowRef(false);
+const dayLockLabel = shallowRef('');
 const saveError = shallowRef('');
 const saving = shallowRef(false);
 const saved = shallowRef(false);
@@ -179,6 +182,8 @@ async function loadRoutine() {
     loading.value = true;
     loadError.value = '';
     membershipBlocked.value = false;
+    dayLocked.value = false;
+    dayLockLabel.value = '';
     pendingRoutine.value = null;
     const routineId = Number(route.params.routineId);
 
@@ -202,6 +207,13 @@ async function loadRoutine() {
       return;
     }
     sessionRoutineName.value = routine.nombre_rutina || '';
+
+    if (!isRoutineScheduledForDate(routine)) {
+      dayLocked.value = true;
+      dayLockLabel.value = routine.dia_semana || '';
+      return;
+    }
+
     // Soft-lock: no preparar sesión si la membresía bloquea el entrenamiento.
     if (!membershipBlocked.value) {
       pendingRoutine.value = routine;
@@ -217,6 +229,15 @@ async function loadRoutine() {
   } finally {
     loading.value = false;
   }
+}
+
+function goToPreview() {
+  const id = Number(route.params.routineId);
+  if (Number.isInteger(id) && id > 0) {
+    router.push({ name: 'ClientRoutinePreview', params: { routineId: id } });
+    return;
+  }
+  goBack();
 }
 
 /**
@@ -292,6 +313,25 @@ onMounted(() => {
       message="Tu membresía venció. Renueva con tu entrenador para volver a entrenar."
       @back="goBack"
     />
+
+    <main
+      v-else-if="dayLocked && phase === 'idle'"
+      class="player-main player-main--ready"
+      role="status"
+    >
+      <p class="player-step">Aún no es el día</p>
+      <h1 class="player-title">{{ sessionRoutineName || 'Tu rutina' }}</h1>
+      <p class="player-day-lock">
+        Programada para {{ dayLockLabel || 'otro día' }}.
+        Hoy solo puedes verla; podrás empezar ese día.
+      </p>
+      <button type="button" class="player-cta player-cta--ready" @click="goToPreview">
+        Ver rutina
+      </button>
+      <button type="button" class="player-cta-secondary" @click="goBack">
+        Volver al inicio
+      </button>
+    </main>
 
     <v-alert
       v-else-if="loadError"
@@ -544,6 +584,32 @@ onMounted(() => {
 
 .player-cta--ready {
   margin-top: 28px;
+}
+
+.player-day-lock {
+  margin: 0.75rem 0 0;
+  max-width: 22rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+}
+
+.player-cta-secondary {
+  margin-top: 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.player-cta-secondary:focus-visible {
+  outline: 2px solid #00e5ff;
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 .player-step {

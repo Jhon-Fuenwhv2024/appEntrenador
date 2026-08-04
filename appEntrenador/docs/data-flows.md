@@ -105,14 +105,15 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 
 1. Cliente en Inicio (`ClientDashboardView`) llama `GET /me/today?date=YYYY-MM-DD` (fecha civil local del dispositivo).
 2. El service agrega en paralelo: rutinas → match `dia_semana`, hábitos, `nutrition_targets`, membresía (040), consistencia (042), check-in due (033), chat preview (073), resumen dieta + adherencia (043/083).
-3. `useClientHomeMode` deriva modo: `membershipCritical` | `postWorkout` | `restDay` | `reengage` | `activeDay` → copy/CTAs del hero.
-4. Fila `HomeDayActions`: agua one-tap, kcal plan/meta, chip check-in, chip chat; insight de 1 línea (`weekInsight`).
-5. Hábitos y macros se hidratan desde la misma respuesta; toggle hábitos `POST /habits/:id/toggle`.
-6. Dieta compacta: próxima comida + Comí/No comí (`PUT /me/diet-meals/:mealId/adherence`) → refresca bundle; expandir muestra strip L–D + lista.
-7. Macros card: barras planificado/eaten vs objetivo.
-8. Meta bajo el saludo; si `membershipBlocked` / crítico ≤3 días → banner contacto entrenador.
-9. Digest email semanal (lunes ~09:00 TZ alumno) vía notification-jobs + Resend/mailer — distinto del informe trainer (**052**).
-10. Perfil / shopping-list sin cambio de flujo respecto a 082 / 071.
+3. `todayCompleted` compara `finished_at` en la timezone del alumno (default `America/Bogota`), no `DATE()` UTC de MySQL.
+4. `useClientHomeMode` deriva modo: `membershipCritical` | `postWorkout` | `restDay` | `reengage` | `activeDay` → copy del hero; CTA de inicio siempre **Empezar** (no “Retomar”); tras completar → badge **Completado** (sin Repetir: no se reentrena la misma rutina el mismo día).
+5. Fila `HomeDayActions`: agua one-tap, kcal plan/meta, chip check-in, chip chat; insight de 1 línea (`weekInsight`).
+6. Hábitos y macros se hidratan desde la misma respuesta; toggle hábitos `POST /habits/:id/toggle`.
+7. Dieta compacta: próxima comida + Comí/No comí (`PUT /me/diet-meals/:mealId/adherence`) → refresca bundle; expandir muestra strip L–D + lista.
+8. Macros card: barras planificado/eaten vs objetivo.
+9. Meta bajo el saludo; si `membershipBlocked` / crítico ≤3 días → banner contacto entrenador.
+10. Digest email semanal (lunes ~09:00 TZ alumno) vía notification-jobs + Resend/mailer — distinto del informe trainer (**052**).
+11. Perfil / shopping-list sin cambio de flujo respecto a 082 / 071.
 
 ## Planes de dieta (Feature 043 + 064 ciclo)
 
@@ -140,8 +141,9 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 
 ## Ejecución de rutina (Workout Player)
 
-1. Cliente pulsa **Empezar** en el hero del dashboard → `/client/workout/:routineId`.
-   - Feature **058**: también puede pulsar **Ver rutina** → `/client/routine/:routineId` (preview solo lectura con lista completa + GIF/video vía `WorkoutExerciseMedia`); desde ahí **Empezar rutina** entra al Player.
+1. Cliente pulsa **Empezar** en el hero del dashboard → `/client/workout/:routineId` (solo si la rutina es del `dia_semana` de hoy).
+   - Feature **058**: también puede pulsar **Ver rutina** → `/client/routine/:routineId` (preview solo lectura con lista completa + GIF/video vía `WorkoutExerciseMedia`); desde ahí **Empezar** entra al Player **solo si hoy es el día programado**.
+   - Si el trainer asigna/actualiza una rutina (notif → preview) y hoy **no** es ese `dia_semana`: el alumno puede **ver** la rutina; Empezar queda deshabilitado (“Disponible {día}”). El Player y `POST /me/workout-sessions` rechazan inicio con `ROUTINE_DAY_LOCKED`.
 2. Frontend carga `GET /me/routines` (incluye `last_log` por ejercicio si hay historial) y muestra **Comenzar entrenamiento**.
 3. En ese tap se desbloquea el audio HTML5 (`useTimer.unlockAudio`) y arranca `useWorkoutSession` (serie, descanso, auto-avance).
 4. **Feature 059 (UX híbrida):** fase `working` = media del ejercicio + checklist de series (Set | Anterior | kg×reps | estado) + CTA Completar serie; header con duración de sesión. Fase `resting` = anillo de progreso, controles ±15 s, Omitir y bloque **Up next** (respeta superseries 029).
@@ -149,9 +151,10 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 6. La columna **Anterior** del checklist usa `last_log` de forma informativa; **no** autocompleta los inputs con ese historial (inputs siguen el peso/reps prescritos de la rutina).
 7. Al terminar, `POST /me/workout-sessions` persiste peso/reps por serie (contrato sin cambios).
 8. Tras guardar (status `completed`): detección de PRs (041) → `new_prs[]` + notificación `pr_achieved`; recalculo de racha/score (042) → `consistency` en la respuesta; Player muestra overlay si hay PRs.
-9. En la siguiente sesión, ese log queda disponible como `last_log` (match por `client_id` + nombre de ejercicio; los ids de línea de deep copy no afectan).
-10. Trainer consulta `GET /clients/:id/workout-sessions` y ve el historial en la ficha del alumno; `GET /clients/:id/routines` también incluye `last_log` por ejercicio.
-11. Cliente consulta `GET /me/workout-sessions` en **Mi progreso** (`/client/progress`) — Feature 021; sección **Mis récords** vía `GET /me/personal-records`.
+9. Al volver a Inicio, `todayCompleted` debe ser `true` (fecha civil TZ alumno) → hero **Completado** (sin CTA Repetir).
+10. En la siguiente sesión, ese log queda disponible como `last_log` (match por `client_id` + nombre de ejercicio; los ids de línea de deep copy no afectan).
+11. Trainer consulta `GET /clients/:id/workout-sessions` y ve el historial en la ficha del alumno; `GET /clients/:id/routines` también incluye `last_log` por ejercicio.
+12. Cliente consulta `GET /me/workout-sessions` en **Mi progreso** (`/client/progress`) — Feature 021; sección **Mis récords** vía `GET /me/personal-records`.
 
 ## PRs y celebraciones (Feature 041)
 

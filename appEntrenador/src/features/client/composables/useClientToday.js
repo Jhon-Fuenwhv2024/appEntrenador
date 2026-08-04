@@ -5,6 +5,7 @@ import {
 } from '../../../shared/api/http.js';
 import { getSessionUser } from '../../../shared/auth/session.js';
 import { formatLocalDate, todayLocalDate } from '../../../shared/utils/localDate.js';
+import { todayWeekdayLabel } from '../../../shared/utils/weekdays.js';
 import { getTodayHabits } from '../api/habitsApi.js';
 import { getMyMembership } from '../api/membershipApi.js';
 import { getClientNutrition } from '../api/nutritionApi.js';
@@ -13,14 +14,6 @@ import { getMyToday } from '../api/todayApi.js';
 import { getMyWorkoutSessions } from '../api/workoutSessionsApi.js';
 import { normalizeMembershipPeriod } from '../../../shared/membership/period.js';
 import { isMembershipAccessBlocked } from '../utils/membershipUi.js';
-
-const DAY_ORDER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-
-function todayWeekdayLabel() {
-  const raw = new Date().toLocaleDateString('es-ES', { weekday: 'long' });
-  const normalized = raw.charAt(0).toUpperCase() + raw.slice(1);
-  return DAY_ORDER.find((d) => d.toLowerCase() === normalized.toLowerCase()) || normalized;
-}
 
 function sessionMatchesLocalDate(session, localDate) {
   const raw = session?.finished_at || session?.created_at || session?.started_at;

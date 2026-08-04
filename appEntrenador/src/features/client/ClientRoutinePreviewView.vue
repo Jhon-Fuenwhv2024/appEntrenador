@@ -11,6 +11,7 @@ import {
 } from '../../shared/api/http.js';
 import { getSessionUser } from '../../shared/auth/session.js';
 import { normalizeMembershipPeriod } from '../../shared/membership/period.js';
+import { isRoutineScheduledForDate } from '../../shared/utils/weekdays.js';
 import { getMyMembership } from './api/membershipApi.js';
 import { getMyRoutines } from './api/routinesApi.js';
 import ClientMembershipContactActions from './components/ClientMembershipContactActions.vue';
@@ -36,6 +37,17 @@ const exerciseCountLabel = computed(() => {
   const n = exercises.value.length;
   if (!n) return 'Sin ejercicios';
   return n === 1 ? '1 ejercicio' : `${n} ejercicios`;
+});
+
+/** Trainer-programmed weekday only — view anytime, start on that day. */
+const canStartWorkout = computed(() => (
+  Boolean(routine.value) && isRoutineScheduledForDate(routine.value)
+));
+
+const dayLockMessage = computed(() => {
+  const day = routine.value?.dia_semana;
+  if (!day) return '';
+  return `Programada para ${day}. Hoy solo puedes verla; podrás empezar ese día.`;
 });
 
 function exerciseKey(ex, index) {
@@ -186,6 +198,17 @@ onMounted(() => {
         />
       </div>
 
+      <div
+        v-else-if="!canStartWorkout"
+        class="preview-lock preview-lock--day"
+        role="status"
+      >
+        <div class="preview-lock__copy">
+          <p class="preview-lock__kicker">Aún no es el día</p>
+          <p class="preview-lock__text">{{ dayLockMessage }}</p>
+        </div>
+      </div>
+
       <ol class="preview-list" aria-label="Ejercicios de la rutina">
         <li
           v-for="(ex, index) in exercises"
@@ -257,6 +280,18 @@ onMounted(() => {
           prepend-icon="mdi-lock"
         >
           Bloqueado
+        </v-btn>
+        <v-btn
+          v-else-if="!canStartWorkout"
+          color="primary"
+          variant="tonal"
+          class="preview-cta font-weight-bold"
+          rounded="lg"
+          disabled
+          prepend-icon="mdi-calendar-clock"
+          :aria-label="dayLockMessage"
+        >
+          Disponible {{ routine.dia_semana }}
         </v-btn>
         <v-btn
           v-else
@@ -372,6 +407,16 @@ onMounted(() => {
   border: 1px solid rgba(255, 92, 92, 0.22);
   background:
     linear-gradient(135deg, rgba(255, 92, 92, 0.1) 0%, rgba(0, 229, 255, 0.03) 100%);
+}
+
+.preview-lock--day {
+  border-color: rgba(0, 229, 255, 0.28);
+  background:
+    linear-gradient(135deg, rgba(0, 229, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 100%);
+}
+
+.preview-lock--day .preview-lock__kicker {
+  color: #00e5ff;
 }
 
 .preview-lock__kicker {

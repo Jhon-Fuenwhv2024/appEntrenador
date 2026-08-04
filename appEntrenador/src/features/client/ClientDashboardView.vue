@@ -251,18 +251,7 @@ onMounted(async () => {
                   prepend-icon="mdi-play"
                   :to="{ name: 'WorkoutPlayer', params: { routineId: todayRoutine.id } }"
                 >
-                  {{ activityMode === 'reengage' ? 'Retomar' : 'Empezar' }}
-                </v-btn>
-                <v-btn
-                  v-else
-                  color="primary"
-                  class="today-hero__cta font-weight-bold"
-                  rounded="lg"
-                  elevation="6"
-                  prepend-icon="mdi-play"
-                  :to="{ name: 'WorkoutPlayer', params: { routineId: todayRoutine.id } }"
-                >
-                  Repetir
+                  Empezar
                 </v-btn>
               </div>
             </template>

@@ -1,6 +1,11 @@
 const db = require('../../config/db');
 const clientsService = require('../clients/clients.service');
 const membershipsService = require('../memberships/memberships.service');
+const {
+  DEFAULT_TIMEZONE,
+  normalizeTimeZone,
+  getZonedParts,
+} = require('../notification-jobs/timezone');
 
 function createHttpError(message, code) {
   const error = new Error(message);
@@ -53,13 +58,40 @@ function normalizeSets(sets) {
 
 async function assertRoutineBelongsToClient(routineId, clientId) {
   const [rows] = await db.query(
-    'SELECT id, nombre_rutina FROM rutinas WHERE id = ? AND alumno_id = ? LIMIT 1',
+    'SELECT id, nombre_rutina, dia_semana FROM rutinas WHERE id = ? AND alumno_id = ? LIMIT 1',
     [routineId, clientId],
   );
   if (rows.length === 0) {
     throw createHttpError('La rutina no pertenece a tu cuenta.', 403);
   }
   return rows[0];
+}
+
+/**
+ * Client may only start a session on the weekday the trainer programmed.
+ * View/preview is allowed any day; start is locked until that weekday (local TZ).
+ */
+async function assertRoutineScheduledForToday(routine, clientId) {
+  let tz = DEFAULT_TIMEZONE;
+  try {
+    const [rows] = await db.query(
+      `SELECT timezone FROM client_notification_settings WHERE client_id = ? LIMIT 1`,
+      [clientId],
+    );
+    tz = normalizeTimeZone(rows[0]?.timezone);
+  } catch {
+    tz = DEFAULT_TIMEZONE;
+  }
+  const { weekdayEs } = getZonedParts(tz);
+  const scheduled = typeof routine.dia_semana === 'string' ? routine.dia_semana.trim() : '';
+  if (!scheduled || scheduled === weekdayEs) return;
+
+  const error = createHttpError(
+    `Esta rutina está programada para ${scheduled}. Hoy solo puedes verla; podrás empezar el ${scheduled}.`,
+    403,
+  );
+  error.error = 'ROUTINE_DAY_LOCKED';
+  throw error;
 }
 
 async function createMySession(clientId, payload) {
@@ -71,6 +103,7 @@ async function createMySession(clientId, payload) {
   }
 
   const routine = await assertRoutineBelongsToClient(routineId, clientId);
+  await assertRoutineScheduledForToday(routine, clientId);
   const routineName = typeof payload.routine_name === 'string' && payload.routine_name.trim()
     ? payload.routine_name.trim()
     : routine.nombre_rutina;
