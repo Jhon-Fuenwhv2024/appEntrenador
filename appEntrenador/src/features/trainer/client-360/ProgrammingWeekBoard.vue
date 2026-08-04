@@ -100,7 +100,8 @@ const exerciseCount = (routine) => (routine.ejercicios || []).length;
           type="button"
           class="week-board__card-main"
           :title="`Editar ${routine.nombre_rutina}`"
-          @click="emit('edit', routine)"
+          :aria-label="`Editar rutina ${routine.nombre_rutina}`"
+          @click.stop="emit('edit', routine)"
         >
           <span class="week-board__card-name">{{ routine.nombre_rutina }}</span>
           <span class="week-board__card-meta">
@@ -208,17 +209,27 @@ const exerciseCount = (routine) => (routine.ejercicios || []).length;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.1rem;
-  width: 100%;
-  padding: 0;
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  min-height: 2.75rem;
+  padding: 0.2rem 0.15rem;
   border: 0;
+  border-radius: 6px;
   background: transparent;
   color: inherit;
   text-align: left;
   cursor: pointer;
+  -webkit-tap-highlight-color: rgba(0, 229, 255, 0.15);
 }
 
 .week-board__card-main:hover .week-board__card-name {
   color: rgb(var(--v-theme-primary));
+}
+
+.week-board__card-main:focus-visible {
+  outline: var(--tf-focus-ring, 2px solid #00e5ff);
+  outline-offset: var(--tf-focus-offset, 2px);
 }
 
 .week-board__card-name {
@@ -274,6 +285,12 @@ const exerciseCount = (routine) => (routine.ejercicios || []).length;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+    gap: 0.35rem;
+  }
+
+  .week-board__card-main {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .week-board__card-actions {

@@ -78,6 +78,8 @@ CREATE TABLE ejercicios (
     repeticiones INT NOT NULL,
     indicaciones TEXT,
     peso DECIMAL(6,2) NOT NULL,
+    set_prescription JSON NULL
+      COMMENT 'Prescripción por serie [{set,reps,weight}] Feature 085',
     rest_time_seconds INT NOT NULL DEFAULT 90
       COMMENT 'Descanso entre series (segundos); Feature 028',
     superset_letter VARCHAR(2) NULL
@@ -188,6 +190,8 @@ CREATE TABLE template_exercises (
     series INT NOT NULL,
     repeticiones INT NOT NULL,
     peso DECIMAL(6,2) NOT NULL,
+    set_prescription JSON NULL
+      COMMENT 'Prescripción por serie [{set,reps,weight}] Feature 085',
     rest_time_seconds INT NOT NULL DEFAULT 90
       COMMENT 'Descanso entre series (segundos); Feature 028',
     superset_letter VARCHAR(2) NULL

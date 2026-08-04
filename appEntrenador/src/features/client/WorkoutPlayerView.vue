@@ -423,11 +423,12 @@ onMounted(() => {
 <style scoped>
 .player-bg {
   box-sizing: border-box;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
   width: 100%;
   max-width: 100vw;
-  overflow-x: hidden;
+  overflow: hidden;
   background: #0B0D12;
   color: #fff;
   display: flex;
@@ -512,8 +513,11 @@ onMounted(() => {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 4px 16px 12px;
+  touch-action: pan-y;
 }
 
 .player-main--rest,

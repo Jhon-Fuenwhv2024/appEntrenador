@@ -5,6 +5,11 @@ const habitsService = require('../habits/habits.service');
 const nutritionService = require('../nutrition/nutrition.service');
 const membershipsService = require('../memberships/memberships.service');
 const { assertClientWritableUnderPlan } = require('../../shared/saas/trainerSeats');
+const {
+  normalizeSetPrescription,
+  serializeSetPrescription,
+  mapSetPrescriptionFromDb,
+} = require('../../shared/routines/setPrescription');
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 /** Sunday-first index aligned with Date#getUTCDay(). */
@@ -76,9 +81,9 @@ function normalizeExercises(ejercicios) {
 
   return ejercicios.map((item, index) => {
     const nombre = typeof item.nombre === 'string' ? item.nombre.trim() : '';
-    const series = Number(item.series);
-    const repeticiones = Number(item.repeticiones);
-    const peso = Number(item.peso);
+    let series = Number(item.series);
+    let repeticiones = Number(item.repeticiones);
+    let peso = Number(item.peso);
     const indicaciones = typeof item.indicaciones === 'string' ? item.indicaciones.trim() : '';
     const exercise_id = normalizeOptionalExerciseId(item.exercise_id, index, nombre || `#${index + 1}`);
 
@@ -100,14 +105,22 @@ function normalizeExercises(ejercicios) {
 
     const rest_time_seconds = normalizeRestTimeSeconds(item.rest_time_seconds, nombre);
     const superset_letter = normalizeSupersetLetter(item.superset_letter, nombre);
+    const prescription = normalizeSetPrescription(
+      item,
+      nombre,
+      series,
+      repeticiones,
+      peso,
+    );
 
     return {
       nombre,
       exercise_id,
-      series,
-      repeticiones,
+      series: prescription.series,
+      repeticiones: prescription.repeticiones,
       indicaciones,
-      peso,
+      peso: prescription.peso,
+      set_prescription: prescription.set_prescription,
       rest_time_seconds,
       superset_letter,
     };
@@ -144,6 +157,7 @@ function mapExerciseRow(exercise) {
     repeticiones: exercise.repeticiones,
     indicaciones: exercise.indicaciones,
     peso: Number(exercise.peso),
+    set_prescription: mapSetPrescriptionFromDb(exercise.set_prescription),
     rest_time_seconds: Number.isFinite(Number(exercise.rest_time_seconds))
       ? Number(exercise.rest_time_seconds)
       : DEFAULT_REST_TIME_SECONDS,
@@ -167,7 +181,7 @@ async function fetchRoutinesWithExercises(alumnoId) {
   const routineIds = routines.map((r) => r.id);
   const placeholders = routineIds.map(() => '?').join(',');
   const [exercises] = await db.query(
-    `SELECT id, rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, rest_time_seconds, superset_letter
+    `SELECT id, rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, set_prescription, rest_time_seconds, superset_letter
      FROM ejercicios
      WHERE rutina_id IN (${placeholders})
      ORDER BY id ASC`,
@@ -525,8 +539,8 @@ async function insertExerciseLines(connection, routineId, ejercicios) {
   for (const exercise of ejercicios) {
     await connection.query(
       `INSERT INTO ejercicios
-         (rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, rest_time_seconds, superset_letter)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, set_prescription, rest_time_seconds, superset_letter)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         routineId,
         exercise.nombre,
@@ -535,6 +549,7 @@ async function insertExerciseLines(connection, routineId, ejercicios) {
         exercise.repeticiones,
         exercise.indicaciones || null,
         exercise.peso,
+        serializeSetPrescription(exercise.set_prescription),
         exercise.rest_time_seconds,
         exercise.superset_letter,
       ],

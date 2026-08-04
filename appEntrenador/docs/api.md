@@ -619,6 +619,8 @@ Crea rutina con ejercicios (transacción).
 `rest_time_seconds` (Feature 028): descanso entre series en segundos (entero `0`–`900`; default `90` si se omite). El Workout Player usa este valor en el temporizador.
 
 `superset_letter` (Feature 029): letra de grupo superserie/circuito (`A`–`Z` / `0–9`, 1–2 chars; `null` o vacío si no hay grupo). Se copia al asignar plantillas.
+
+`set_prescription` (Feature 085): array opcional de targets por serie `[{ "set": 1, "reps": 12, "weight": 40 }, ...]`. Si se omite o es `null`, todas las series usan `repeticiones`/`peso`. Si se envía, su longitud define el nº de series; `repeticiones`/`peso` se sincronizan con la serie 1.
 ### `PUT /routines/:routineId` (trainer)
 
 Reemplaza día, nombre y ejercicios de una rutina propia.

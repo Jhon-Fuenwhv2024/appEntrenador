@@ -81,7 +81,13 @@ const emit = defineEmits(['update:weight', 'update:reps']);
           </div>
         </template>
         <template v-else>
-          <span class="sets-check__placeholder">—</span>
+          <span
+            v-if="row.targetWeight != null || row.targetReps != null"
+            class="sets-check__target"
+          >
+            {{ row.targetWeight ?? 0 }} × {{ row.targetReps ?? '—' }}
+          </span>
+          <span v-else class="sets-check__placeholder">—</span>
         </template>
       </span>
       <span class="sets-check__col sets-check__col--mark" role="cell">
@@ -182,6 +188,12 @@ const emit = defineEmits(['update:weight', 'update:reps']);
 .sets-check__placeholder {
   color: #5E6673;
   font-size: 0.9rem;
+}
+
+.sets-check__target {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--tf-on-surface-muted, #a8b0bc);
 }
 
 .sets-check__inputs {

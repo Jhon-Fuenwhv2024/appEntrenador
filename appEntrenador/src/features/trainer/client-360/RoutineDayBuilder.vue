@@ -5,8 +5,17 @@
  */
 import { computed, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
+import WorkoutExerciseMedia from '../../client/components/WorkoutExerciseMedia.vue';
 import ExerciseMuscleFilter from '../../../shared/components/ExerciseMuscleFilter.vue';
 import { exerciseMatchesMuscleFilter } from '../../../shared/constants/muscles.js';
+import {
+  buildCatalogLookups,
+  enrichDraftExercise,
+} from '../../../shared/routines/routineDraftPreviewAdapter.js';
+import {
+  isVariableSetPrescription,
+  resizeSetPrescription,
+} from '../../../shared/routines/setPrescription.js';
 import {
   displayExerciseMuscle,
 } from '../../../shared/utils/exerciseDisplay.js';
@@ -53,6 +62,8 @@ const muscleFilter = shallowRef(null);
 const onlyWarmup = shallowRef(false);
 /** Per-row expand for grupo + indicaciones */
 const expandedExtras = shallowRef(new Set());
+/** Per-row expand for per-set prescription (Feature 085). */
+const expandedSets = shallowRef(new Set());
 
 const catalogByName = computed(() => {
   const map = new Map();
@@ -68,6 +79,14 @@ const catalogByName = computed(() => {
 const filteredCatalogExercises = computed(() => (
   props.catalogExercises.filter((item) => (
     exerciseMatchesMuscleFilter(item, muscleFilter.value, onlyWarmup.value)
+  ))
+));
+
+const catalogLookups = computed(() => buildCatalogLookups(props.catalogExercises));
+
+const enrichedExercises = computed(() => (
+  (props.form.ejercicios || []).map((ex, index) => (
+    enrichDraftExercise(ex, index, catalogLookups.value)
   ))
 ));
 
@@ -98,7 +117,77 @@ const toggleExtras = (index) => {
   expandedExtras.value = next;
 };
 
+const isSetsOpen = (index) => {
+  const ex = props.form.ejercicios[index];
+  return Boolean(ex?.customize_sets) || expandedSets.value.has(index);
+};
+
+const ensureSetPrescriptionRows = (ex) => {
+  const series = Math.max(1, Math.min(30, Math.round(Number(ex.series)) || 1));
+  ex.series = series;
+  ex.set_prescription = resizeSetPrescription(
+    ex.set_prescription,
+    series,
+    ex.repeticiones,
+    ex.peso,
+  );
+  if (ex.set_prescription[0]) {
+    ex.repeticiones = ex.set_prescription[0].reps;
+    ex.peso = ex.set_prescription[0].weight;
+  }
+};
+
+const toggleSetsCustomize = (index) => {
+  const ex = props.form.ejercicios[index];
+  if (!ex) return;
+  const next = new Set(expandedSets.value);
+  if (ex.customize_sets) {
+    ex.customize_sets = false;
+    if (ex.set_prescription?.[0]) {
+      ex.repeticiones = ex.set_prescription[0].reps;
+      ex.peso = ex.set_prescription[0].weight;
+    }
+    ex.set_prescription = null;
+    next.delete(index);
+  } else {
+    ex.customize_sets = true;
+    ensureSetPrescriptionRows(ex);
+    next.add(index);
+  }
+  expandedSets.value = next;
+};
+
+const onSeriesChange = (index, value) => {
+  const ex = props.form.ejercicios[index];
+  if (!ex) return;
+  const series = Math.max(1, Math.min(30, Math.round(Number(value)) || 1));
+  ex.series = series;
+  if (ex.customize_sets) {
+    ensureSetPrescriptionRows(ex);
+  }
+};
+
+const onSetRowChange = (exIndex, setIndex, field, value) => {
+  const ex = props.form.ejercicios[exIndex];
+  if (!ex) return;
+  ensureSetPrescriptionRows(ex);
+  const row = ex.set_prescription[setIndex];
+  if (!row) return;
+  if (field === 'reps') {
+    row.reps = Math.max(1, Math.round(Number(value)) || 1);
+  } else if (field === 'weight') {
+    const w = Number(value);
+    row.weight = Number.isFinite(w) && w >= 0 ? w : 0;
+  }
+  if (setIndex === 0) {
+    ex.repeticiones = row.reps;
+    ex.peso = row.weight;
+  }
+};
+
 const hasExtrasHint = (ex) => Boolean(ex.superset_letter || ex.indicaciones?.trim());
+
+const hasSetsHint = (ex) => Boolean(ex?.customize_sets) || isVariableSetPrescription(ex?.set_prescription);
 
 const moveExercise = (index, delta) => {
   const target = index + delta;
@@ -200,31 +289,42 @@ const moveExercise = (index, delta) => {
 
       <label class="field-block">
         <span class="field-cap">Ejercicio</span>
-        <v-autocomplete
-          :model-value="ex.nombre"
-          :items="filteredCatalogExercises"
-          item-title="display_name"
-          item-value="name"
-          placeholder="Catálogo o texto libre"
-          density="compact"
-          variant="outlined"
-          hide-details="auto"
-          clearable
-          hide-no-data
-          auto-select-first
-          free-solo
-          color="primary"
-          :menu-props="{ contentClass: 'tf-overlay-menu', maxHeight: 280 }"
-          :list-props="{ bgColor: 'surface', color: undefined }"
-          @update:model-value="(value) => emit('exercise-name-update', { index, value })"
-        >
-          <template #item="{ props: itemProps, item }">
-            <v-list-item
-              v-bind="itemProps"
-              :subtitle="catalogItemSubtitle(item.raw || {})"
-            />
-          </template>
-        </v-autocomplete>
+        <div class="exercise-pick-row">
+          <WorkoutExerciseMedia
+            class="exercise-pick-row__thumb"
+            compact
+            :media-type="enrichedExercises[index]?.media_type"
+            :media-url="enrichedExercises[index]?.media_url"
+            :local-media-path="enrichedExercises[index]?.local_media_path"
+            :exercise-name="enrichedExercises[index]?.nombre || ex.nombre"
+          />
+          <v-autocomplete
+            class="exercise-pick-row__input"
+            :model-value="ex.nombre"
+            :items="filteredCatalogExercises"
+            item-title="display_name"
+            item-value="name"
+            placeholder="Catálogo o texto libre"
+            density="compact"
+            variant="outlined"
+            hide-details="auto"
+            clearable
+            hide-no-data
+            auto-select-first
+            free-solo
+            color="primary"
+            :menu-props="{ contentClass: 'tf-overlay-menu', maxHeight: 280 }"
+            :list-props="{ bgColor: 'surface', color: undefined }"
+            @update:model-value="(value) => emit('exercise-name-update', { index, value })"
+          >
+            <template #item="{ props: itemProps, item }">
+              <v-list-item
+                v-bind="itemProps"
+                :subtitle="catalogItemSubtitle(item.raw || {})"
+              />
+            </template>
+          </v-autocomplete>
+        </div>
       </label>
 
       <v-btn
@@ -243,40 +343,44 @@ const moveExercise = (index, delta) => {
         <label class="metric">
           <span class="field-cap">Series</span>
           <v-text-field
-            v-model.number="ex.series"
+            :model-value="ex.series"
             type="number"
             density="compact"
             variant="outlined"
             hide-details
             min="1"
+            max="30"
             color="primary"
+            @update:model-value="(value) => onSeriesChange(index, value)"
           />
         </label>
-        <label class="metric">
-          <span class="field-cap">Reps</span>
-          <v-text-field
-            v-model.number="ex.repeticiones"
-            type="number"
-            density="compact"
-            variant="outlined"
-            hide-details
-            min="1"
-            color="primary"
-          />
-        </label>
-        <label class="metric metric--peso">
-          <span class="field-cap">Kg</span>
-          <v-text-field
-            v-model.number="ex.peso"
-            type="number"
-            density="compact"
-            variant="outlined"
-            hide-details
-            min="0"
-            step="0.5"
-            color="primary"
-          />
-        </label>
+        <template v-if="!isSetsOpen(index)">
+          <label class="metric">
+            <span class="field-cap">Reps</span>
+            <v-text-field
+              v-model.number="ex.repeticiones"
+              type="number"
+              density="compact"
+              variant="outlined"
+              hide-details
+              min="1"
+              color="primary"
+            />
+          </label>
+          <label class="metric metric--peso">
+            <span class="field-cap">Kg</span>
+            <v-text-field
+              v-model.number="ex.peso"
+              type="number"
+              density="compact"
+              variant="outlined"
+              hide-details
+              min="0"
+              step="0.5"
+              color="primary"
+            />
+          </label>
+        </template>
         <label class="metric metric--rest">
           <span class="field-cap">Descanso (s)</span>
           <v-text-field
@@ -293,6 +397,63 @@ const moveExercise = (index, delta) => {
             @update:model-value="(value) => emit('set-rest', { index, value })"
           />
         </label>
+      </div>
+
+      <button
+        type="button"
+        class="extras-toggle"
+        :aria-expanded="isSetsOpen(index)"
+        @click="toggleSetsCustomize(index)"
+      >
+        <v-icon
+          :icon="isSetsOpen(index) ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+          size="16"
+        />
+        Personalizar por serie
+        <span v-if="hasSetsHint(ex) && !isSetsOpen(index)" class="extras-toggle__dot" />
+      </button>
+
+      <div
+        v-if="isSetsOpen(index) && Array.isArray(ex.set_prescription)"
+        class="set-prescription"
+        role="group"
+        :aria-label="`Prescripción por serie — ejercicio ${index + 1}`"
+      >
+        <div class="set-prescription__head">
+          <span>Serie</span>
+          <span>Reps</span>
+          <span>Kg</span>
+        </div>
+        <div
+          v-for="(row, setIdx) in ex.set_prescription"
+          :key="`set-${index}-${row.set}`"
+          class="set-prescription__row"
+        >
+          <span class="set-prescription__n">{{ row.set }}</span>
+          <v-text-field
+            :model-value="row.reps"
+            type="number"
+            density="compact"
+            variant="outlined"
+            hide-details
+            min="1"
+            color="primary"
+            :aria-label="`Reps serie ${row.set}`"
+            @update:model-value="(value) => onSetRowChange(index, setIdx, 'reps', value)"
+          />
+          <v-text-field
+            :model-value="row.weight"
+            type="number"
+            density="compact"
+            variant="outlined"
+            hide-details
+            min="0"
+            step="0.5"
+            color="primary"
+            :aria-label="`Peso serie ${row.set}`"
+            @update:model-value="(value) => onSetRowChange(index, setIdx, 'weight', value)"
+          />
+        </div>
       </div>
 
       <button
@@ -455,6 +616,24 @@ const moveExercise = (index, delta) => {
   padding-inline: 0 !important;
 }
 
+.exercise-pick-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.exercise-pick-row__thumb {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.exercise-pick-row__input {
+  flex: 1;
+  min-width: 0;
+}
+
 .field-cap {
   display: block;
   font-size: 0.68rem;
@@ -542,6 +721,37 @@ const moveExercise = (index, delta) => {
   height: 6px;
   border-radius: 50%;
   background: rgb(var(--v-theme-primary));
+}
+
+.set-prescription {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.35rem 0 0.15rem;
+}
+
+.set-prescription__head,
+.set-prescription__row {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.set-prescription__head {
+  font-size: 0.65rem;
+  font-weight: 650;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-inline: 0.15rem;
+}
+
+.set-prescription__n {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgb(var(--v-theme-primary));
+  text-align: center;
 }
 
 .exercise-extras {

@@ -60,12 +60,14 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 5. Programación (Feature 061): vista semanal L–D + builder bajo demanda + **Desde Recursos** (`POST /templates/:id/assign` con `clientId` fijo) + duplicar a otro día vía `POST /clients/:id/routines`. Paneles existentes (nutrición, hábitos, body-comp, check-ins, gráficas, perfil, chat) se montan por sección sin perder CRUD.
 6. Ownership: el overview y cada panel validan `trainer_id` del alumno.
 
-## Programación 360 (Feature 061)
+## Programación 360 (Feature 061 + 084)
 
 1. Trainer abre `?tab=programacion` → `Client360Programming` carga `GET /clients/:id/routines` y muestra strip semanal (`ProgrammingWeekBoard`).
 2. Día vacío → crear (abre `RoutineDayBuilder`) o asignar plantilla (`ProgrammingAssignTemplateDialog` → `POST /templates/:id/assign`).
 3. Día con rutina → editar en builder, duplicar a otro día (create con mismos ejercicios), guardar en Recursos (`POST /templates`), eliminar.
 4. El builder solo aparece al crear/editar (progressive disclosure: Grupo/indicaciones colapsables; reorder de ejercicios).
+5. **Preview en vivo (084):** al abrir el builder, split desktop (editor izquierda / preview derecha) o preview colapsable en móvil. El draft se adapta con `routineDraftPreviewAdapter` + media del catálogo (`WorkoutExerciseMedia`); thumb compacto por fila en el editor. Sin guardar obligatorio ni llamadas `/me/*`.
+6. **Prescripción por serie (085):** opcional `set_prescription` JSON en `ejercicios` / `template_exercises`. El builder tiene “Personalizar por serie” (Serie | Reps | Kg). El player prellena peso/reps según el nº de serie; preview muestra label variable (`12×40 · 10×45`).
 
 ## Densidad Resumen 360 (Feature 060)
 

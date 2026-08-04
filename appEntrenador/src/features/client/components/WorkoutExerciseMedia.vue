@@ -22,6 +22,19 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  /** Smaller frame for builder row thumbs (Feature 084). */
+  compact: {
+    type: Boolean,
+    default: false,
+  },
+  /**
+   * Full GIF/image without forced short crop box (trainer live preview).
+   * Width 100%, height follows intrinsic ratio; object-fit contain.
+   */
+  natural: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 function youtubeEmbedUrl(url) {
@@ -60,7 +73,13 @@ const embedSrc = computed(() => (
 </script>
 
 <template>
-  <div class="workout-media">
+  <div
+    class="workout-media"
+    :class="{
+      'workout-media--compact': compact,
+      'workout-media--natural': natural && !compact,
+    }"
+  >
     <iframe
       v-if="kind === 'youtube' && embedSrc"
       class="workout-media__frame"
@@ -77,7 +96,7 @@ const embedSrc = computed(() => (
       loop
       muted
       playsinline
-      controls
+      :controls="!compact"
     />
     <img
       v-else-if="kind === 'gif' || kind === 'image'"
@@ -86,12 +105,19 @@ const embedSrc = computed(() => (
       :alt="exerciseName || 'Ejercicio'"
     />
     <div v-else class="workout-media__fallback">
-      <v-icon icon="mdi-dumbbell" size="48" color="#5E6673" />
-      <p v-if="exerciseName" class="workout-media__fallback-name">
+      <v-icon
+        icon="mdi-dumbbell"
+        :size="compact ? 28 : 48"
+        color="#5E6673"
+      />
+      <p
+        v-if="exerciseName && !compact"
+        class="workout-media__fallback-name"
+      >
         {{ exerciseName }}
       </p>
       <p class="workout-media__fallback-text">
-        Sin demo visual. Sigue el nombre y las indicaciones de tu entrenador.
+        {{ compact ? 'Sin demo' : 'Sin demo visual. Sigue el nombre y las indicaciones de tu entrenador.' }}
       </p>
     </div>
   </div>
@@ -169,9 +195,57 @@ video.workout-media__frame {
 }
 
 @media (min-width: 480px) {
-  .workout-media {
+  .workout-media:not(.workout-media--compact) {
     aspect-ratio: 4 / 3;
     max-height: min(48vh, 420px);
   }
+}
+
+/* Live preview: full GIF visible, capped size so the split pane stays usable. */
+.workout-media--natural {
+  aspect-ratio: 1 / 1;
+  width: min(100%, 10.5rem);
+  max-width: 10.5rem;
+  max-height: 10.5rem;
+  height: auto;
+  overflow: hidden;
+  margin-inline: auto;
+  border-radius: 12px;
+}
+
+.workout-media--natural .workout-media__frame {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center center;
+}
+
+.workout-media--natural iframe.workout-media__frame,
+.workout-media--natural video.workout-media__frame {
+  aspect-ratio: 1 / 1;
+  height: 100%;
+  min-height: 0;
+}
+
+.workout-media--compact {
+  aspect-ratio: 1 / 1;
+  max-height: none;
+  width: 4.5rem;
+  height: 4.5rem;
+  min-width: 4.5rem;
+  border-radius: 10px;
+  margin-inline: 0;
+}
+
+.workout-media--compact .workout-media__fallback {
+  gap: 0.25rem;
+  padding: 0.35rem;
+}
+
+.workout-media--compact .workout-media__fallback-text {
+  font-size: 0.58rem;
+  line-height: 1.2;
+  padding: 0;
 }
 </style>

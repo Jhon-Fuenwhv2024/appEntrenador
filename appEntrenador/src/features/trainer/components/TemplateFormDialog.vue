@@ -9,6 +9,10 @@ import {
   displayExerciseMuscle,
   displayExerciseName,
 } from '../../../shared/utils/exerciseDisplay.js';
+import {
+  parseSetPrescription,
+  setPrescriptionForPayload,
+} from '../../../shared/routines/setPrescription.js';
 import { createExercise, getAllExercises } from '../api/exercisesApi.js';
 
 const DEFAULT_REST_SECONDS = 90;
@@ -22,6 +26,8 @@ const emptyExerciseRow = () => ({
   series: 3,
   repeticiones: 10,
   peso: 0,
+  set_prescription: null,
+  customize_sets: false,
   rest_time_seconds: DEFAULT_REST_SECONDS,
   superset_letter: null,
   indicaciones: '',
@@ -168,16 +174,21 @@ const fillFromTemplate = (template) => {
   form.notes = template.notes || '';
   const lines = Array.isArray(template.exercises) ? template.exercises : [];
   form.exercises = lines.length
-    ? lines.map((ex) => ({
-      nombre: ex.nombre || '',
-      exercise_id: ex.exercise_id ?? null,
-      series: Number(ex.series) || 3,
-      repeticiones: Number(ex.repeticiones) || 10,
-      peso: Number(ex.peso) || 0,
-      rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
-      superset_letter: toSupersetLetter(ex.superset_letter),
-      indicaciones: ex.indicaciones || '',
-    }))
+    ? lines.map((ex) => {
+      const prescription = parseSetPrescription(ex.set_prescription);
+      return {
+        nombre: ex.nombre || '',
+        exercise_id: ex.exercise_id ?? null,
+        series: Number(ex.series) || 3,
+        repeticiones: Number(ex.repeticiones) || 10,
+        peso: Number(ex.peso) || 0,
+        set_prescription: prescription,
+        customize_sets: Boolean(prescription),
+        rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
+        superset_letter: toSupersetLetter(ex.superset_letter),
+        indicaciones: ex.indicaciones || '',
+      };
+    })
     : [emptyExerciseRow()];
 };
 
@@ -271,6 +282,7 @@ const handleSubmit = () => {
       series: Number(ex.series),
       repeticiones: Number(ex.repeticiones),
       peso: Number(ex.peso),
+      set_prescription: setPrescriptionForPayload(ex, Boolean(ex.customize_sets)),
       rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
       superset_letter: toSupersetLetter(ex.superset_letter),
       indicaciones: ex.indicaciones,

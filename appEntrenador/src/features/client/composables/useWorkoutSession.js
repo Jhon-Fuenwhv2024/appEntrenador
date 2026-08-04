@@ -1,4 +1,8 @@
 import { computed, onUnmounted, ref, shallowRef } from 'vue';
+import {
+  parseSetPrescription,
+  resolveSetPrefill,
+} from '../../../shared/routines/setPrescription.js';
 import { useTimer } from './useTimer.js';
 
 export const DEFAULT_REST_SECONDS = 90;
@@ -175,11 +179,15 @@ export function useWorkoutSession(options = {}) {
         status = 'current';
       }
 
+      const target = resolveSetPrefill(ex, i);
+
       rows.push({
         setNumber: i,
         status,
         weight: log ? log.weight : null,
         reps: log ? log.reps : null,
+        targetWeight: target.weight,
+        targetReps: target.reps,
         previousLabel,
       });
     }
@@ -199,7 +207,7 @@ export function useWorkoutSession(options = {}) {
 
     const nextSetNumber = target.setIndex + 1;
     const total = Number(ex.series) || 0;
-    const metrics = resolvePrefillMetrics(ex);
+    const metrics = resolvePrefillMetrics(ex, nextSetNumber);
     const metricsParts = [];
     if (metrics.weight > 0) metricsParts.push(`${metrics.weight} kg`);
     if (metrics.reps > 0) metricsParts.push(`${metrics.reps} reps`);
@@ -263,12 +271,32 @@ export function useWorkoutSession(options = {}) {
   }
 
   /**
-   * Weight/reps that will prefill for an exercise (session log → prescribed).
-   * @param {{ id?: number|null, nombre?: string, peso?: number, repeticiones?: number }} ex
+   * Weight/reps prefill for a set: logged set → per-set prescription → last session log → uniform.
+   * @param {{ id?: number|null, nombre?: string, peso?: number, repeticiones?: number, set_prescription?: unknown }} ex
+   * @param {number} [setNumber] 1-based
    * @returns {{ weight: number, reps: number }}
    */
-  function resolvePrefillMetrics(ex) {
+  function resolvePrefillMetrics(ex, setNumber = currentSetNumber.value) {
     if (!ex) return { weight: 0, reps: 0 };
+
+    const setLog = logs.value.find((entry) => {
+      if (entry.setNumber !== setNumber) return false;
+      if (ex.id != null && entry.exerciseId != null) {
+        return Number(entry.exerciseId) === Number(ex.id);
+      }
+      return entry.exerciseName === ex.nombre;
+    });
+    if (setLog) {
+      return {
+        weight: Number(setLog.weight) || 0,
+        reps: Number(setLog.reps) || 0,
+      };
+    }
+
+    if (parseSetPrescription(ex.set_prescription)) {
+      return resolveSetPrefill(ex, setNumber);
+    }
+
     const lastLog = findLastSessionLog(ex);
     if (lastLog) {
       return {
@@ -276,10 +304,8 @@ export function useWorkoutSession(options = {}) {
         reps: Number(lastLog.reps) || 0,
       };
     }
-    return {
-      weight: Number(ex.peso) || 0,
-      reps: Number(ex.repeticiones) || 0,
-    };
+
+    return resolveSetPrefill(ex, setNumber);
   }
 
   /**

@@ -2,6 +2,11 @@ const db = require('../../config/db');
 const clientsService = require('../clients/clients.service');
 const exercisesService = require('../exercises/exercises.service');
 const { DAYS } = require('../routines/routines.service');
+const {
+  normalizeSetPrescription,
+  serializeSetPrescription,
+  mapSetPrescriptionFromDb,
+} = require('../../shared/routines/setPrescription');
 
 const DEFAULT_REST_TIME_SECONDS = 90;
 const MAX_REST_TIME_SECONDS = 900;
@@ -61,9 +66,9 @@ function normalizeExercises(exercises) {
 
   return exercises.map((item, index) => {
     const nombre = typeof item.nombre === 'string' ? item.nombre.trim() : '';
-    const series = Number(item.series);
-    const repeticiones = Number(item.repeticiones);
-    const peso = Number(item.peso);
+    let series = Number(item.series);
+    let repeticiones = Number(item.repeticiones);
+    let peso = Number(item.peso);
     const indicaciones = typeof item.indicaciones === 'string' ? item.indicaciones.trim() : '';
     const exercise_id = normalizeOptionalExerciseId(
       item.exercise_id,
@@ -94,13 +99,22 @@ function normalizeExercises(exercises) {
       throw createHttpError(`Peso inválido en el ejercicio "${nombre}".`, 400);
     }
 
+    const prescription = normalizeSetPrescription(
+      item,
+      nombre,
+      series,
+      repeticiones,
+      peso,
+    );
+
     return {
       nombre,
       exercise_id,
-      series,
-      repeticiones,
+      series: prescription.series,
+      repeticiones: prescription.repeticiones,
       indicaciones,
-      peso,
+      peso: prescription.peso,
+      set_prescription: prescription.set_prescription,
       rest_time_seconds,
       superset_letter,
       sort_order: index,
@@ -144,6 +158,7 @@ function mapTemplateExerciseRow(exercise) {
     series: exercise.series,
     repeticiones: exercise.repeticiones,
     peso: Number(exercise.peso),
+    set_prescription: mapSetPrescriptionFromDb(exercise.set_prescription),
     rest_time_seconds: Number.isFinite(Number(exercise.rest_time_seconds))
       ? Number(exercise.rest_time_seconds)
       : DEFAULT_REST_TIME_SECONDS,
@@ -177,7 +192,7 @@ async function fetchTemplatesWithExercises(trainerId, templateId = null) {
   const ids = templates.map((t) => t.id);
   const placeholders = ids.map(() => '?').join(',');
   const [exercises] = await db.query(
-    `SELECT id, template_id, nombre, exercise_id, series, repeticiones, peso, rest_time_seconds, superset_letter, indicaciones, sort_order
+    `SELECT id, template_id, nombre, exercise_id, series, repeticiones, peso, set_prescription, rest_time_seconds, superset_letter, indicaciones, sort_order
      FROM template_exercises
      WHERE template_id IN (${placeholders})
      ORDER BY sort_order ASC, id ASC`,
@@ -230,8 +245,8 @@ async function insertTemplateExerciseLines(connection, templateId, exercises) {
   for (const exercise of exercises) {
     await connection.query(
       `INSERT INTO template_exercises
-         (template_id, nombre, exercise_id, series, repeticiones, peso, rest_time_seconds, superset_letter, indicaciones, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (template_id, nombre, exercise_id, series, repeticiones, peso, set_prescription, rest_time_seconds, superset_letter, indicaciones, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         templateId,
         exercise.nombre,
@@ -239,6 +254,7 @@ async function insertTemplateExerciseLines(connection, templateId, exercises) {
         exercise.series,
         exercise.repeticiones,
         exercise.peso,
+        serializeSetPrescription(exercise.set_prescription),
         exercise.rest_time_seconds,
         exercise.superset_letter,
         exercise.indicaciones || null,
@@ -376,8 +392,8 @@ async function assignTemplate(trainerId, templateId, payload = {}) {
     for (const exercise of resolvedExercises) {
       await connection.query(
         `INSERT INTO ejercicios
-           (rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, rest_time_seconds, superset_letter)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, set_prescription, rest_time_seconds, superset_letter)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           routineId,
           exercise.nombre,
@@ -386,6 +402,7 @@ async function assignTemplate(trainerId, templateId, payload = {}) {
           exercise.repeticiones,
           exercise.indicaciones || null,
           exercise.peso,
+          serializeSetPrescription(exercise.set_prescription),
           Number.isFinite(Number(exercise.rest_time_seconds))
             ? Number(exercise.rest_time_seconds)
             : DEFAULT_REST_TIME_SECONDS,
@@ -410,7 +427,7 @@ async function assignTemplate(trainerId, templateId, payload = {}) {
   );
 
   const [exercises] = await db.query(
-    `SELECT id, rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, rest_time_seconds, superset_letter
+    `SELECT id, rutina_id, nombre, exercise_id, series, repeticiones, indicaciones, peso, set_prescription, rest_time_seconds, superset_letter
      FROM ejercicios
      WHERE rutina_id = ?
      ORDER BY id ASC`,
@@ -430,6 +447,7 @@ async function assignTemplate(trainerId, templateId, payload = {}) {
       repeticiones: exercise.repeticiones,
       indicaciones: exercise.indicaciones,
       peso: Number(exercise.peso),
+      set_prescription: mapSetPrescriptionFromDb(exercise.set_prescription),
       rest_time_seconds: Number.isFinite(Number(exercise.rest_time_seconds))
         ? Number(exercise.rest_time_seconds)
         : DEFAULT_REST_TIME_SECONDS,

@@ -18,6 +18,7 @@ import MembershipLockedState from './components/MembershipLockedState.vue';
 import WorkoutExerciseMedia from './components/WorkoutExerciseMedia.vue';
 import WorkoutHintExpandable from './components/WorkoutHintExpandable.vue';
 import { isMembershipAccessBlocked } from './utils/membershipUi.js';
+import { prescriptionLabel as formatPrescription } from '../../shared/routines/setPrescription.js';
 
 const route = useRoute();
 const router = useRouter();
@@ -54,15 +55,7 @@ function exerciseInfo(ex) {
 }
 
 function prescriptionLabel(ex) {
-  const series = Number(ex?.series) || 0;
-  const reps = Number(ex?.repeticiones) || 0;
-  const parts = [];
-  if (series) parts.push(`${series} series`);
-  if (reps) parts.push(`${reps} reps`);
-  if (ex?.peso != null && String(ex.peso).trim() !== '') {
-    parts.push(`${ex.peso} kg`);
-  }
-  return parts.join(' · ') || 'Sin prescripción';
+  return formatPrescription(ex);
 }
 
 function restLabel(ex) {
@@ -238,49 +231,56 @@ onMounted(() => {
       <p v-if="!exercises.length" class="preview-empty">
         Esta rutina no tiene ejercicios asignados.
       </p>
-
-      <div class="preview-footer">
-        <div class="preview-footer__row">
-          <v-btn
-            color="primary"
-            variant="outlined"
-            class="preview-cta preview-cta--secondary font-weight-bold"
-            rounded="lg"
-            @click="goBack"
-          >
-            Volver
-          </v-btn>
-          <v-btn
-            v-if="membershipBlocked"
-            color="error"
-            variant="tonal"
-            class="preview-cta font-weight-bold"
-            rounded="lg"
-            disabled
-            prepend-icon="mdi-lock"
-          >
-            Bloqueado
-          </v-btn>
-          <v-btn
-            v-else
-            color="primary"
-            class="preview-cta font-weight-bold"
-            rounded="lg"
-            elevation="6"
-            prepend-icon="mdi-play"
-            :to="{ name: 'WorkoutPlayer', params: { routineId: routine.id } }"
-          >
-            Empezar
-          </v-btn>
-        </div>
-      </div>
     </main>
+
+    <div
+      v-if="routine"
+      class="preview-footer"
+    >
+      <div class="preview-footer__row">
+        <v-btn
+          color="primary"
+          variant="outlined"
+          class="preview-cta preview-cta--secondary font-weight-bold"
+          rounded="lg"
+          @click="goBack"
+        >
+          Volver
+        </v-btn>
+        <v-btn
+          v-if="membershipBlocked"
+          color="error"
+          variant="tonal"
+          class="preview-cta font-weight-bold"
+          rounded="lg"
+          disabled
+          prepend-icon="mdi-lock"
+        >
+          Bloqueado
+        </v-btn>
+        <v-btn
+          v-else
+          color="primary"
+          class="preview-cta font-weight-bold"
+          rounded="lg"
+          elevation="6"
+          prepend-icon="mdi-play"
+          :to="{ name: 'WorkoutPlayer', params: { routineId: routine.id } }"
+        >
+          Empezar
+        </v-btn>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .preview-bg {
-  min-height: 100dvh;
+  box-sizing: border-box;
+  height: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
   background:
     radial-gradient(120% 70% at 50% -10%, rgba(0, 229, 255, 0.12), transparent 55%),
     #0b0d12;
@@ -294,10 +294,9 @@ onMounted(() => {
   align-items: flex-start;
   gap: 0.65rem;
   padding: 0.85rem 1rem 0.5rem;
-  position: sticky;
-  top: 0;
+  flex-shrink: 0;
   z-index: 2;
-  background: linear-gradient(180deg, #0b0d12 70%, transparent);
+  background: #0b0d12;
 }
 
 .preview-back {
@@ -354,7 +353,12 @@ onMounted(() => {
 
 .preview-main {
   flex: 1;
-  padding: 0.5rem 1rem 5.5rem;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 0.5rem 1rem 1rem;
   max-width: 560px;
   width: 100%;
   margin: 0 auto;
@@ -475,7 +479,7 @@ onMounted(() => {
 }
 
 .preview-card__media :deep(.workout-media) {
-  max-height: min(42vh, 340px);
+  max-height: min(36vh, 280px);
 }
 
 .preview-card__rest {
@@ -500,14 +504,18 @@ onMounted(() => {
 }
 
 .preview-footer {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 0;
-  width: min(100%, 560px);
+  flex-shrink: 0;
+  position: relative;
+  left: auto;
+  transform: none;
+  bottom: auto;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
   padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
   background: linear-gradient(180deg, transparent, #0b0d12 28%);
   z-index: 3;
+  box-sizing: border-box;
 }
 
 .preview-footer__row {

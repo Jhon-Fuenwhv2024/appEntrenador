@@ -3,8 +3,13 @@
  * Programación section (Feature 061): week board + day builder + assign template.
  * Props: clientId. Emits: notify({ text, color }).
  */
-import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref, shallowRef, watch } from 'vue';
 import { getApiErrorMessage } from '../../../shared/api/http.js';
+import { adaptRoutineDraftToPreview } from '../../../shared/routines/routineDraftPreviewAdapter.js';
+import {
+  parseSetPrescription,
+  setPrescriptionForPayload,
+} from '../../../shared/routines/setPrescription.js';
 import {
   displayExerciseDescription,
   displayExerciseName,
@@ -20,6 +25,7 @@ import { assignTemplate, createTemplate } from '../api/templatesApi.js';
 import ProgrammingAssignTemplateDialog from './ProgrammingAssignTemplateDialog.vue';
 import ProgrammingWeekBoard from './ProgrammingWeekBoard.vue';
 import RoutineDayBuilder from './RoutineDayBuilder.vue';
+import RoutineDayPreview from './RoutineDayPreview.vue';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const DEFAULT_TARGET_MUSCLE = 'Full Body';
@@ -43,6 +49,17 @@ const savingTemplateId = shallowRef(null);
 const duplicatingId = shallowRef(null);
 const editingId = shallowRef(null);
 const builderOpen = shallowRef(false);
+/** Mobile (<960px): collapsible live preview (Feature 084). */
+const mobilePreviewOpen = shallowRef(true);
+const builderSplitEl = ref(null);
+
+const scrollBuilderIntoView = async () => {
+  await nextTick();
+  builderSplitEl.value?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start',
+  });
+};
 
 const assignOpen = shallowRef(false);
 const assignDefaultDay = shallowRef('Lunes');
@@ -58,6 +75,8 @@ const emptyExerciseRow = () => ({
   series: 3,
   repeticiones: 10,
   peso: 0,
+  set_prescription: null,
+  customize_sets: false,
   rest_time_seconds: DEFAULT_REST_SECONDS,
   superset_letter: null,
   indicaciones: '',
@@ -80,6 +99,11 @@ const form = reactive({
 });
 
 const routinesCount = computed(() => routines.value.length);
+
+/** Live client-style preview from unsaved draft (Feature 084). */
+const livePreview = computed(() => (
+  adaptRoutineDraftToPreview(form, catalogExercises.value)
+));
 
 const catalogByName = computed(() => {
   const map = new Map();
@@ -132,28 +156,37 @@ const closeBuilder = () => {
 const openCreate = (day = 'Lunes') => {
   resetForm();
   form.dia_semana = DAYS.includes(day) ? day : 'Lunes';
+  mobilePreviewOpen.value = true;
   builderOpen.value = true;
+  scrollBuilderIntoView();
 };
 
 const startEdit = (routine) => {
   editingId.value = routine.id;
   form.dia_semana = routine.dia_semana;
   form.nombre_rutina = routine.nombre_rutina;
-  form.ejercicios = (routine.ejercicios || []).map((ex) => ({
-    nombre: ex.nombre,
-    exercise_id: ex.exercise_id ?? null,
-    series: ex.series,
-    repeticiones: ex.repeticiones,
-    peso: Number(ex.peso) || 0,
-    rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
-    superset_letter: toSupersetLetter(ex.superset_letter),
-    indicaciones: ex.indicaciones || '',
-  }));
+  form.ejercicios = (routine.ejercicios || []).map((ex) => {
+    const prescription = parseSetPrescription(ex.set_prescription);
+    return {
+      nombre: ex.nombre,
+      exercise_id: ex.exercise_id ?? null,
+      series: ex.series,
+      repeticiones: ex.repeticiones,
+      peso: Number(ex.peso) || 0,
+      set_prescription: prescription,
+      customize_sets: Boolean(prescription),
+      rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
+      superset_letter: toSupersetLetter(ex.superset_letter),
+      indicaciones: ex.indicaciones || '',
+    };
+  });
 
   if (form.ejercicios.length === 0) {
     form.ejercicios.push(emptyExerciseRow());
   }
+  mobilePreviewOpen.value = true;
   builderOpen.value = true;
+  scrollBuilderIntoView();
 };
 
 const addExerciseRow = () => {
@@ -270,6 +303,7 @@ const buildPayload = () => ({
     series: Number(ex.series),
     repeticiones: Number(ex.repeticiones),
     peso: Number(ex.peso),
+    set_prescription: setPrescriptionForPayload(ex, Boolean(ex.customize_sets)),
     rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
     superset_letter: toSupersetLetter(ex.superset_letter),
     indicaciones: ex.indicaciones?.trim() || '',
@@ -327,6 +361,7 @@ const handleSaveAsTemplate = async (routine) => {
         series: Number(ex.series),
         repeticiones: Number(ex.repeticiones),
         peso: Number(ex.peso),
+        set_prescription: parseSetPrescription(ex.set_prescription),
         rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
         superset_letter: toSupersetLetter(ex.superset_letter),
         indicaciones: ex.indicaciones || '',
@@ -383,6 +418,7 @@ const handleDuplicateConfirm = async () => {
         series: Number(ex.series),
         repeticiones: Number(ex.repeticiones),
         peso: Number(ex.peso),
+        set_prescription: parseSetPrescription(ex.set_prescription),
         rest_time_seconds: toRestSeconds(ex.rest_time_seconds),
         superset_letter: toSupersetLetter(ex.superset_letter),
         indicaciones: ex.indicaciones || '',
@@ -468,22 +504,51 @@ onMounted(() => {
       Sin rutinas aún. Asigna una plantilla o crea la primera sesión.
     </p>
 
-    <RoutineDayBuilder
+    <div
       v-if="builderOpen"
-      :form="form"
-      :editing-id="editingId"
-      :catalog-exercises="catalogExercises"
-      :saving="saving"
-      :saving-catalog-index="savingCatalogIndex"
-      @save="handleSave"
-      @cancel="closeBuilder"
-      @add-exercise="addExerciseRow"
-      @remove-exercise="removeExerciseRow"
-      @reorder-exercise="reorderExercise"
-      @exercise-name-update="onExerciseNameUpdate"
-      @save-to-catalog="saveExerciseToCatalog"
-      @set-rest="setRestSeconds"
-    />
+      ref="builderSplitEl"
+      class="programming-builder-split"
+    >
+      <div class="programming-builder-split__editor">
+        <RoutineDayBuilder
+          :form="form"
+          :editing-id="editingId"
+          :catalog-exercises="catalogExercises"
+          :saving="saving"
+          :saving-catalog-index="savingCatalogIndex"
+          @save="handleSave"
+          @cancel="closeBuilder"
+          @add-exercise="addExerciseRow"
+          @remove-exercise="removeExerciseRow"
+          @reorder-exercise="reorderExercise"
+          @exercise-name-update="onExerciseNameUpdate"
+          @save-to-catalog="saveExerciseToCatalog"
+          @set-rest="setRestSeconds"
+        />
+      </div>
+      <div class="programming-builder-split__preview">
+        <button
+          type="button"
+          class="programming-preview-toggle"
+          :aria-expanded="mobilePreviewOpen"
+          aria-controls="programming-live-preview"
+          @click="mobilePreviewOpen = !mobilePreviewOpen"
+        >
+          <v-icon
+            :icon="mobilePreviewOpen ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+            size="18"
+          />
+          Vista previa de la rutina
+        </button>
+        <div
+          v-show="mobilePreviewOpen"
+          id="programming-live-preview"
+          class="programming-builder-split__preview-pane"
+        >
+          <RoutineDayPreview :preview="livePreview" dense />
+        </div>
+      </div>
+    </div>
 
     <ProgrammingAssignTemplateDialog
       v-model="assignOpen"
@@ -605,5 +670,80 @@ onMounted(() => {
 
 .min-w-0 {
   min-width: 0;
+}
+
+/* Feature 084 — live preview split */
+.programming-builder-split {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.programming-preview-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+  margin: 0 0 0.45rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--tf-on-surface, #e8eaed);
+  font-size: 0.78rem;
+  font-weight: 650;
+  cursor: pointer;
+  text-align: left;
+  min-height: 2.5rem;
+}
+
+.programming-preview-toggle:hover {
+  background: rgba(0, 229, 255, 0.08);
+}
+
+.programming-preview-toggle:focus-visible {
+  outline: var(--tf-focus-ring, 2px solid #00e5ff);
+  outline-offset: var(--tf-focus-offset, 2px);
+}
+
+.programming-builder-split__preview-pane {
+  min-height: 0;
+  max-height: min(70vh, 640px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.programming-builder-split__preview-pane :deep(.rdp) {
+  max-height: min(70vh, 640px);
+}
+
+.programming-builder-split__editor {
+  min-width: 0;
+}
+
+@media (min-width: 960px) {
+  .programming-builder-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 0.85rem;
+    align-items: start;
+  }
+
+  .programming-preview-toggle {
+    display: none;
+  }
+
+  .programming-builder-split__preview-pane {
+    display: flex !important;
+    position: sticky;
+    top: 0.5rem;
+    max-height: calc(100dvh - 7rem);
+  }
+
+  .programming-builder-split__preview-pane :deep(.rdp) {
+    max-height: calc(100dvh - 7rem);
+  }
 }
 </style>
