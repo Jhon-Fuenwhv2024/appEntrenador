@@ -144,6 +144,7 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 1. Cliente pulsa **Empezar** en el hero del dashboard → `/client/workout/:routineId` (solo si la rutina es del `dia_semana` de hoy).
    - Feature **058**: también puede pulsar **Ver rutina** → `/client/routine/:routineId` (preview solo lectura con lista completa + GIF/video vía `WorkoutExerciseMedia`); desde ahí **Empezar** entra al Player **solo si hoy es el día programado**.
    - Si el trainer asigna/actualiza una rutina (notif → preview) y hoy **no** es ese `dia_semana`: el alumno puede **ver** la rutina; Empezar queda deshabilitado (“Disponible {día}”). El Player y `POST /me/workout-sessions` rechazan inicio con `ROUTINE_DAY_LOCKED`.
+   - Si ya completó esa rutina **hoy**: preview muestra **Completado** (Empezar deshabilitado); el Player no permite re-iniciar.
 2. Frontend carga `GET /me/routines` (incluye `last_log` por ejercicio si hay historial) y muestra **Comenzar entrenamiento**.
 3. En ese tap se desbloquea el audio HTML5 (`useTimer.unlockAudio`) y arranca `useWorkoutSession` (serie, descanso, auto-avance).
 4. **Feature 059 (UX híbrida):** fase `working` = media del ejercicio + checklist de series (Set | Anterior | kg×reps | estado) + CTA Completar serie; header con duración de sesión. Fase `resting` = anillo de progreso, controles ±15 s, Omitir y bloque **Up next** (respeta superseries 029).

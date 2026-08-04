@@ -2,6 +2,8 @@
 /**
  * Feature 058 — Preview de solo lectura de la rutina del día (lista + media).
  * Soft-lock (Feature 040): se puede ver la rutina; Empezar queda bloqueado.
+ * Day-lock: Empezar solo el dia_semana programado.
+ * Completed: si ya terminó esa rutina hoy, Empezar no está disponible.
  */
 import { computed, onMounted, shallowRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -11,9 +13,11 @@ import {
 } from '../../shared/api/http.js';
 import { getSessionUser } from '../../shared/auth/session.js';
 import { normalizeMembershipPeriod } from '../../shared/membership/period.js';
+import { formatLocalDate, todayLocalDate } from '../../shared/utils/localDate.js';
 import { isRoutineScheduledForDate } from '../../shared/utils/weekdays.js';
 import { getMyMembership } from './api/membershipApi.js';
 import { getMyRoutines } from './api/routinesApi.js';
+import { getMyWorkoutSessions } from './api/workoutSessionsApi.js';
 import ClientMembershipContactActions from './components/ClientMembershipContactActions.vue';
 import MembershipLockedState from './components/MembershipLockedState.vue';
 import WorkoutExerciseMedia from './components/WorkoutExerciseMedia.vue';
@@ -28,6 +32,7 @@ const loading = shallowRef(true);
 const loadError = shallowRef('');
 const membershipBlocked = shallowRef(false);
 const routine = shallowRef(null);
+const completedToday = shallowRef(false);
 
 const exercises = computed(() => (
   Array.isArray(routine.value?.ejercicios) ? routine.value.ejercicios : []
@@ -39,9 +44,13 @@ const exerciseCountLabel = computed(() => {
   return n === 1 ? '1 ejercicio' : `${n} ejercicios`;
 });
 
-/** Trainer-programmed weekday only — view anytime, start on that day. */
-const canStartWorkout = computed(() => (
+const isScheduledToday = computed(() => (
   Boolean(routine.value) && isRoutineScheduledForDate(routine.value)
+));
+
+/** Trainer-programmed weekday only; no re-start after completing today. */
+const canStartWorkout = computed(() => (
+  isScheduledToday.value && !completedToday.value
 ));
 
 const dayLockMessage = computed(() => {
@@ -79,6 +88,33 @@ function restLabel(ex) {
   return s ? `Descanso ${m}m ${s}s` : `Descanso ${m}m`;
 }
 
+function sessionMatchesLocalDate(session, localDate) {
+  const raw = session?.finished_at || session?.created_at || session?.started_at;
+  if (!raw) return false;
+  try {
+    return formatLocalDate(raw) === localDate;
+  } catch {
+    return false;
+  }
+}
+
+async function resolveCompletedToday(routineId) {
+  if (!routineId) return false;
+  try {
+    const localDate = todayLocalDate();
+    const response = await getMyWorkoutSessions();
+    const sessions = response.data?.data ?? [];
+    return sessions.some((session) => (
+      session.status === 'completed'
+      && Number(session.routine_id) === Number(routineId)
+      && sessionMatchesLocalDate(session, localDate)
+    ));
+  } catch (error) {
+    console.warn('No se pudo verificar si la rutina ya está completada:', error);
+    return false;
+  }
+}
+
 function goBack() {
   router.push('/dashboard');
 }
@@ -98,13 +134,17 @@ async function loadRoutine() {
     loading.value = true;
     loadError.value = '';
     membershipBlocked.value = false;
+    completedToday.value = false;
     routine.value = null;
 
     const routineId = Number(route.params.routineId);
-    const [routinesRes] = await Promise.all([
+    const [routinesRes, done] = await Promise.all([
       getMyRoutines(),
+      resolveCompletedToday(routineId),
       loadMembershipFlag(),
     ]);
+
+    completedToday.value = Boolean(done);
 
     const list = routinesRes.data?.data ?? [];
     const found = list.find((item) => Number(item.id) === routineId);
@@ -199,7 +239,20 @@ onMounted(() => {
       </div>
 
       <div
-        v-else-if="!canStartWorkout"
+        v-else-if="completedToday"
+        class="preview-lock preview-lock--done"
+        role="status"
+      >
+        <div class="preview-lock__copy">
+          <p class="preview-lock__kicker">Completado</p>
+          <p class="preview-lock__text">
+            Ya terminaste esta rutina hoy. Puedes revisarla, pero no se vuelve a empezar el mismo día.
+          </p>
+        </div>
+      </div>
+
+      <div
+        v-else-if="!isScheduledToday"
         class="preview-lock preview-lock--day"
         role="status"
       >
@@ -282,7 +335,19 @@ onMounted(() => {
           Bloqueado
         </v-btn>
         <v-btn
-          v-else-if="!canStartWorkout"
+          v-else-if="completedToday"
+          color="success"
+          variant="tonal"
+          class="preview-cta font-weight-bold"
+          rounded="lg"
+          disabled
+          prepend-icon="mdi-check-circle"
+          aria-label="Rutina completada hoy"
+        >
+          Completado
+        </v-btn>
+        <v-btn
+          v-else-if="!isScheduledToday"
           color="primary"
           variant="tonal"
           class="preview-cta font-weight-bold"
@@ -294,7 +359,7 @@ onMounted(() => {
           Disponible {{ routine.dia_semana }}
         </v-btn>
         <v-btn
-          v-else
+          v-else-if="canStartWorkout"
           color="primary"
           class="preview-cta font-weight-bold"
           rounded="lg"
@@ -417,6 +482,16 @@ onMounted(() => {
 
 .preview-lock--day .preview-lock__kicker {
   color: #00e5ff;
+}
+
+.preview-lock--done {
+  border-color: rgba(76, 175, 80, 0.35);
+  background:
+    linear-gradient(135deg, rgba(76, 175, 80, 0.12) 0%, rgba(0, 229, 255, 0.03) 100%);
+}
+
+.preview-lock--done .preview-lock__kicker {
+  color: #81c784;
 }
 
 .preview-lock__kicker {

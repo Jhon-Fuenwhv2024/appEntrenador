@@ -7,10 +7,11 @@ import {
 } from '../../shared/api/http.js';
 import { getSessionUser } from '../../shared/auth/session.js';
 import { normalizeMembershipPeriod } from '../../shared/membership/period.js';
+import { formatLocalDate, todayLocalDate } from '../../shared/utils/localDate.js';
 import { isRoutineScheduledForDate } from '../../shared/utils/weekdays.js';
 import { getMyMembership } from './api/membershipApi.js';
 import { getMyRoutines } from './api/routinesApi.js';
-import { createMyWorkoutSession } from './api/workoutSessionsApi.js';
+import { createMyWorkoutSession, getMyWorkoutSessions } from './api/workoutSessionsApi.js';
 import { useWorkoutSession } from './composables/useWorkoutSession.js';
 import MembershipLockedState from './components/MembershipLockedState.vue';
 import PrCelebrationOverlay from './components/PrCelebrationOverlay.vue';
@@ -31,6 +32,7 @@ const loadError = shallowRef('');
 const membershipBlocked = shallowRef(false);
 const dayLocked = shallowRef(false);
 const dayLockLabel = shallowRef('');
+const alreadyCompleted = shallowRef(false);
 const saveError = shallowRef('');
 const saving = shallowRef(false);
 const saved = shallowRef(false);
@@ -184,13 +186,18 @@ async function loadRoutine() {
     membershipBlocked.value = false;
     dayLocked.value = false;
     dayLockLabel.value = '';
+    alreadyCompleted.value = false;
     pendingRoutine.value = null;
     const routineId = Number(route.params.routineId);
 
-    const [routinesRes, membershipRes] = await Promise.all([
+    const [routinesRes, membershipRes, sessionsRes] = await Promise.all([
       getMyRoutines(),
       getMyMembership().catch((error) => {
         console.warn('No se pudo cargar membresía en player:', error);
+        return null;
+      }),
+      getMyWorkoutSessions().catch((error) => {
+        console.warn('No se pudo cargar sesiones en player:', error);
         return null;
       }),
     ]);
@@ -207,6 +214,24 @@ async function loadRoutine() {
       return;
     }
     sessionRoutineName.value = routine.nombre_rutina || '';
+
+    const localDate = todayLocalDate();
+    const sessions = sessionsRes?.data?.data ?? [];
+    const doneToday = sessions.some((session) => {
+      if (session.status !== 'completed') return false;
+      if (Number(session.routine_id) !== Number(routineId)) return false;
+      const raw = session.finished_at || session.created_at || session.started_at;
+      if (!raw) return false;
+      try {
+        return formatLocalDate(raw) === localDate;
+      } catch {
+        return false;
+      }
+    });
+    if (doneToday) {
+      alreadyCompleted.value = true;
+      return;
+    }
 
     if (!isRoutineScheduledForDate(routine)) {
       dayLocked.value = true;
@@ -313,6 +338,24 @@ onMounted(() => {
       message="Tu membresía venció. Renueva con tu entrenador para volver a entrenar."
       @back="goBack"
     />
+
+    <main
+      v-else-if="alreadyCompleted && phase === 'idle'"
+      class="player-main player-main--ready"
+      role="status"
+    >
+      <p class="player-step">Completado</p>
+      <h1 class="player-title">{{ sessionRoutineName || 'Tu rutina' }}</h1>
+      <p class="player-day-lock">
+        Ya terminaste esta rutina hoy. Puedes revisarla, pero no se vuelve a empezar el mismo día.
+      </p>
+      <button type="button" class="player-cta player-cta--ready" @click="goToPreview">
+        Ver rutina
+      </button>
+      <button type="button" class="player-cta-secondary" @click="goBack">
+        Volver al inicio
+      </button>
+    </main>
 
     <main
       v-else-if="dayLocked && phase === 'idle'"
