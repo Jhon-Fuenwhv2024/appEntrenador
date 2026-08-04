@@ -17,7 +17,8 @@
 3. Cliente abre `/registro?token=...`: el frontend limpia cualquier sesión previa (`clearSession`) para no heredar el JWT del trainer.
 4. `POST /register` llama a `invitesService.validateAndConsumeToken` (transacción): marca `used` y crea `usuarios` con `rol=client` y `trainer_id` del invite.
 5. Tras éxito se vuelve a limpiar sesión y se redirige a `/` (login) para que el cliente inicie sesión con su cuenta.
-6. Trainer ve al alumno en `GET /clients` (filtrado por ownership) en `/trainer/clients`.
+6. Trainer ve al alumno en `GET /clients` (filtrado por ownership) en `/trainer/clients` (lista con `foto_url` / avatar por defecto).
+7. Eliminar alumno (`DELETE /clients/:id`): desvincula (`trainer_id = NULL`) e inhabilita dietas activas del par; la cuenta del alumno permanece.
 
 ## Perfil alumno y avatar (Feature 020)
 
@@ -120,7 +121,7 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 1. Trainer en ficha 360 (Nutrición) abre `DietPlanPanel` → `DietPlanForm` con tabs Semana 1…N + strip L–D + builder por día.
 2. La UI calcula macros del día y media del ciclo en vivo (`computed`).
 3. Al guardar: `POST/PUT /trainer/diets` con `days[]` → service valida ownership, recalcula desde items, escribe en transacción (nested replace de `diet_plan_days`).
-4. Activar (o guardar activo): desactiva otros planes del cliente y sincroniza **media del ciclo** → `nutrition_targets` (031).
+4. Activar (o guardar activo): desactiva otros planes del cliente y sincroniza **media del ciclo** → `nutrition_targets` (031). Inhabilitar: `POST /trainer/diets/:id/deactivate` (`is_active = 0`) sin borrar el plan.
 5. Cliente: `GET /me/diet-plan?date=` resuelve `week_index` + `dia_semana` desde `cycle_start_date` / `cycle_length_weeks`; sin fallback si el día está vacío. Strip semanal vía `/me/diet-plan/week`.
 6. Duplicar día/semana: en el form (estado local) y endpoints `POST .../copy-day` | `copy-week`.
 7. Feature **057**: jerarquía comida/productos en `ClientDietView` se mantiene sobre el día resuelto.

@@ -14,7 +14,7 @@ defineProps({
   },
 });
 
-defineEmits(['generateInvite', 'copyInvite', 'goToClients']);
+defineEmits(['generateInvite', 'copyInvite', 'goToClients', 'goToDiets']);
 </script>
 
 <template>
@@ -90,7 +90,7 @@ defineEmits(['generateInvite', 'copyInvite', 'goToClients']);
     <button
       type="button"
       class="action-link-card action-link-card--btn"
-      @click="$emit('goToClients')"
+      @click="$emit('goToDiets')"
     >
       <div class="action-link-content">
         <div class="invite-icon invite-icon-orange">
@@ -98,7 +98,7 @@ defineEmits(['generateInvite', 'copyInvite', 'goToClients']);
         </div>
         <div>
           <div class="invite-title">Planes de Dieta</div>
-          <div class="invite-desc">Ficha alumno · pestaña Nutrición</div>
+          <div class="invite-desc">Recursos · sección Dietas</div>
         </div>
       </div>
       <v-icon icon="mdi-chevron-right" size="20" color="#6B7280"></v-icon>

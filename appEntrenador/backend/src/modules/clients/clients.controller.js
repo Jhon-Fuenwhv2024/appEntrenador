@@ -69,9 +69,25 @@ async function getDashboard(req, res) {
   }
 }
 
+async function removeClient(req, res) {
+  try {
+    const clientId = Number(req.params.clientId);
+    const data = await clientsService.removeClientFromTrainer(clientId, req.user.id);
+
+    return res.json({
+      success: true,
+      message: 'Alumno eliminado de tu lista',
+      data,
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error al eliminar alumno:');
+  }
+}
+
 module.exports = {
   getClients,
   getClientById,
   getClientOverview,
   getDashboard,
+  removeClient,
 };

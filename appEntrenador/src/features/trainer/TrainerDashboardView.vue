@@ -226,6 +226,10 @@ const goToClients = () => {
   router.push('/trainer/clients');
 };
 
+const goToDiets = () => {
+  router.push('/trainer/library/diets');
+};
+
 const scrollToInviteIfNeeded = async () => {
   if (route.hash !== '#invite') return;
   await nextTick();
@@ -304,6 +308,7 @@ onUnmounted(() => {
             @generate-invite="handleGenerateInvite"
             @copy-invite="copyInvitationLink"
             @go-to-clients="goToClients"
+            @go-to-diets="goToDiets"
           />
         </div>
       </div>

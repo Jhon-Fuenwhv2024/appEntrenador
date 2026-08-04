@@ -4,6 +4,7 @@
  * Props down / events up — filtering and fetching live in the parent view.
  */
 import { computed } from 'vue';
+import { resolveAvatarSrc } from '../../../shared/utils/avatar.js';
 
 const searchQuery = defineModel('searchQuery', {
   type: String,
@@ -24,6 +25,11 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /** Client id currently being deleted (shows loading on that row). */
+  deletingId: {
+    type: [Number, null],
+    default: null,
+  },
   /** `page` = destino Alumnos; `panel` = legacy sidebar layout. */
   variant: {
     type: String,
@@ -32,7 +38,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['selectClient', 'invite']);
+const emit = defineEmits(['selectClient', 'invite', 'deleteClient']);
 
 const caption = computed(() => {
   if (props.loading) return 'Cargando…';
@@ -43,24 +49,18 @@ const caption = computed(() => {
   return `${props.totalCount} alumnos`;
 });
 
-const getInitials = (name) => {
-  if (!name) return '??';
-
-  const parts = name.trim().split(/\s+/);
-
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-
-  return name.substring(0, 2).toUpperCase();
-};
-
 const statusClass = (status) => {
   const normalized = String(status || 'Activo').toLowerCase().trim();
   if (normalized === 'sin plan') return 'sin-plan';
   if (normalized === 'inactivo') return 'inactivo';
   if (normalized === 'pendiente') return 'pendiente';
   return 'activo';
+};
+
+const onDeleteClick = (event, client) => {
+  event.stopPropagation();
+  event.preventDefault();
+  emit('deleteClient', client);
 };
 </script>
 
@@ -128,8 +128,12 @@ const statusClass = (status) => {
         @click="emit('selectClient', client)"
         @keydown.enter="emit('selectClient', client)"
       >
-        <div class="student-avatar">
-          {{ getInitials(client.nombre) }}
+        <div class="student-avatar" aria-hidden="true">
+          <img
+            :src="resolveAvatarSrc(client.foto_url)"
+            alt=""
+            class="student-avatar__img"
+          >
         </div>
 
         <div class="student-info">
@@ -151,6 +155,21 @@ const statusClass = (status) => {
             </span>
           </div>
         </div>
+
+        <v-btn
+          icon
+          variant="text"
+          size="small"
+          color="error"
+          class="student-delete"
+          :loading="deletingId === client.id"
+          :disabled="loading || deletingId != null"
+          :aria-label="`Eliminar a ${client.nombre || 'alumno'}`"
+          title="Eliminar alumno"
+          @click.stop.prevent="onDeleteClick($event, client)"
+        >
+          <v-icon icon="mdi-delete-outline" size="20" />
+        </v-btn>
 
         <v-icon
           v-if="variant === 'page'"
@@ -193,9 +212,27 @@ const statusClass = (status) => {
   background: rgba(0, 229, 255, 0.06);
 }
 
+.student-avatar {
+  overflow: hidden;
+  padding: 0;
+}
+
+.student-avatar__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .student-chevron {
-  margin-left: auto;
+  margin-left: 0;
   flex-shrink: 0;
+}
+
+.student-delete {
+  flex-shrink: 0;
+  min-width: 40px !important;
+  min-height: 40px !important;
 }
 
 .students-skeleton {

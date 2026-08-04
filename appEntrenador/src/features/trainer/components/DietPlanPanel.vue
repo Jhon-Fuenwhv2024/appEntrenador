@@ -1,12 +1,14 @@
 <script setup>
 /**
- * Panel Client 360: listar / crear / editar / activar / eliminar planes de dieta.
+ * Panel Client 360: listar / crear / editar / activar / inhabilitar / eliminar planes de dieta.
  */
 import { onMounted, shallowRef, watch } from 'vue';
 import { getApiErrorMessage } from '../../../shared/api/http.js';
+import ConfirmActionDialog from '../../../shared/components/ConfirmActionDialog.vue';
 import {
   activateDietPlan,
   createDietPlan,
+  deactivateDietPlan,
   deleteDietPlan,
   listDietPlans,
   updateDietPlan,
@@ -30,6 +32,16 @@ const showForm = shallowRef(false);
 const editingPlan = shallowRef(null);
 const deletingId = shallowRef(null);
 const activatingId = shallowRef(null);
+const deactivatingId = shallowRef(null);
+
+const confirmOpen = shallowRef(false);
+const confirmKind = shallowRef('');
+const planPending = shallowRef(null);
+const confirmTitle = shallowRef('');
+const confirmDescription = shallowRef('');
+const confirmLabel = shallowRef('Confirmar');
+const confirmColor = shallowRef('primary');
+const confirmBusy = shallowRef(false);
 
 async function loadPlans() {
   if (!props.clientId) return;
@@ -126,31 +138,73 @@ async function onActivate(plan) {
   }
 }
 
-async function onDelete(plan) {
-  const ok = window.confirm(`¿Eliminar el plan "${plan.title}"? Esta acción no se puede deshacer.`);
-  if (!ok) return;
+function requestDeactivate(plan) {
+  if (!plan?.id || confirmBusy.value) return;
+  planPending.value = plan;
+  confirmKind.value = 'deactivate';
+  confirmTitle.value = `¿Inhabilitar «${plan.title}»?`;
+  confirmDescription.value = 'El alumno dejará de ver este plan como activo. Podrás reactivarlo cuando quieras.';
+  confirmLabel.value = 'Inhabilitar';
+  confirmColor.value = 'warning';
+  confirmOpen.value = true;
+}
+
+function requestDelete(plan) {
+  if (!plan?.id || confirmBusy.value) return;
+  planPending.value = plan;
+  confirmKind.value = 'delete';
+  confirmTitle.value = `¿Eliminar «${plan.title}»?`;
+  confirmDescription.value = 'Esta acción no se puede deshacer. Se borrarán todas las comidas del plan.';
+  confirmLabel.value = 'Eliminar plan';
+  confirmColor.value = 'error';
+  confirmOpen.value = true;
+}
+
+async function onConfirmAction() {
+  const plan = planPending.value;
+  const kind = confirmKind.value;
+  if (!plan?.id || !kind || confirmBusy.value) return;
 
   try {
-    deletingId.value = plan.id;
-    await deleteDietPlan(plan.id);
-    emit('notify', { text: 'Plan de dieta eliminado', color: 'success' });
-    if (editingPlan.value?.id === plan.id) {
-      cancelForm();
+    confirmBusy.value = true;
+    if (kind === 'deactivate') {
+      deactivatingId.value = plan.id;
+      await deactivateDietPlan(plan.id);
+      emit('notify', { text: 'Plan de dieta inhabilitado', color: 'success' });
+    } else if (kind === 'delete') {
+      deletingId.value = plan.id;
+      await deleteDietPlan(plan.id);
+      emit('notify', { text: 'Plan de dieta eliminado', color: 'success' });
+      if (editingPlan.value?.id === plan.id) {
+        cancelForm();
+      }
     }
+    confirmOpen.value = false;
+    planPending.value = null;
+    confirmKind.value = '';
     await loadPlans();
   } catch (error) {
-    console.error('Error eliminando plan de dieta:', error);
+    console.error(`Error en acción de dieta (${kind}):`, error);
     emit('notify', {
-      text: getApiErrorMessage(error, 'No se pudo eliminar el plan'),
+      text: getApiErrorMessage(
+        error,
+        kind === 'deactivate' ? 'No se pudo inhabilitar el plan' : 'No se pudo eliminar el plan',
+      ),
       color: 'error',
     });
   } finally {
+    confirmBusy.value = false;
+    deactivatingId.value = null;
     deletingId.value = null;
   }
 }
 
 function formatMacros(plan) {
   return `${Number(plan.calories) || 0} kcal · P ${Number(plan.protein_g) || 0}g · C ${Number(plan.carbs_g) || 0}g · G ${Number(plan.fats_g) || 0}g`;
+}
+
+function isPlanActive(plan) {
+  return Boolean(plan?.is_active);
 }
 
 watch(
@@ -223,7 +277,7 @@ onMounted(() => {
             <div class="dpp__card-title-row">
               <span class="dpp__card-title">{{ plan.title }}</span>
               <v-chip
-                v-if="plan.is_active"
+                v-if="isPlanActive(plan)"
                 color="primary"
                 size="x-small"
                 class="font-weight-bold"
@@ -246,7 +300,7 @@ onMounted(() => {
           </div>
           <div class="dpp__card-actions">
             <v-btn
-              v-if="!plan.is_active"
+              v-if="!isPlanActive(plan)"
               size="x-small"
               variant="tonal"
               color="primary"
@@ -254,6 +308,16 @@ onMounted(() => {
               @click="onActivate(plan)"
             >
               Activar
+            </v-btn>
+            <v-btn
+              v-else
+              size="x-small"
+              variant="tonal"
+              color="warning"
+              :loading="deactivatingId === plan.id"
+              @click="requestDeactivate(plan)"
+            >
+              Inhabilitar
             </v-btn>
             <v-btn
               size="x-small"
@@ -268,7 +332,7 @@ onMounted(() => {
               variant="text"
               color="error"
               :loading="deletingId === plan.id"
-              @click="onDelete(plan)"
+              @click="requestDelete(plan)"
             >
               Eliminar
             </v-btn>
@@ -276,6 +340,16 @@ onMounted(() => {
         </v-card-text>
       </v-card>
     </template>
+
+    <ConfirmActionDialog
+      v-model="confirmOpen"
+      :title="confirmTitle"
+      :description="confirmDescription"
+      :confirm-label="confirmLabel"
+      :confirm-color="confirmColor"
+      :loading="confirmBusy"
+      @confirm="onConfirmAction"
+    />
   </div>
 </template>
 

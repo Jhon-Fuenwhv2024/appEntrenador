@@ -8,9 +8,10 @@ import { useDisplay } from 'vuetify';
 import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { getSessionUser } from '../../shared/auth/session.js';
+import ConfirmActionDialog from '../../shared/components/ConfirmActionDialog.vue';
 import AppShell from '../../shared/layout/AppShell.vue';
 import SessionHeaderActions from '../../shared/layout/SessionHeaderActions.vue';
-import { getClients } from './api/clientsApi.js';
+import { deleteClient, getClients } from './api/clientsApi.js';
 import ClientsList from './components/ClientsList.vue';
 import InvitesManager from './components/InvitesManager.vue';
 
@@ -22,6 +23,16 @@ const membershipFilter = shallowRef('all');
 const loading = shallowRef(true);
 const clients = ref([]);
 const invitesDialogOpen = shallowRef(false);
+const deletingId = shallowRef(null);
+const deleteConfirmOpen = shallowRef(false);
+const clientPendingDelete = shallowRef(null);
+
+const deleteConfirmTitle = computed(() => {
+  const name = clientPendingDelete.value?.nombre
+    || clientPendingDelete.value?.username
+    || 'este alumno';
+  return `¿Eliminar a ${name}?`;
+});
 
 const MEMBERSHIP_FILTERS = [
   { value: 'all', title: 'Todos' },
@@ -111,6 +122,33 @@ const openInvitesManager = () => {
   invitesDialogOpen.value = true;
 };
 
+const requestDeleteClient = (client) => {
+  if (!client?.id || deletingId.value != null) return;
+  clientPendingDelete.value = client;
+  deleteConfirmOpen.value = true;
+};
+
+const confirmDeleteClient = async () => {
+  const client = clientPendingDelete.value;
+  if (!client?.id || deletingId.value != null) return;
+
+  const name = client.nombre || client.username || 'Alumno';
+
+  try {
+    deletingId.value = client.id;
+    await deleteClient(client.id);
+    clients.value = clients.value.filter((c) => c.id !== client.id);
+    deleteConfirmOpen.value = false;
+    clientPendingDelete.value = null;
+    showNotification(`${name} eliminado de tu lista`, 'success');
+  } catch (error) {
+    console.error('Error eliminando alumno:', error);
+    showNotification(getApiErrorMessage(error, 'No se pudo eliminar el alumno'), 'error');
+  } finally {
+    deletingId.value = null;
+  }
+};
+
 onMounted(() => {
   const user = getSessionUser();
 
@@ -173,12 +211,24 @@ onMounted(() => {
           :clients="filteredClients"
           :total-count="clients.length"
           :loading="loading"
+          :deleting-id="deletingId"
           @select-client="openClient"
           @invite="openInvitesManager"
+          @delete-client="requestDeleteClient"
         />
       </div>
     </main>
   </AppShell>
+
+  <ConfirmActionDialog
+    v-model="deleteConfirmOpen"
+    :title="deleteConfirmTitle"
+    description="Se quitará de tu lista de alumnos y se inhabilitarán sus planes de dieta activos. Su cuenta no se elimina."
+    confirm-label="Eliminar alumno"
+    confirm-color="error"
+    :loading="deletingId != null"
+    @confirm="confirmDeleteClient"
+  />
 
   <v-dialog
     v-model="invitesDialogOpen"

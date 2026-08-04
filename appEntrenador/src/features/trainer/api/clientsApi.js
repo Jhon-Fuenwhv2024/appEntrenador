@@ -15,3 +15,8 @@ export function getClientOverview(clientId) {
 export function getTrainerDashboard() {
   return http.get('/trainer/dashboard');
 }
+
+/** DELETE /api/clients/:clientId — desvincula al alumno del trainer */
+export function deleteClient(clientId) {
+  return http.delete(`/clients/${clientId}`);
+}

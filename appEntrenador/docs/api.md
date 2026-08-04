@@ -314,13 +314,27 @@ Respuesta `data`:
 
 Devuelve solo los clientes con `trainer_id = req.user.id`.
 
-Cada ítem incluye `routines_count`, `status` (`Activo` si tiene ≥1 rutina, `Sin plan` si no), `membership` (Feature 040): `{ status, period_start, period_end, days_remaining, block_on_unpaid }` o `null`, y `seat_editable` (boolean; Feature 065): `true` si el plan efectivo es PRO o el alumno está entre los 3 primeros por `id ASC`.
+Cada ítem incluye `foto_url` (avatar o `null`), `routines_count`, `status` (`Activo` si tiene ≥1 rutina, `Sin plan` si no), `membership` (Feature 040): `{ status, period_start, period_end, days_remaining, block_on_unpaid }` o `null`, y `seat_editable` (boolean; Feature 065): `true` si el plan efectivo es PRO o el alumno está entre los 3 primeros por `id ASC`.
 
-UI trainer: lista en `/trainer/clients` (`ClientsListView`). La búsqueda por nombre/usuario y el filtro de membresía (Al día / Por vencer ≤7 / Vencidos / Pendientes) son **filtros locales** sobre esta respuesta. Click → `/trainer/clients/:clientId`.
+UI trainer: lista en `/trainer/clients` (`ClientsListView`). La búsqueda por nombre/usuario y el filtro de membresía (Al día / Por vencer ≤7 / Vencidos / Pendientes) son **filtros locales** sobre esta respuesta. Click → `/trainer/clients/:clientId`. Avatar vía `foto_url` + fallback por defecto. Eliminar (lista o ficha 360) → `DELETE /clients/:clientId`.
 
 ### `GET /clients/:clientId`
 
 Detalle de un cliente propio.
+
+### `DELETE /clients/:clientId` (trainer)
+
+Desvincula al alumno del entrenador autenticado (`trainer_id = NULL`). No borra la cuenta del alumno. También inhabilita (`is_active = 0`) los planes de dieta activos de ese par trainer↔alumno. Solo el dueño (`trainer_id = req.user.id`) puede ejecutarlo.
+
+Respuesta:
+
+```json
+{
+  "success": true,
+  "message": "Alumno eliminado de tu lista",
+  "data": { "id": 12, "nombre": "Ana", "username": "ana" }
+}
+```
 
 ### `GET /clients/:clientId/overview` (Feature 039)
 
@@ -1397,6 +1411,10 @@ Elimina el plan (CASCADE a days/meals/items).
 ### `POST /trainer/diets/:id/activate` (trainer)
 
 Marca el plan como activo y desactiva otros del mismo `client_id`. Sincroniza la **media** del ciclo → `nutrition_targets` (031).
+
+### `POST /trainer/diets/:id/deactivate` (trainer)
+
+Inhabilita el plan (`is_active = 0`). El alumno deja de verlo como plan activo. No elimina el plan (sigue editable/reactivable).
 
 ### `POST /trainer/diets/:id/copy-day` (trainer)
 

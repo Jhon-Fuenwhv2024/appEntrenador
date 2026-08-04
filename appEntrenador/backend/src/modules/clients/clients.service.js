@@ -164,6 +164,51 @@ async function getClientOwnedByTrainer(clientId, trainerId) {
   return rows[0];
 }
 
+/**
+ * Quita al alumno del roster del trainer (desvincula).
+ * No borra la cuenta del alumno: solo `trainer_id = NULL` y desactiva sus planes de dieta.
+ */
+async function removeClientFromTrainer(clientId, trainerId) {
+  const id = Number(clientId);
+  if (!Number.isInteger(id) || id < 1) {
+    throw createHttpError('Cliente inválido.', 400);
+  }
+
+  const client = await getClientOwnedByTrainer(id, trainerId);
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    await connection.query(
+      `UPDATE diet_plans
+       SET is_active = 0
+       WHERE client_id = ? AND trainer_id = ? AND is_active = 1`,
+      [id, trainerId],
+    );
+
+    const [result] = await connection.query(
+      `UPDATE usuarios
+       SET trainer_id = NULL
+       WHERE id = ? AND rol = 'client' AND trainer_id = ?`,
+      [id, trainerId],
+    );
+
+    if (!result.affectedRows) {
+      throw createHttpError('Cliente no encontrado o no pertenece a tu cuenta.', 404);
+    }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+
+  return { id: client.id, nombre: client.nombre, username: client.username };
+}
+
 async function getDashboardStats(trainerId) {
   const weekStart = startOfLocalWeek();
   const weekStartStr = toLocalDateString(weekStart);
@@ -559,6 +604,7 @@ async function getClientOverview(clientId, trainerId) {
 module.exports = {
   getClientsForTrainer,
   getClientOwnedByTrainer,
+  removeClientFromTrainer,
   getDashboardStats,
   getClientOverview,
   createHttpError,

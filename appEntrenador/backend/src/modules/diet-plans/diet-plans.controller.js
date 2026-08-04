@@ -110,6 +110,23 @@ async function activate(req, res) {
   }
 }
 
+async function deactivate(req, res) {
+  try {
+    const plan = await dietPlansService.deactivateDietPlan(
+      req.user.id,
+      req.params.id,
+    );
+
+    return res.json({
+      success: true,
+      message: 'Plan de dieta inhabilitado',
+      data: plan,
+    });
+  } catch (error) {
+    return sendError(res, error, 'Error inhabilitando plan de dieta:');
+  }
+}
+
 async function copyDay(req, res) {
   try {
     const plan = await dietPlansService.copyDay(
@@ -222,6 +239,7 @@ module.exports = {
   update,
   remove,
   activate,
+  deactivate,
   copyDay,
   copyWeek,
   getMine,

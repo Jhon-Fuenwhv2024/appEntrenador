@@ -930,6 +930,33 @@ async function activateDietPlan(trainerId, planId) {
   return fullPlan;
 }
 
+/** Inhabilita el plan (is_active = 0). El alumno deja de verlo como plan activo. */
+async function deactivateDietPlan(trainerId, planId) {
+  const plan = await getPlanOwnedByTrainer(planId, trainerId);
+  // Inhabilitar no exige cupo editable: solo ownership del plan.
+  if (plan.client_id != null) {
+    await assertClientOwnedIfPresent(trainerId, plan.client_id);
+  }
+
+  const currentlyActive = Number(plan.is_active) === 1 || plan.is_active === true;
+  if (!currentlyActive) {
+    return getFullPlanById(planId);
+  }
+
+  const [result] = await db.query(
+    `UPDATE diet_plans
+     SET is_active = 0
+     WHERE id = ? AND trainer_id = ?`,
+    [planId, trainerId],
+  );
+
+  if (!result.affectedRows) {
+    throw createHttpError('Plan de dieta no encontrado.', 404);
+  }
+
+  return getFullPlanById(planId);
+}
+
 function findDayInPlan(days, weekIndex, diaSemana) {
   return (days || []).find(
     (d) => d.week_index === weekIndex && d.dia_semana === diaSemana,
@@ -1597,6 +1624,7 @@ module.exports = {
   updateDietPlan,
   deleteDietPlan,
   activateDietPlan,
+  deactivateDietPlan,
   getActiveDietPlanForClient,
   getActiveDietPlanWeekForClient,
   getShoppingListForClient,

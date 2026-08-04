@@ -12,11 +12,12 @@ import {
   updateProfile,
 } from '../../../shared/api/profileApi.js';
 import { getSessionUser } from '../../../shared/auth/session.js';
+import ConfirmActionDialog from '../../../shared/components/ConfirmActionDialog.vue';
 import AppShell from '../../../shared/layout/AppShell.vue';
 import SessionHeaderActions from '../../../shared/layout/SessionHeaderActions.vue';
 import ProfileFormCard from '../../../shared/components/ProfileFormCard.vue';
 import ChatThread from '../../messaging/components/ChatThread.vue';
-import { getClientOverview } from '../api/clientsApi.js';
+import { getClientOverview, deleteClient } from '../api/clientsApi.js';
 import { getClientRoutines } from '../api/routinesApi.js';
 import { getClientWorkoutSessions } from '../api/workoutSessionsApi.js';
 import BodyCompositionPanel from '../components/BodyCompositionPanel.vue';
@@ -49,6 +50,8 @@ const sessionsLoadingMore = shallowRef(false);
 const SESSIONS_PAGE_SIZE = 12;
 const loading = shallowRef(true);
 const savingProfile = shallowRef(false);
+const deletingClient = shallowRef(false);
+const deleteConfirmOpen = shallowRef(false);
 /** Remonta el panel 031 cuando un plan activo sincroniza macros. */
 const nutritionPanelKey = shallowRef(0);
 
@@ -272,6 +275,30 @@ const onSaveProfile = async ({ fields, fotoFile, done }) => {
   }
 };
 
+const onDeleteClient = async () => {
+  if (deletingClient.value) return;
+
+  const name = client.value?.nombre || client.value?.username || 'Alumno';
+
+  try {
+    deletingClient.value = true;
+    await deleteClient(clientId.value);
+    deleteConfirmOpen.value = false;
+    showNotification(`${name} eliminado de tu lista`, 'success');
+    router.push('/trainer/clients');
+  } catch (error) {
+    console.error('Error eliminando alumno:', error);
+    showNotification(getApiErrorMessage(error, 'No se pudo eliminar el alumno'), 'error');
+  } finally {
+    deletingClient.value = false;
+  }
+};
+
+const deleteConfirmTitle = computed(() => {
+  const name = client.value?.nombre || client.value?.username || 'este alumno';
+  return `¿Eliminar a ${name}?`;
+});
+
 watch(clientId, () => {
   overview.value = null;
   clientProfile.value = null;
@@ -318,6 +345,18 @@ onMounted(() => {
             @back="router.push('/trainer/clients')"
           >
             <template #actions>
+              <v-btn
+                icon
+                variant="text"
+                size="small"
+                color="error"
+                :loading="deletingClient"
+                aria-label="Eliminar alumno"
+                title="Eliminar alumno"
+                @click="deleteConfirmOpen = true"
+              >
+                <v-icon icon="mdi-delete-outline" />
+              </v-btn>
               <SessionHeaderActions role="trainer" />
             </template>
           </Client360Header>
@@ -455,6 +494,16 @@ onMounted(() => {
       </div>
     </main>
   </AppShell>
+
+  <ConfirmActionDialog
+    v-model="deleteConfirmOpen"
+    :title="deleteConfirmTitle"
+    description="Se quitará de tu lista de alumnos y se inhabilitarán sus planes de dieta activos. Su cuenta no se elimina."
+    confirm-label="Eliminar alumno"
+    confirm-color="error"
+    :loading="deletingClient"
+    @confirm="onDeleteClient"
+  />
 
   <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top">
     {{ snackbar.text }}

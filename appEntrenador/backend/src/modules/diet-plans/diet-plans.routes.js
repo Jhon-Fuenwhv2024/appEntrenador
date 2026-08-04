@@ -80,6 +80,13 @@ router.post(
 );
 
 router.post(
+  '/trainer/diets/:id/deactivate',
+  authenticate,
+  requireRole('trainer'),
+  dietPlansController.deactivate,
+);
+
+router.post(
   '/trainer/diets/:id/copy-day',
   authenticate,
   requireRole('trainer'),

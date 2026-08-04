@@ -23,5 +23,11 @@ router.get(
   requireRole('trainer'),
   clientsController.getClientById,
 );
+router.delete(
+  '/clients/:clientId',
+  authenticate,
+  requireRole('trainer'),
+  clientsController.removeClient,
+);
 
 module.exports = router;
