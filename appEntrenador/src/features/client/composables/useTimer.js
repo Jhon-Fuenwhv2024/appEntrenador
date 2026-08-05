@@ -1,5 +1,5 @@
 import { computed, onMounted, onUnmounted, readonly, shallowRef } from 'vue';
-import restCompleteUrl from '../../../assets/sounds/rest-complete.wav';
+import restCompleteUrl from '../../../assets/sounds/rest-complete.mp3';
 import { notifyRestComplete } from '../utils/restNotify.js';
 
 /**
