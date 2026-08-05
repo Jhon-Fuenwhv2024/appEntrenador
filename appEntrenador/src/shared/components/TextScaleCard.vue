@@ -1,8 +1,9 @@
 <script setup>
 /**
  * In-app text size control — PWAs often ignore OS font size.
- * Keeps pinch-zoom; scales UI via --tf-font-scale → html font-size
- * (see theme-base.css). Avoid CSS zoom on html (breaks shell/chat layout).
+ * Pinch-zoom is off (ADR-0008); this is the primary scale mitigation.
+ * Scales UI via --tf-font-scale → html font-size (theme-base.css).
+ * Avoid CSS zoom on html (breaks shell/chat layout).
  */
 import { useTextScale } from '../composables/useTextScale.js';
 
@@ -27,7 +28,6 @@ function onSelect(id) {
       </h2>
       <p class="tf-text-scale__subtitle">
         Ajusta el tamaño de la letra en Trainfit para leer con más comodidad.
-        También puedes pellizcar la pantalla para hacer zoom.
       </p>
     </header>
 

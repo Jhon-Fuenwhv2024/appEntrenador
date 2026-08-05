@@ -6,8 +6,8 @@
  * theme-base.css). Do NOT use CSS `zoom` on `html`: it breaks `100dvh`,
  * `position: fixed` (bottom nav) and clips the chat composer.
  *
- * Pinch-zoom stays available via the viewport meta.
- * localStorage key is device-local (no account sync).
+ * Pinch-zoom is disabled on purpose (ADR-0008); this control is the
+ * primary low-vision mitigation. localStorage key is device-local.
  */
 
 export const TEXT_SCALE_STORAGE_KEY = 'tf_text_scale';

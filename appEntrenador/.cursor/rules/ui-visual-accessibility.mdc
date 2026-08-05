@@ -9,13 +9,14 @@ alwaysApply: true
 ## Fuente de verdad
 
 - ADR: `docs/decisions/ADR-0002-visual-accessibility-low-vision.md`
+- Excepción pellizcar: `docs/decisions/ADR-0008-disable-pinch-zoom.md`
 - Contraste CTAs/overlays: ADR-0001 + `.cursor/rules/ui-contrast-theme.mdc`
 - Tokens: `src/plugin/vuetify.js`, `src/assets/theme-base.css`
 - Matriz: `docs/accessibility-visual.md`
 
 ## Estándar
 
-WCAG **2.2 AA** visual: contraste texto 4.5:1 / grande 3:1; no-texto 3:1; zoom 200%; focus visible; target ≥24×24 (preferir 44px touch).
+WCAG **2.2 AA** visual: contraste texto 4.5:1 / grande 3:1; no-texto 3:1; reflow ~390px + escala in-app; focus visible; target ≥24×24 (preferir 44px touch). Pellizcar desactivado a propósito (ADR-0008).
 
 ## Reglas obligatorias
 
@@ -25,10 +26,10 @@ WCAG **2.2 AA** visual: contraste texto 4.5:1 / grande 3:1; no-texto 3:1; zoom 2
 4. **Nunca** reactivar overlays Vuetify opacos; el focus ring va en outline/box-shadow, no en `__overlay`.
 5. Controles solo-icono: `aria-label` (o texto visible).
 6. Estados no solo por color: badge + texto/icono.
-7. Al tocar layout: verificar ~390px y zoom ~200% sin overflow horizontal bloqueante.
+7. Al tocar layout: verificar ~390px y escala Grande / Muy grande sin overflow horizontal bloqueante.
 8. Bottom nav móvil `fixed` + `--tf-bottom-nav-clearance` en `.shell-body` y `.main-content` (regla bottom-nav).
 9. Tipografía UI en `rem`/`em` o tokens `--tf-text-*` (evitar `font-size` en `px` cuando sea posible).
-10. **Nunca** `maximum-scale` / `user-scalable=no` en el viewport (pellizcar debe funcionar).
+10. Viewport con `maximum-scale=1.0` y `user-scalable=no` (ADR-0008). **No** reabrir pellizcar sin enmendar ese ADR.
 11. Escala tipográfica in-app: `--tf-font-scale` → `font-size` en `html` (`TextScaleCard` / `textScale.js`). **Nunca** CSS `zoom` en `html`.
 
 ## Checklist al tocar UI
@@ -38,6 +39,6 @@ WCAG **2.2 AA** visual: contraste texto 4.5:1 / grande 3:1; no-texto 3:1; zoom 2
 - [ ] `:focus-visible` visible en botones, links, nav, dialogs
 - [ ] Icon-button con `aria-label`
 - [ ] Target táctil razonable (≥24px; ideal ≥44px en móvil)
-- [ ] Zoom 200% / móvil: sin texto cortado ni scroll-X forzado
+- [ ] Escala Grande / Muy grande / ~390px: sin texto cortado ni scroll-X forzado
 - [ ] Sin regresión overlays blancos (ADR-0001)
-- [ ] Viewport sin bloquear pellizcar; tipografía nueva en `rem`/`em` (sin `px`)
+- [ ] Viewport sigue bloqueando pellizcar (ADR-0008); tipografía nueva en `rem`/`em` (sin `px`)

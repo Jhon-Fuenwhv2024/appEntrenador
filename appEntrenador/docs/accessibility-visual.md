@@ -1,18 +1,18 @@
 # Accesibilidad visual (baja visión) — Trainfit
 
 **Feature:** [062-visual-accessibility-low-vision](../spec/features/062-visual-accessibility-low-vision/spec.md)  
-**ADRs:** [ADR-0001](decisions/ADR-0001-contrast-on-primary.md) (CTAs/overlays) · [ADR-0002](decisions/ADR-0002-visual-accessibility-low-vision.md) (baja visión)  
+**ADRs:** [ADR-0001](decisions/ADR-0001-contrast-on-primary.md) (CTAs/overlays) · [ADR-0002](decisions/ADR-0002-visual-accessibility-low-vision.md) (baja visión) · [ADR-0008](decisions/ADR-0008-disable-pinch-zoom.md) (sin pellizcar)  
 **Reglas Cursor:** `.cursor/rules/ui-contrast-theme.mdc`, `.cursor/rules/ui-visual-accessibility.mdc`
 
 ## Estándar
 
-WCAG **2.2 AA** (criterios visuales): 1.4.3, 1.4.11, 1.4.4/1.4.10, 2.4.7, 2.5.8.
+WCAG **2.2 AA** (criterios visuales): 1.4.3, 1.4.11, 1.4.4/1.4.10 (reflow + escala in-app; **sin** pellizcar — ADR-0008), 2.4.7, 2.5.8.
 
 ## Cómo verificar
 
 1. **Contraste:** DevTools → Inspect → Accessibility / contrast; o calculadora WCAG sobre tokens `--tf-*`.
-2. **Zoom / pellizcar:** Chrome 200% + viewport ~390px; en móvil, pellizcar debe funcionar (viewport sin `user-scalable=no`).
-3. **Tamaño del texto in-app y del sistema:** Perfil (cliente) o Ajustes (entrenador) → **Tamaño del texto** → Grande / Muy grande; además, si el sistema o el navegador exponen texto más grande, la UI debe respetarlo. La preferencia in-app puede guardarse en `localStorage` (`tf_text_scale`) y complementarse con `--tf-font-scale`.
+2. **Zoom / reflow:** Chrome zoom de página ~200% (desktop) + viewport ~390px; en móvil, el pellizcar **no** debe agrandar (viewport con `maximum-scale=1.0` / `user-scalable=no`, ADR-0008).
+3. **Tamaño del texto in-app y del sistema:** Perfil (cliente) o Ajustes (entrenador) → **Tamaño del texto** → Grande / Muy grande (mitigación principal sin pellizcar). Si el sistema o el navegador exponen texto más grande, la UI debe respetarlo. Preferencia en `localStorage` (`tf_text_scale`) + `--tf-font-scale`.
 4. **Focus:** Tab con teclado; anillo cian (`:focus-visible`) en botones, nav, campos.
 5. **Icon-only:** cada botón solo-icono debe tener nombre accesible (`aria-label` o texto).
 
@@ -32,7 +32,7 @@ WCAG **2.2 AA** (criterios visuales): 1.4.3, 1.4.11, 1.4.4/1.4.10, 2.4.7, 2.5.8.
 | Superficie | Estado | Hallazgo | Fix / notas |
 |------------|--------|----------|-------------|
 | **Sistema** tema + Vuetify | pass | Muted `#8b929e` borderline en elevated; border 0.08 &lt; 3:1; sin focus global | P0: muted `#A8B0BC`, border 0.28, `:focus-visible`, `medium-emphasis` ↑ |
-| **Sistema** text scaling | pass | El SO/navegador no siempre llega a la PWA; CSS `zoom` en `html` rompía shell/chat | Viewport abierto; `--tf-font-scale` → `font-size` en `html` + `TextScaleCard`; tipografía en `rem`/tokens |
+| **Sistema** text scaling | pass* | El SO/navegador no siempre llega a la PWA; CSS `zoom` en `html` rompía shell/chat; pellizcar off (ADR-0008) | Viewport bloqueado; `--tf-font-scale` → `font-size` en `html` + `TextScaleCard`; tipografía en `rem`/tokens |
 | **Auth** login / register / reset | pass* | `text-medium-emphasis` dependía de opacity baja | Cubierto por P0 tokens |
 | **Shell** sidebar + bottom nav | pass | Inactivo `#5E6673` bajo contraste; sin focus-visible en items | P1: muted token + focus ring en `appShell.css` |
 | **Shell** session actions (063) | pass | Badge solo color; logout suelto | Badge numérico + menú cuenta (`aria-label`); logout con confirmación |
