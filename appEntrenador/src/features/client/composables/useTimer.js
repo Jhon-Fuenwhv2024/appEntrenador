@@ -1,9 +1,11 @@
 import { computed, onMounted, onUnmounted, readonly, shallowRef } from 'vue';
 import restCompleteUrl from '../../../assets/sounds/rest-complete.wav';
+import { notifyRestComplete } from '../utils/restNotify.js';
 
 /**
  * Background-resilient countdown based on targetEndTime (wall clock),
  * not on decrementing ticks. Interval only refreshes the UI.
+ * Feature 086: local OS notification when rest ends while the page is hidden.
  *
  * @param {{ onComplete?: () => void }} [options]
  */
@@ -81,6 +83,10 @@ export function useTimer(options = {}) {
     if (completedFired) return;
     completedFired = true;
     playAlert();
+    // When suspended/minimized, audio often never plays — nudge via OS notification.
+    notifyRestComplete().catch((error) => {
+      console.warn('[timer] rest notify:', error);
+    });
     completeHandler?.();
   }
 

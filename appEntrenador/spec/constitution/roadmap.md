@@ -52,6 +52,7 @@
 48. **083 · Inicio cliente context-aware** — Home por modos (membresía/post-entreno/descanso/reengage), dieta compacta + Comí/No comí, chips del día, macros vs plan, insight + digest email. Spec: `083-client-home-context-aware`.
 49. **084 · Preview en vivo del builder de rutinas** — Split preview + media GIF/video al programar (Client 360). Spec: `084-routine-builder-live-preview`.
 50. **085 · Prescripción por serie** — Peso y reps distintos por serie (`set_prescription`); builder + player. Spec: `085-per-set-prescription`.
+51. **086 · Resiliencia en segundo plano** — Wake Lock + aviso descanso, hardening push/PWA, cola offline de sesión. Spec: `086-background-resilience`.
 
 ## Siguiente (Epic Fitness)
 
@@ -99,7 +100,7 @@ No implementar en el entorno de prueba. Activar al configurar el VPS con Coolify
 
 - **Pinia / TypeScript** — solo si el estado o el tamaño del equipo lo justifican.
 - Calendario / agendar sesiones 1:1
-- Offline / cola de sets sin red
+- Offline / cola de sets sin red — **parcial en 086** (cola de cierre de sesión; no catálogo offline)
 - Multi-idioma UI completa (catálogo ES = **044**)
 - App nativa (explícitamente fuera de misión hoy)
 - Leaderboards entre alumnos

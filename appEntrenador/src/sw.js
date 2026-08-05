@@ -122,6 +122,7 @@ self.addEventListener('notificationclick', (event) => {
 
   const rawUrl = event.notification?.data?.actionUrl
   const targetUrl = isSafeActionUrl(rawUrl) ? rawUrl : '/'
+  const absoluteUrl = new URL(targetUrl, self.registration.scope).href
 
   event.waitUntil(
     (async () => {
@@ -130,18 +131,38 @@ self.addEventListener('notificationclick', (event) => {
         includeUncontrolled: true,
       })
 
+      // Prefer an existing Trainfit window (same origin), then navigate/focus.
       for (const client of allClients) {
+        let sameOrigin = false
+        try {
+          sameOrigin = new URL(client.url).origin === self.location.origin
+        } catch {
+          sameOrigin = false
+        }
+        if (!sameOrigin) continue
+
         if ('focus' in client) {
           await client.focus()
-          if ('navigate' in client) {
-            await client.navigate(targetUrl)
-          }
-          return
         }
+        // iOS / older Chromium: navigate may be missing — postMessage fallback.
+        if (typeof client.navigate === 'function') {
+          try {
+            await client.navigate(targetUrl)
+            return
+          } catch {
+            // fall through to postMessage
+          }
+        }
+        try {
+          client.postMessage({ type: 'TRAINFIT_NAVIGATE', url: targetUrl })
+        } catch {
+          // ignore
+        }
+        return
       }
 
       if (self.clients.openWindow) {
-        await self.clients.openWindow(targetUrl)
+        await self.clients.openWindow(absoluteUrl)
       }
     })(),
   )

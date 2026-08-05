@@ -12,7 +12,13 @@ import { isRoutineScheduledForDate } from '../../shared/utils/weekdays.js';
 import { getMyMembership } from './api/membershipApi.js';
 import { getMyRoutines } from './api/routinesApi.js';
 import { createMyWorkoutSession, getMyWorkoutSessions } from './api/workoutSessionsApi.js';
+import {
+  isNetworkError,
+  useOfflineWorkoutSync,
+} from './composables/useOfflineWorkoutSync.js';
+import { useWakeLock } from './composables/useWakeLock.js';
 import { useWorkoutSession } from './composables/useWorkoutSession.js';
+import { enqueueWorkoutSession } from './utils/offlineWorkoutQueue.js';
 import MembershipLockedState from './components/MembershipLockedState.vue';
 import PrCelebrationOverlay from './components/PrCelebrationOverlay.vue';
 import WorkoutExerciseMedia from './components/WorkoutExerciseMedia.vue';
@@ -36,6 +42,8 @@ const alreadyCompleted = shallowRef(false);
 const saveError = shallowRef('');
 const saving = shallowRef(false);
 const saved = shallowRef(false);
+/** True when session is queued locally pending network (Feature 086). */
+const savedOffline = shallowRef(false);
 const formError = shallowRef('');
 const sessionRoutineName = shallowRef('');
 /** Routine payload kept until the user taps "Comenzar entrenamiento" (audio unlock). */
@@ -69,6 +77,9 @@ const {
   adjustRest,
   unlockAudio,
 } = useWorkoutSession();
+
+useWakeLock(phase);
+useOfflineWorkoutSync();
 
 const exerciseHint = computed(() => (
   currentExercise.value?.indicaciones?.trim() || ''
@@ -142,7 +153,8 @@ async function persistSession() {
   try {
     saving.value = true;
     saveError.value = '';
-    const response = await createMyWorkoutSession({
+    savedOffline.value = false;
+    const payload = {
       routine_id: Number(route.params.routineId),
       routine_name: sessionRoutineName.value,
       started_at: startedAt.value,
@@ -154,26 +166,60 @@ async function persistSession() {
         weight: entry.weight,
         reps: entry.reps,
       })),
-    });
-    const payload = response.data?.data ?? {};
-    const prs = Array.isArray(payload.new_prs) ? payload.new_prs : [];
+    };
+
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      await enqueueWorkoutSession(payload);
+      saved.value = true;
+      savedOffline.value = true;
+      saveError.value = '';
+      return;
+    }
+
+    const response = await createMyWorkoutSession(payload);
+    const data = response.data?.data ?? {};
+    const prs = Array.isArray(data.new_prs) ? data.new_prs : [];
     newPrs.value = prs;
     if (prs.length > 0) {
       showPrCelebration.value = true;
     }
-    const streak = Number(payload.consistency?.current_streak) || 0;
+    const streak = Number(data.consistency?.current_streak) || 0;
     if (streak > 0 && prs.length === 0) {
       streakMessage.value = `Racha: ${streak} día${streak === 1 ? '' : 's'} consecutivos`;
     }
     saved.value = true;
+    savedOffline.value = false;
   } catch (error) {
     console.error('Error guardando sesión de entrenamiento:', error);
     if (isMembershipBlockedError(error)) {
       membershipBlocked.value = true;
       saveError.value = MEMBERSHIP_BLOCKED_MSG;
-    } else {
-      saveError.value = getApiErrorMessage(error, 'No se pudo guardar el entrenamiento');
+      return;
     }
+    if (isNetworkError(error)) {
+      try {
+        await enqueueWorkoutSession({
+          routine_id: Number(route.params.routineId),
+          routine_name: sessionRoutineName.value,
+          started_at: startedAt.value,
+          status: 'completed',
+          sets: logs.value.map((entry) => ({
+            exercise_id: entry.exerciseId,
+            exercise_name: entry.exerciseName,
+            set_number: entry.setNumber,
+            weight: entry.weight,
+            reps: entry.reps,
+          })),
+        });
+        saved.value = true;
+        savedOffline.value = true;
+        saveError.value = '';
+        return;
+      } catch (queueError) {
+        console.error('Error encolando sesión offline:', queueError);
+      }
+    }
+    saveError.value = getApiErrorMessage(error, 'No se pudo guardar el entrenamiento');
   } finally {
     saving.value = false;
   }
@@ -492,6 +538,7 @@ onMounted(() => {
         :volume-kg="finishedVolumeKg"
         :saving="saving"
         :saved="saved"
+        :saved-offline="savedOffline"
         :save-error="saveError"
         :streak-message="streakMessage"
         @retry="persistSession"

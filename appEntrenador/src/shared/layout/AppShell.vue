@@ -13,6 +13,7 @@ import { clearSession, getRefreshToken, getSessionUser } from '../auth/session.j
 import { clearSessionAccountCache } from '../composables/useSessionAccount.js';
 import { clearAppPresence, useAppPresence } from '../composables/useAppPresence.js';
 import { usePushNotifications } from '../composables/usePushNotifications.js';
+import { useOfflineWorkoutSync } from '../../features/client/composables/useOfflineWorkoutSync.js';
 import PushSoftPrompt from '../components/PushSoftPrompt.vue';
 import AppBottomNav from './AppBottomNav.vue';
 
@@ -43,6 +44,8 @@ const isSuperAdmin = computed(() => getSessionUser()?.is_superadmin === true);
 
 const { bindSubscriptionToCurrentUser, unbindOnLogout } = usePushNotifications();
 useAppPresence();
+// Feature 086: flush offline workout queue (no-op if empty; clients enqueue from player).
+useOfflineWorkoutSync();
 
 const snackbar = reactive({
   show: false,

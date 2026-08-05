@@ -1,17 +1,21 @@
 /**
  * Reports "app is visible" to the API so chat push can be skipped.
  * Heartbeat while document is visible; clear when hidden / unmount / logout.
+ * Feature 086: soft push re-bind on visibility restore.
  */
 import { onMounted, onUnmounted } from 'vue';
 import { clearPushPresence, touchPushPresence } from '../api/pushApi.js';
 import { refreshSessionTokens } from '../api/http.js';
 import { getAuthToken, getRefreshToken, isAuthenticated } from '../auth/session.js';
+import { usePushNotifications } from './usePushNotifications.js';
 
 const HEARTBEAT_MS = 20_000;
 
 let heartbeatTimer = null;
 let started = false;
 let listenerBound = false;
+let lastPushRebindAt = 0;
+const PUSH_REBIND_MIN_MS = 15_000;
 
 /** True if access JWT is missing or expires within skewSec (no signature check). */
 function isAccessExpiredSoon(skewSec = 90) {
@@ -61,12 +65,27 @@ async function markAway() {
   }
 }
 
+function softRebindPush() {
+  const now = Date.now();
+  if (now - lastPushRebindAt < PUSH_REBIND_MIN_MS) return;
+  lastPushRebindAt = now;
+  try {
+    const { bindSubscriptionToCurrentUser } = usePushNotifications();
+    bindSubscriptionToCurrentUser().catch((error) => {
+      console.warn('[presence] push rebind:', error?.message || error);
+    });
+  } catch (error) {
+    console.warn('[presence] push rebind:', error?.message || error);
+  }
+}
+
 function onVisibilityChange() {
   if (document.visibilityState === 'visible') {
     // Renew access before presence / other calls after tab switch.
     ensureFreshAccess().finally(() => {
       ping();
       startHeartbeat();
+      softRebindPush();
     });
   } else {
     stopHeartbeat();

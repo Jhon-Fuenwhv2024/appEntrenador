@@ -17,6 +17,7 @@ Trainfit usa una migración modular gradual. La estructura actual mantiene compa
 - `src/features/saas/`: panel SuperAdmin `/backoffice` (`SuperAdminDashboardView`) — visible solo si `is_superadmin` (Feature 037).
 - `src/features/client/`: portal del cliente — rutinas (`ClientDashboardView`), preview de rutina (`ClientRoutinePreviewView`, Feature 058), progreso (`ClientProgressView`), perfil (`ClientProfileView`), player (`WorkoutPlayerView`), dieta (`ClientDietView`, Feature 057).
   - Descanso resiliente (Feature 028): `composables/useTimer.js` (timestamp + Page Visibility + beep `assets/sounds/rest-complete.wav`) integrado en `useWorkoutSession`.
+  - **Feature 086 (segundo plano):** `useWakeLock` en player; notificación local al fin de descanso oculto; cola IndexedDB de sesión (`offlineWorkoutQueue` + `useOfflineWorkoutSync`); re-bind push al volver visible (ADR-0009).
 - `src/shared/components/WorkoutSessionHistoryList.vue`: historial expandible de sesiones (cliente + ficha trainer).
 - `src/components/Dashboard.vue`: composición por rol; enruta a trainer o client sin contener lógica de feature.
 

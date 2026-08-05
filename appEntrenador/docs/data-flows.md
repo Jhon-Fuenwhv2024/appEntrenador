@@ -150,13 +150,14 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 3. En ese tap se desbloquea el audio HTML5 (`useTimer.unlockAudio`) y arranca `useWorkoutSession` (serie, descanso, auto-avance).
 4. **Feature 059 (UX híbrida):** fase `working` = media del ejercicio + checklist de series (Set | Anterior | kg×reps | estado) + CTA Completar serie; header con duración de sesión. Fase `resting` = anillo de progreso, controles ±15 s, Omitir y bloque **Up next** (respeta superseries 029).
 5. El descanso usa `targetEndTime` (wall clock) + `visibilitychange`: al volver del background se recalcula `targetEndTime - Date.now()`; si ya expiró, contador a 0, beep y avance de serie. No se confía en ticks que resten `1` cada segundo. `useTimer.adjust` mueve el deadline (±15) sin romper ADR-0002.
-6. La columna **Anterior** del checklist usa `last_log` de forma informativa; **no** autocompleta los inputs con ese historial (inputs siguen el peso/reps prescritos de la rutina).
-7. Al terminar, `POST /me/workout-sessions` persiste peso/reps por serie (contrato sin cambios).
-8. Tras guardar (status `completed`): detección de PRs (041) → `new_prs[]` + notificación `pr_achieved`; recalculo de racha/score (042) → `consistency` en la respuesta; Player muestra overlay si hay PRs.
-9. Al volver a Inicio, `todayCompleted` debe ser `true` (fecha civil TZ alumno) → hero **Completado** (sin CTA Repetir).
-10. En la siguiente sesión, ese log queda disponible como `last_log` (match por `client_id` + nombre de ejercicio; los ids de línea de deep copy no afectan).
-11. Trainer consulta `GET /clients/:id/workout-sessions` y ve el historial en la ficha del alumno; `GET /clients/:id/routines` también incluye `last_log` por ejercicio.
-12. Cliente consulta `GET /me/workout-sessions` en **Mi progreso** (`/client/progress`) — Feature 021; sección **Mis récords** vía `GET /me/personal-records`.
+6. **Feature 086:** Screen Wake Lock mientras `working`/`resting` (`useWakeLock`); si el descanso termina con la app oculta y hay permiso de notificaciones, notificación local `rest_complete`. Si `POST /me/workout-sessions` falla por red, el payload va a IndexedDB (`offlineWorkoutQueue`) y se hace flush al evento `online` / montaje del shell (ADR-0009).
+7. La columna **Anterior** del checklist usa `last_log` de forma informativa; **no** autocompleta los inputs con ese historial (inputs siguen el peso/reps prescritos de la rutina).
+8. Al terminar, `POST /me/workout-sessions` persiste peso/reps por serie (contrato sin cambios); offline → cola local hasta sync.
+9. Tras guardar (status `completed`): detección de PRs (041) → `new_prs[]` + notificación `pr_achieved`; recalculo de racha/score (042) → `consistency` en la respuesta; Player muestra overlay si hay PRs. (Si quedó en cola offline, PRs llegan al flush.)
+10. Al volver a Inicio, `todayCompleted` debe ser `true` (fecha civil TZ alumno) → hero **Completado** (sin CTA Repetir) — tras sync si estaba offline.
+11. En la siguiente sesión, ese log queda disponible como `last_log` (match por `client_id` + nombre de ejercicio; los ids de línea de deep copy no afectan).
+12. Trainer consulta `GET /clients/:id/workout-sessions` y ve el historial en la ficha del alumno; `GET /clients/:id/routines` también incluye `last_log` por ejercicio.
+13. Cliente consulta `GET /me/workout-sessions` en **Mi progreso** (`/client/progress`) — Feature 021; sección **Mis récords** vía `GET /me/personal-records`.
 
 ## PRs y celebraciones (Feature 041)
 
@@ -263,6 +264,13 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 2. Opt-in (soft-prompt o toggle en perfil/ajustes) → permiso del navegador → `pushManager.subscribe(VAPID)` → `POST /api/push/subscriptions`.
 3. `createNotification` inserta in-app y llama `pushService.notifyUserAsync` con `title` / `body` / `actionUrl` / `type`.
 4. `sendMessage` (chat) hace push al receptor con deep-link `/client/messages` o `/trainer/messages` (sin fila en `notifications`), **salvo** si el receptor tiene presence reciente (`POST /push/presence`, app visible). SSE solo no suprime push (conexiones zombie al minimizar/cerrar la PWA).
-5. SW: evento `push` → `showNotification`; `notificationclick` abre path relativo seguro. Chat push se suprime en SW si hay ventana visible (backup).
+5. SW: evento `push` → `showNotification`; `notificationclick` abre path relativo seguro (focus + `navigate` o `postMessage` `TRAINFIT_NAVIGATE` — Feature 086). Chat push se suprime en SW si hay ventana visible (backup).
 6. Endpoints 404/410 se borran de `push_subscriptions`. Sin VAPID en env, el envío se omite (API de subscribe responde 503 en clave pública).
 7. Presencia: `AppShell` envía heartbeat mientras `document.visibilityState === 'visible'`; al ocultar/logout limpia con `DELETE /push/presence`. El chat pausa el EventSource al pasar a `hidden` y lo reabre al volver a `visible`.
+8. **Feature 086:** al volver a `visible`, re-bind soft de la suscripción push (throttle 15s) sin pedir permiso de nuevo.
+
+## Resiliencia en segundo plano (Feature 086)
+
+1. Wake Lock de pantalla en el Workout Player mientras hay series/descanso activos.
+2. Fin de descanso oculto → notificación local `rest_complete` si el usuario ya concedió notificaciones.
+3. Cierre de sesión sin red → IndexedDB → flush automático al recuperar conectividad (ADR-0009).

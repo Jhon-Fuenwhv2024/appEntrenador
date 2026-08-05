@@ -33,6 +33,11 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  /** Queued locally; will sync when online (Feature 086). */
+  savedOffline: {
+    type: Boolean,
+    default: false,
+  },
   saveError: {
     type: String,
     default: '',
@@ -98,6 +103,14 @@ function formatVolume(kg) {
       <button type="button" class="finish__retry" @click="emit('retry')">
         Reintentar guardar
       </button>
+    </div>
+
+    <div v-else-if="saved && savedOffline" class="finish__status finish__status--offline">
+      <v-icon icon="mdi-cloud-off-outline" size="20" class="finish__status-icon" />
+      <div class="finish__status-copy">
+        <p class="finish__status-text">Guardado en el dispositivo</p>
+        <p class="finish__streak">Se subirá al recuperar red</p>
+      </div>
     </div>
 
     <div v-else-if="saved" class="finish__status finish__status--ok">
@@ -241,6 +254,11 @@ function formatVolume(kg) {
   background: rgba(47, 191, 113, 0.1);
 }
 
+.finish__status--offline {
+  border: 1px solid rgba(255, 183, 77, 0.4);
+  background: rgba(255, 183, 77, 0.1);
+}
+
 .finish__status--error {
   flex-direction: column;
   border: 1px solid rgba(255, 138, 128, 0.35);
@@ -251,6 +269,10 @@ function formatVolume(kg) {
   color: #2FBF71;
   flex-shrink: 0;
   margin-top: 1px;
+}
+
+.finish__status--offline .finish__status-icon {
+  color: #ffb74d;
 }
 
 .finish__status-copy {

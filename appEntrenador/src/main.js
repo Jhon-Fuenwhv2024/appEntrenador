@@ -16,8 +16,23 @@ if (favicon) {
   favicon.href = APP_FAVICON
 }
 
+function isSafeActionUrl(url) {
+  return typeof url === 'string' && url.startsWith('/') && !url.startsWith('//')
+}
+
 // Feature 051 — register service worker for PWA + push (autoUpdate).
+// Feature 086 — handle SW postMessage navigate when client.navigate is missing (iOS).
 if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    const data = event.data
+    if (!data || data.type !== 'TRAINFIT_NAVIGATE') return
+    const url = data.url
+    if (!isSafeActionUrl(url)) return
+    router.push(url).catch((error) => {
+      console.warn('[pwa] navigate from SW:', error)
+    })
+  })
+
   import('virtual:pwa-register')
     .then(({ registerSW }) => {
       registerSW({ immediate: true })
