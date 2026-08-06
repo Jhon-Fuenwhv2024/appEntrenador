@@ -105,7 +105,7 @@ function hasLocalMedia(item) {
         <v-btn
           size="small"
           :variant="onlyWarmup ? 'flat' : 'outlined'"
-          :color="onlyWarmup ? 'warning' : undefined"
+          :color="onlyWarmup ? 'warning' : 'primary'"
           class="catalog-filter-chip"
           prepend-icon="mdi-fire"
           :aria-pressed="onlyWarmup"
@@ -311,8 +311,8 @@ function hasLocalMedia(item) {
 
 .catalog-filters {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.55rem 0.65rem;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
   padding: 0.75rem;
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.22);
@@ -321,6 +321,7 @@ function hasLocalMedia(item) {
 
 .catalog-filters__search {
   grid-column: 1 / -1;
+  min-width: 0;
 }
 
 .catalog-filters__chips {
@@ -328,17 +329,24 @@ function hasLocalMedia(item) {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
+  min-width: 0;
 }
 
 .catalog-filter-chip {
+  flex: 0 0 auto;
+  min-height: 2.5rem;
+  min-width: 2.75rem;
+  padding-inline: 0.9rem !important;
   text-transform: none;
   letter-spacing: 0;
   font-weight: 600;
   border-radius: 999px;
+  white-space: nowrap;
 }
 
 .catalog-filters__muscle {
   min-width: 0;
+  width: 100%;
 }
 
 .catalog-filters__hint {
@@ -356,10 +364,15 @@ function hasLocalMedia(item) {
   .catalog-filters {
     grid-template-columns: minmax(180px, 1.2fr) auto minmax(160px, 1fr);
     align-items: center;
+    gap: 0.55rem 0.65rem;
   }
 
   .catalog-filters__search {
     grid-column: auto;
+  }
+
+  .catalog-filters__muscle {
+    width: auto;
   }
 
   .catalog-filters__hint {
