@@ -133,9 +133,9 @@ function hasLocalMedia(item) {
 
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
 
-    <p v-else-if="exercises.length === 0" class="text-medium-emphasis mb-0">
-      No hay ejercicios que coincidan. Crea uno a la izquierda o ajusta la búsqueda.
-    </p>
+            <p v-else-if="exercises.length === 0" class="text-medium-emphasis mb-0">
+              No hay ejercicios que coincidan. Prueba otra búsqueda o ajusta los filtros.
+            </p>
 
     <template v-else>
       <div class="exercise-grid">

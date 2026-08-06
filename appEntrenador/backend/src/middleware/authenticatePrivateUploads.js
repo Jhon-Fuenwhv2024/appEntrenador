@@ -7,7 +7,8 @@ const { AVATARS_DIR } = require('../shared/storage/avatarPaths');
 const { getExerciseGifFromR2 } = require('../shared/storage/exerciseMediaStorage');
 const {
   EXERCISES_DIR,
-  isValidExerciseGifFilename,
+  isValidExerciseMediaFilename,
+  contentTypeForFilename,
 } = require('../shared/storage/exerciseMediaPaths');
 
 /**
@@ -125,12 +126,12 @@ async function serveAvatarFromR2(req, res) {
 }
 
 /**
- * Serve catalog exercise GIF from R2; on miss, fall back to local disk.
- * Public (no JWT).
+ * Serve catalog exercise media (Fitcron GIF or trainer upload) from R2;
+ * on miss, fall back to local disk. Public (no JWT).
  */
 async function serveExerciseGif(req, res, next) {
   const filename = path.basename(req.path || '');
-  if (!isValidExerciseGifFilename(filename)) {
+  if (!isValidExerciseMediaFilename(filename)) {
     return res.status(404).json({
       success: false,
       error: 'Media de ejercicio no encontrada.',
@@ -139,11 +140,13 @@ async function serveExerciseGif(req, res, next) {
     });
   }
 
+  const fallbackType = contentTypeForFilename(filename);
+
   try {
     if (isR2Configured) {
       const object = await getExerciseGifFromR2(filename);
       if (object) {
-        res.setHeader('Content-Type', object.contentType || 'image/gif');
+        res.setHeader('Content-Type', object.contentType || fallbackType);
         if (object.contentLength != null) {
           res.setHeader('Content-Length', String(object.contentLength));
         }
@@ -174,6 +177,7 @@ async function serveExerciseGif(req, res, next) {
       });
     }
 
+    res.setHeader('Content-Type', fallbackType);
     res.setHeader('Cache-Control', 'public, max-age=86400');
     return res.sendFile(localFile);
   } catch (error) {

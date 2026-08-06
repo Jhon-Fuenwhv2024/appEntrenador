@@ -5,9 +5,14 @@ const r2Driver = require('./r2Driver');
 const {
   EXERCISES_DIR,
   isValidExerciseGifFilename,
+  isValidTrainerMediaFilename,
+  isValidExerciseMediaFilename,
+  buildTrainerMediaFilename,
+  mediaTypeFromMimetype,
   objectKey,
   publicUrl,
   absolutePath,
+  contentTypeForFilename,
 } = require('./exerciseMediaPaths');
 
 /**
@@ -46,6 +51,66 @@ async function putExerciseGif({ filename, buffer = null, filePath = null }) {
 }
 
 /**
+ * Persist trainer-uploaded exercise media (image/gif/video).
+ * @param {{
+ *   trainerId: number,
+ *   mimetype: string,
+ *   buffer?: Buffer|null,
+ *   filePath?: string|null,
+ *   filename?: string|null,
+ * }} opts
+ * @returns {Promise<{ publicUrl: string, filename: string, mediaType: string }>}
+ */
+async function putTrainerExerciseMedia({
+  trainerId,
+  mimetype,
+  buffer = null,
+  filePath = null,
+  filename = null,
+}) {
+  const mediaType = mediaTypeFromMimetype(mimetype);
+  if (!mediaType) {
+    throw new Error(`Tipo de archivo no permitido: ${mimetype}`);
+  }
+
+  const safe = filename
+    ? path.basename(filename)
+    : buildTrainerMediaFilename(trainerId, mimetype);
+
+  if (!isValidTrainerMediaFilename(safe)) {
+    throw new Error(`Nombre de media de trainer inválido: ${safe}`);
+  }
+
+  let body = buffer;
+  if ((!body || !Buffer.isBuffer(body)) && filePath) {
+    body = await fs.promises.readFile(filePath);
+  }
+  if (!body || !Buffer.isBuffer(body)) {
+    throw new Error('Buffer o filePath requerido para putTrainerExerciseMedia.');
+  }
+
+  const contentType = contentTypeForFilename(safe);
+
+  if (isR2Configured) {
+    await r2Driver.putObject(objectKey(safe), body, contentType);
+  }
+
+  if (!isR2Configured || filePath == null) {
+    await fs.promises.mkdir(EXERCISES_DIR, { recursive: true });
+    const dest = absolutePath(safe);
+    if (!filePath || path.resolve(filePath) !== path.resolve(dest)) {
+      await fs.promises.writeFile(dest, body);
+    }
+  }
+
+  return {
+    publicUrl: publicUrl(safe),
+    filename: safe,
+    mediaType,
+  };
+}
+
+/**
  * Upload an existing local GIF file to R2 only (migration / scraper after disk write).
  * @param {string} filename
  * @param {string} [localPath] defaults to EXERCISES_DIR/filename
@@ -78,18 +143,19 @@ async function putLocalExerciseGifToR2(filename, localPath = null) {
 }
 
 /**
- * Fetch exercise GIF from R2 for the public proxy. Returns null if missing/invalid.
+ * Fetch exercise media from R2 for the public proxy. Returns null if missing/invalid.
  * @param {string} filename
  */
 async function getExerciseGifFromR2(filename) {
   if (!isR2Configured) return null;
   const safe = path.basename(filename || '');
-  if (!isValidExerciseGifFilename(safe)) return null;
+  if (!isValidExerciseMediaFilename(safe)) return null;
   return r2Driver.getObject(objectKey(safe));
 }
 
 module.exports = {
   putExerciseGif,
+  putTrainerExerciseMedia,
   putLocalExerciseGifToR2,
   getExerciseGifFromR2,
   isR2Configured,

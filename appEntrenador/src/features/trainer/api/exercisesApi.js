@@ -4,6 +4,9 @@ import http from '../../../shared/api/http.js';
 const EXERCISES_PAGE_LIMIT = 100;
 const MAX_CATALOG_PAGES = 50;
 
+/** Max upload size for trainer exercise media (must match backend). */
+export const MAX_EXERCISE_MEDIA_BYTES = 10 * 1024 * 1024;
+
 /** Optimización: menú del picker ≤40 filas (Feature 089). */
 export const EXERCISE_PICKER_LIMIT = 40;
 
@@ -101,10 +104,50 @@ export async function searchExercisesForPicker(options = {}) {
   return Array.isArray(res.data?.data) ? res.data.data : [];
 }
 
+/**
+ * Build multipart body for exercise create/update with optional media file.
+ * @param {{
+ *   name: string,
+ *   target_muscle: string,
+ *   primary_muscle?: string|null,
+ *   description?: string|null,
+ *   media_type?: string|null,
+ *   media_url?: string|null,
+ * }} fields
+ * @param {File|null} [mediaFile]
+ * @returns {FormData}
+ */
+export function buildExerciseFormData(fields, mediaFile = null) {
+  const formData = new FormData();
+  const keys = [
+    'name',
+    'target_muscle',
+    'primary_muscle',
+    'description',
+    'media_type',
+    'media_url',
+  ];
+  for (const key of keys) {
+    if (fields[key] == null) continue;
+    formData.append(key, String(fields[key]));
+  }
+  if (typeof File !== 'undefined' && mediaFile instanceof File) {
+    formData.append('media_file', mediaFile);
+  }
+  return formData;
+}
+
+/**
+ * @param {FormData|Record<string, unknown>} payload
+ */
 export function createExercise(payload) {
   return http.post('/exercises', payload);
 }
 
+/**
+ * @param {number|string} id
+ * @param {FormData|Record<string, unknown>} payload
+ */
 export function updateExercise(id, payload) {
   return http.put(`/exercises/${id}`, payload);
 }

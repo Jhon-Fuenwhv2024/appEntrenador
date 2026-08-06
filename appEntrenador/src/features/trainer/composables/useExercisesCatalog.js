@@ -15,6 +15,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 /**
  * Loads and mutates the trainer exercise catalog (paginated list + server search).
  * Falls back to client-side pagination if the API returns an unpaginated payload.
+ * Progressive disclosure: no fetch until `browsing` is enabled (Feature 090 UX).
  */
 export function useExercisesCatalog() {
   const exercises = ref([]);
@@ -23,6 +24,8 @@ export function useExercisesCatalog() {
   const totalPages = shallowRef(1);
   const loading = shallowRef(false);
   const saving = shallowRef(false);
+  /** False until the trainer opens/search the catalog (avoids loading ~750 rows on entry). */
+  const browsing = shallowRef(false);
   const searchQuery = shallowRef('');
   /** Feature 044 (API): enriched filter kept for callers; UI no longer exposes it. */
   const onlyEnriched = shallowRef(false);
@@ -35,6 +38,8 @@ export function useExercisesCatalog() {
   const clientCache = ref(null);
   let searchTimer = null;
   let loadSeq = 0;
+  /** Avoid double-fetch when openCatalog assigns searchQuery. */
+  let suppressSearchWatch = false;
 
   const globalCount = computed(() => (
     exercises.value.filter((item) => item.is_global).length
@@ -145,7 +150,50 @@ export function useExercisesCatalog() {
     }
   };
 
+  /**
+   * Reveal catalog and fetch first page (idempotent if already browsing).
+   * @param {{ q?: string, muscle?: string|null, warmup?: boolean }} [opts]
+   */
+  const openCatalog = async (opts = {}) => {
+    if (searchTimer) {
+      clearTimeout(searchTimer);
+      searchTimer = null;
+    }
+    suppressSearchWatch = true;
+    browsing.value = true;
+    try {
+      if (opts.q != null) searchQuery.value = opts.q;
+      if (opts.muscle !== undefined) muscleFilter.value = opts.muscle;
+      if (opts.warmup !== undefined) onlyWarmup.value = Boolean(opts.warmup);
+      currentPage.value = 1;
+      clientCache.value = null;
+      await loadExercises({
+        q: searchQuery.value,
+        page: 1,
+        muscle: muscleFilter.value,
+        warmup: onlyWarmup.value,
+      });
+    } finally {
+      suppressSearchWatch = false;
+    }
+  };
+
+  /** Collapse results; clears list until the next open/search. */
+  const closeCatalog = () => {
+    browsing.value = false;
+    exercises.value = [];
+    totalCount.value = 0;
+    currentPage.value = 1;
+    totalPages.value = 1;
+    clientCache.value = null;
+    if (searchTimer) {
+      clearTimeout(searchTimer);
+      searchTimer = null;
+    }
+  };
+
   watch(searchQuery, (q) => {
+    if (!browsing.value || suppressSearchWatch) return;
     if (searchTimer) clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
       currentPage.value = 1;
@@ -155,24 +203,28 @@ export function useExercisesCatalog() {
   });
 
   watch(onlyEnriched, () => {
+    if (!browsing.value || suppressSearchWatch) return;
     currentPage.value = 1;
     clientCache.value = null;
     loadExercises({ page: 1 }).catch(() => {});
   });
 
   watch(muscleFilter, () => {
+    if (!browsing.value || suppressSearchWatch) return;
     currentPage.value = 1;
     clientCache.value = null;
     loadExercises({ page: 1 }).catch(() => {});
   });
 
   watch(onlyWarmup, () => {
+    if (!browsing.value || suppressSearchWatch) return;
     currentPage.value = 1;
     clientCache.value = null;
     loadExercises({ page: 1 }).catch(() => {});
   });
 
   const goToPage = async (page) => {
+    if (!browsing.value) return;
     const next = Number(page);
     if (!Number.isFinite(next) || next < 1) return;
 
@@ -203,7 +255,8 @@ export function useExercisesCatalog() {
       const res = await createExercise(payload);
       const created = res.data.data;
       clientCache.value = null;
-      await loadExercises();
+      browsing.value = true;
+      await loadExercises({ page: 1 });
       return created;
     } catch (error) {
       console.error('Error creando ejercicio:', error);
@@ -221,7 +274,9 @@ export function useExercisesCatalog() {
       const res = await updateExercise(id, payload);
       const updated = res.data.data;
       clientCache.value = null;
-      await loadExercises();
+      if (browsing.value) {
+        await loadExercises();
+      }
       return updated;
     } catch (error) {
       console.error('Error actualizando ejercicio:', error);
@@ -238,7 +293,9 @@ export function useExercisesCatalog() {
       errorMessage.value = '';
       await deleteExercise(id);
       clientCache.value = null;
-      await loadExercises();
+      if (browsing.value) {
+        await loadExercises();
+      }
     } catch (error) {
       console.error('Error eliminando ejercicio:', error);
       errorMessage.value = getApiErrorMessage(error, 'No se pudo eliminar el ejercicio');
@@ -257,6 +314,7 @@ export function useExercisesCatalog() {
     canGoNext,
     loading,
     saving,
+    browsing,
     searchQuery,
     onlyEnriched,
     muscleFilter,
@@ -266,6 +324,8 @@ export function useExercisesCatalog() {
     privateCount,
     pageSize: CATALOG_PAGE_SIZE,
     loadExercises,
+    openCatalog,
+    closeCatalog,
     goToPage,
     goPrevPage,
     goNextPage,

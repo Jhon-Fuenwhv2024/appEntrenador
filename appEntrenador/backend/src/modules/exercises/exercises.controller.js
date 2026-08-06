@@ -51,6 +51,7 @@ async function create(req, res) {
     const exercise = await exercisesService.createExerciseForTrainer(
       req.user.id,
       req.body || {},
+      req.file || null,
     );
 
     return res.status(201).json({
@@ -69,6 +70,7 @@ async function update(req, res) {
       req.user.id,
       req.params.id,
       req.body || {},
+      req.file || null,
     );
 
     return res.json({

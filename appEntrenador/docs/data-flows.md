@@ -32,12 +32,14 @@
 
 Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 
-## Media de ejercicios (catálogo Fitcron)
+## Media de ejercicios (catálogo Fitcron + trainer)
 
-1. DB guarda solo `local_media_path` (`/uploads/exercises/exercise_{id}.gif`); sin binarios en TiDB.
-2. Con env R2 → binarios en Cloudflare R2 prefijo `exercises/`; Express proxy público en `GET /uploads/exercises/...` (fallback disco).
-3. Sin R2 → disco `backend/public/uploads/exercises`.
-4. Migración inicial del catálogo a R2 ya aplicada (prefijo `exercises/`); el scraper sube GIFs nuevos si R2 está configurado.
+1. DB guarda solo metadatos/URLs (`media_url`, `local_media_path`, `media_type`); sin binarios en TiDB.
+2. Catálogo Fitcron: `local_media_path` = `/uploads/exercises/exercise_{id}.gif`.
+3. Trainer (Feature 090): en el formulario del catálogo puede **enlazar URL** (`media_url`) o **subir archivo** (`media_file` vía multipart). Upload → `local_media_path` = `/uploads/exercises/trainer_{trainerId}_{uuid}.{ext}` (máx. 10 MB; jpeg/png/webp/gif/mp4/webm). Solo ejercicios privados del trainer.
+4. Con env R2 → binarios en Cloudflare R2 prefijo `exercises/`; Express proxy público en `GET /uploads/exercises/...` (fallback disco; sirve GIFs Fitcron y media de trainer).
+5. Sin R2 → disco `backend/public/uploads/exercises`.
+6. Migración inicial del catálogo a R2 ya aplicada (prefijo `exercises/`); el scraper sube GIFs nuevos si R2 está configurado.
 
 ## Ajustes de cuenta del trainer (Feature 024)
 

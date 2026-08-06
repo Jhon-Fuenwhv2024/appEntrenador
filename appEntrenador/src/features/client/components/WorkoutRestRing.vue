@@ -79,8 +79,12 @@ const thumbKind = computed(() => (
 ));
 
 const showThumb = computed(() => (
-  thumbKind.value === 'gif' || thumbKind.value === 'image'
+  thumbKind.value === 'gif'
+  || thumbKind.value === 'image'
+  || thumbKind.value === 'video'
 ));
+
+const thumbIsVideo = computed(() => thumbKind.value === 'video');
 
 const ariaUpNext = computed(() => {
   const parts = [`Ver ficha de ${nextTitle.value}`];
@@ -135,8 +139,21 @@ const ariaUpNext = computed(() => {
       @click="emit('preview')"
     >
       <div class="rest-ring__upnext-top">
+        <video
+          v-if="showThumb && thumbIsVideo && thumbSrc"
+          class="rest-ring__upnext-thumb"
+          :src="thumbSrc"
+          width="52"
+          height="52"
+          autoplay
+          loop
+          muted
+          playsinline
+          preload="metadata"
+          aria-hidden="true"
+        />
         <img
-          v-if="showThumb && thumbSrc"
+          v-else-if="showThumb && thumbSrc"
           class="rest-ring__upnext-thumb"
           :src="thumbSrc"
           alt=""

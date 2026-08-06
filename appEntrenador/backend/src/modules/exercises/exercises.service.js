@@ -1,5 +1,11 @@
 const db = require('../../config/db');
 const { ALLOWED_MUSCLES } = require('../admin-exercises/muscleTaxonomy');
+const {
+  putTrainerExerciseMedia,
+} = require('../../shared/storage/exerciseMediaStorage');
+const {
+  mediaTypeFromMimetype,
+} = require('../../shared/storage/exerciseMediaPaths');
 
 const ALLOWED_MEDIA_TYPES = new Set(['image', 'gif', 'youtube', 'video', 'none']);
 const ALLOWED_MUSCLE_SET = new Set(ALLOWED_MUSCLES);
@@ -71,7 +77,12 @@ function parseFieldsSummaryFlag(raw) {
   return v === 'summary' || v === 'list' || v === '1' || v === 'true';
 }
 
-function normalizeExercisePayload(payload) {
+/**
+ * @param {object} payload
+ * @param {{ hasFile?: boolean }} [opts]
+ */
+function normalizeExercisePayload(payload, opts = {}) {
+  const hasFile = Boolean(opts.hasFile);
   const name = typeof payload.name === 'string' ? payload.name.trim() : '';
   const targetMuscle =
     typeof payload.target_muscle === 'string' ? payload.target_muscle.trim() : '';
@@ -105,13 +116,13 @@ function normalizeExercisePayload(payload) {
   }
 
   const mediaUrl =
-    mediaTypeRaw === 'none'
+    mediaTypeRaw === 'none' || hasFile
       ? null
       : (typeof payload.media_url === 'string' && payload.media_url.trim()
         ? payload.media_url.trim()
         : null);
 
-  if (mediaTypeRaw !== 'none' && !mediaUrl) {
+  if (!hasFile && mediaTypeRaw !== 'none' && !mediaUrl) {
     throw createHttpError('media_url es obligatorio cuando hay tipo de media.', 400);
   }
 
@@ -123,6 +134,42 @@ function normalizeExercisePayload(payload) {
     media_type: mediaTypeRaw,
     media_url: mediaUrl,
   };
+}
+
+/**
+ * Persist multer file to R2/local and return path + inferred media_type.
+ * @param {number} trainerId
+ * @param {Express.Multer.File} file
+ */
+async function persistTrainerMediaFile(trainerId, file) {
+  if (!file) return null;
+
+  const inferred = mediaTypeFromMimetype(file.mimetype);
+  if (!inferred) {
+    throw createHttpError(
+      'Solo se permiten imágenes (JPEG, PNG, WebP, GIF) o videos (MP4, WebM).',
+      400,
+    );
+  }
+
+  try {
+    const stored = await putTrainerExerciseMedia({
+      trainerId,
+      mimetype: file.mimetype,
+      buffer: file.buffer || null,
+      filePath: file.path || null,
+      filename: file.filename || null,
+    });
+    return {
+      local_media_path: stored.publicUrl,
+      media_type: stored.mediaType,
+    };
+  } catch (error) {
+    throw createHttpError(
+      error.message || 'No se pudo guardar el archivo multimedia.',
+      400,
+    );
+  }
 }
 
 async function getExerciseVisibleToTrainer(exerciseId, trainerId) {
@@ -411,22 +458,39 @@ async function listExercisesForTrainer(
 
 /**
  * Creates a trainer-private catalog entry.
+ * @param {number} trainerId
+ * @param {object} payload
+ * @param {Express.Multer.File|null} [file]
  */
-async function createExerciseForTrainer(trainerId, payload) {
-  const data = normalizeExercisePayload(payload);
+async function createExerciseForTrainer(trainerId, payload, file = null) {
+  const hasFile = Boolean(file);
+  const data = normalizeExercisePayload(payload, { hasFile });
   await assertNameAvailable(data.name, trainerId);
+
+  let localMediaPath = null;
+  let mediaType = data.media_type;
+  let mediaUrl = data.media_url;
+
+  if (hasFile) {
+    const stored = await persistTrainerMediaFile(trainerId, file);
+    localMediaPath = stored.local_media_path;
+    mediaType = stored.media_type;
+    mediaUrl = null;
+  }
 
   const [result] = await db.query(
     `INSERT INTO exercises
-      (name, description, target_muscle, primary_muscle, media_type, media_url, created_by_trainer_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      (name, description, target_muscle, primary_muscle, media_type, media_url,
+       local_media_path, created_by_trainer_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.name,
       data.description,
       data.target_muscle,
       data.primary_muscle,
-      data.media_type,
-      data.media_url,
+      mediaType,
+      mediaUrl,
+      localMediaPath,
       trainerId,
     ],
   );
@@ -442,21 +506,65 @@ async function createExerciseForTrainer(trainerId, payload) {
 
 /**
  * Updates a catalog exercise visible to the trainer (global or own).
+ * File upload is only allowed on private (trainer-owned) exercises.
+ * @param {number} trainerId
+ * @param {number|string} exerciseId
+ * @param {object} payload
+ * @param {Express.Multer.File|null} [file]
  */
-async function updateExerciseForTrainer(trainerId, exerciseId, payload) {
+async function updateExerciseForTrainer(trainerId, exerciseId, payload, file = null) {
   const id = Number(exerciseId);
   if (!Number.isInteger(id) || id <= 0) {
     throw createHttpError('ID de ejercicio inválido.', 400);
   }
 
-  await getExerciseVisibleToTrainer(id, trainerId);
-  const data = normalizeExercisePayload(payload);
+  const existing = await getExerciseVisibleToTrainer(id, trainerId);
+  const hasFile = Boolean(file);
+
+  if (hasFile && existing.created_by_trainer_id == null) {
+    throw createHttpError(
+      'No se puede subir media a un ejercicio global del sistema. Usa una URL o crea un ejercicio propio.',
+      403,
+    );
+  }
+
+  if (hasFile && Number(existing.created_by_trainer_id) !== Number(trainerId)) {
+    throw createHttpError(
+      'Solo puedes subir media a ejercicios de tu catálogo privado.',
+      403,
+    );
+  }
+
+  const data = normalizeExercisePayload(payload, { hasFile });
   await assertNameAvailable(data.name, trainerId, id);
+
+  let mediaType = data.media_type;
+  let mediaUrl = data.media_url;
+  let localMediaPath = existing.local_media_path ?? null;
+
+  if (hasFile) {
+    const stored = await persistTrainerMediaFile(trainerId, file);
+    localMediaPath = stored.local_media_path;
+    mediaType = stored.media_type;
+    mediaUrl = null;
+  } else if (mediaType === 'none') {
+    mediaUrl = null;
+    // Keep hosted demo if the trainer clears URL-only media type without uploading.
+  } else if (mediaUrl) {
+    // External URL mode: keep existing local_media_path (Fitcron GIF) unless cleared explicitly.
+    const clearLocal =
+      payload.clear_local_media === true
+      || payload.clear_local_media === '1'
+      || payload.clear_local_media === 'true';
+    if (clearLocal) {
+      localMediaPath = null;
+    }
+  }
 
   await db.query(
     `UPDATE exercises
      SET name = ?, description = ?, target_muscle = ?, primary_muscle = ?,
-         media_type = ?, media_url = ?
+         media_type = ?, media_url = ?, local_media_path = ?
      WHERE id = ?
        AND (created_by_trainer_id IS NULL OR created_by_trainer_id = ?)`,
     [
@@ -464,8 +572,9 @@ async function updateExerciseForTrainer(trainerId, exerciseId, payload) {
       data.description,
       data.target_muscle,
       data.primary_muscle,
-      data.media_type,
-      data.media_url,
+      mediaType,
+      mediaUrl,
+      localMediaPath,
       id,
       trainerId,
     ],

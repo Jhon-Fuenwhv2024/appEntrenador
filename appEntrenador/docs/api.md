@@ -897,7 +897,7 @@ El cleanup `db:cleanup-exercises-no-local:confirm` es intencional (quita globale
 
 Crea un ejercicio privado del trainer.
 
-Body:
+Body JSON (modo URL / sin archivo):
 
 ```json
 {
@@ -909,9 +909,16 @@ Body:
 }
 ```
 
+También acepta **`multipart/form-data`** (Feature 090) con los mismos campos de texto y archivo opcional `media_file` (JPEG/PNG/WebP/GIF/MP4/WebM, máx. **10 MB**). Con archivo:
+
+- Se persiste en storage (disco local y/o R2) como `/uploads/exercises/trainer_{trainerId}_{uuid}.{ext}`.
+- DB: `local_media_path` + `media_type` inferido (`image` | `gif` | `video`); `media_url` queda `null`.
+
 ### `PUT /exercises/:id` (trainer)
 
 Actualiza un ejercicio visible (global o privado del trainer): nombre, descripción, músculo, `media_type` y `media_url` (GIF/YouTube/video/imagen).
+
+Misma opción **multipart** que el POST (`media_file`). La subida de archivo **solo** está permitida en ejercicios privados del trainer (`created_by_trainer_id = trainer`); en globales usar URL.
 
 ### `DELETE /exercises/:id` (trainer)
 
