@@ -1,11 +1,13 @@
 import http from '../../../shared/api/http.js';
 
-/** GET /api/trainer/diets?clientId= */
-export function listDietPlans(clientId) {
+/** GET /api/trainer/diets?clientId=&summary= */
+export function listDietPlans(clientId, options = {}) {
   const params = {};
   if (clientId != null && clientId !== '') {
     params.clientId = clientId;
   }
+  // Optimización: listado sin árbol days/meals (Feature 089).
+  if (options.summary) params.summary = 1;
   return http.get('/trainer/diets', { params });
 }
 

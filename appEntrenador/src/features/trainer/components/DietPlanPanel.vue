@@ -10,6 +10,7 @@ import {
   createDietPlan,
   deactivateDietPlan,
   deleteDietPlan,
+  getDietPlan,
   listDietPlans,
   updateDietPlan,
 } from '../api/dietPlansApi.js';
@@ -48,7 +49,8 @@ async function loadPlans() {
   try {
     loading.value = true;
     loadError.value = '';
-    const response = await listDietPlans(props.clientId);
+    // Optimización: listado summary sin árbol days/meals (Feature 089).
+    const response = await listDietPlans(props.clientId, { summary: true });
     plans.value = response.data?.data ?? [];
   } catch (error) {
     console.error('Error cargando planes de dieta:', error);
@@ -64,9 +66,22 @@ function startCreate() {
   showForm.value = true;
 }
 
-function startEdit(plan) {
-  editingPlan.value = plan;
-  showForm.value = true;
+async function startEdit(plan) {
+  // Optimización: detalle completo solo al editar (listado es summary).
+  try {
+    saving.value = true;
+    const response = await getDietPlan(plan.id);
+    editingPlan.value = response.data?.data ?? plan;
+    showForm.value = true;
+  } catch (error) {
+    console.error('Error cargando plan de dieta:', error);
+    emit('notify', {
+      text: getApiErrorMessage(error, 'No se pudo abrir el plan'),
+      color: 'error',
+    });
+  } finally {
+    saving.value = false;
+  }
 }
 
 function cancelForm() {

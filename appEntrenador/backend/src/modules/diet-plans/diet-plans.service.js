@@ -723,7 +723,13 @@ async function notifyDietUpdated(plan) {
   }
 }
 
-async function listDietPlans(trainerId, clientIdFilter) {
+/**
+ * @param {number} trainerId
+ * @param {string|number|null|undefined} clientIdFilter
+ * @param {{ summary?: boolean }} [options] — Optimización 089: sin árbol days/meals.
+ */
+async function listDietPlans(trainerId, clientIdFilter, options = {}) {
+  const summary = Boolean(options.summary);
   const params = [trainerId];
   let sql = `
     SELECT ${PLAN_SELECT}
@@ -744,6 +750,12 @@ async function listDietPlans(trainerId, clientIdFilter) {
   sql += ' ORDER BY updated_at DESC, id DESC';
 
   const [rows] = await db.query(sql, params);
+
+  // Optimización: listado de headers sin loadDaysWithMeals (Feature 089).
+  if (summary) {
+    return rows.map((row) => mapPlanRow(row, []));
+  }
+
   const planIds = rows.map((r) => r.id);
   const daysByPlan = await loadDaysWithMeals(planIds);
 

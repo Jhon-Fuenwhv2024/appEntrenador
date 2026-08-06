@@ -45,6 +45,7 @@ const { displaySrc, showPhoto, onImgError } = useAuthenticatedAvatar(
     :src="displaySrc"
     :alt="alt"
     :class="imgClass"
+    loading="lazy"
     @error="onImgError"
   >
   <span

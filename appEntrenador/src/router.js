@@ -1,23 +1,7 @@
 import { nextTick } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
+// Optimización: Login eager para first paint; resto lazy (Feature 089 / ADR-0012).
 import LoginView from './features/auth/LoginView.vue';
-import Dashboard from './components/Dashboard.vue';
-import RegisterView from './features/auth/RegisterView.vue';
-import ResetPasswordView from './features/auth/ResetPasswordView.vue';
-import Client360View from './features/trainer/client-360/Client360View.vue';
-import ExercisesCatalogView from './features/trainer/ExercisesCatalogView.vue';
-import ClientsListView from './features/trainer/ClientsListView.vue';
-import LibraryView from './features/trainer/LibraryView.vue';
-import TrainerSettingsView from './features/trainer/TrainerSettingsView.vue';
-import WorkoutPlayerView from './features/client/WorkoutPlayerView.vue';
-import ClientRoutinePreviewView from './features/client/ClientRoutinePreviewView.vue';
-import ClientShoppingListView from './features/client/ClientShoppingListView.vue';
-import ClientProfileView from './features/client/ClientProfileView.vue';
-import ClientProgressView from './features/client/ClientProgressView.vue';
-import TrainerInboxView from './features/messaging/TrainerInboxView.vue';
-import ClientChatView from './features/messaging/ClientChatView.vue';
-import SuperAdminDashboardView from './features/saas/SuperAdminDashboardView.vue';
-import ExerciseTaggerView from './features/admin/ExerciseTaggerView.vue';
 import { getSessionUser, isAuthenticated } from './shared/auth/session.js';
 import { scrollAppToTop } from './shared/navigation/scrollToTop.js';
 
@@ -35,121 +19,121 @@ const routes = [
   {
     path: '/registro',
     name: 'Registro',
-    component: RegisterView,
+    component: () => import('./features/auth/RegisterView.vue'),
     meta: { guestOnly: true },
   },
   {
     path: '/reset-password',
     name: 'ResetPassword',
-    component: ResetPasswordView,
+    component: () => import('./features/auth/ResetPasswordView.vue'),
     meta: { guestOnly: true },
   },
   {
     path: '/dashboard',
     name: 'Dashboard',
-    component: Dashboard,
+    component: () => import('./components/Dashboard.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/client/progress',
     name: 'ClientProgress',
-    component: ClientProgressView,
+    component: () => import('./features/client/ClientProgressView.vue'),
     meta: { requiresAuth: true, role: 'client' },
   },
   {
     path: '/client/messages',
     name: 'ClientMessages',
-    component: ClientChatView,
+    component: () => import('./features/messaging/ClientChatView.vue'),
     meta: { requiresAuth: true, role: 'client' },
   },
   {
     path: '/client/profile',
     name: 'ClientProfile',
-    component: ClientProfileView,
+    component: () => import('./features/client/ClientProfileView.vue'),
     meta: { requiresAuth: true, role: 'client' },
   },
   {
     path: '/client/workout/:routineId',
     name: 'WorkoutPlayer',
-    component: WorkoutPlayerView,
+    component: () => import('./features/client/WorkoutPlayerView.vue'),
     meta: { requiresAuth: true, role: 'client' },
   },
   {
     path: '/client/routine/:routineId',
     name: 'ClientRoutinePreview',
-    component: ClientRoutinePreviewView,
+    component: () => import('./features/client/ClientRoutinePreviewView.vue'),
     meta: { requiresAuth: true, role: 'client' },
   },
   {
     path: '/client/shopping-list',
     name: 'ClientShoppingList',
-    component: ClientShoppingListView,
+    component: () => import('./features/client/ClientShoppingListView.vue'),
     meta: { requiresAuth: true, role: 'client' },
   },
   {
     path: '/trainer/clients',
     name: 'TrainerClients',
-    component: ClientsListView,
+    component: () => import('./features/trainer/ClientsListView.vue'),
     meta: { requiresAuth: true, role: 'trainer' },
   },
   {
     path: '/trainer/clients/:clientId',
     name: 'ClientRoutines',
-    component: Client360View,
+    component: () => import('./features/trainer/client-360/Client360View.vue'),
     meta: { requiresAuth: true, role: 'trainer' },
   },
   {
     path: '/trainer/messages',
     name: 'TrainerMessages',
-    component: TrainerInboxView,
+    component: () => import('./features/messaging/TrainerInboxView.vue'),
     meta: { requiresAuth: true, role: 'trainer' },
   },
   {
     path: '/trainer/library',
     name: 'TrainerLibrary',
-    component: LibraryView,
+    component: () => import('./features/trainer/LibraryView.vue'),
     meta: { requiresAuth: true, role: 'trainer' },
   },
   {
     path: '/trainer/library/exercises',
     name: 'TrainerLibraryExercises',
-    component: LibraryView,
+    component: () => import('./features/trainer/LibraryView.vue'),
     meta: { requiresAuth: true, role: 'trainer' },
   },
   {
     path: '/trainer/library/memberships',
     name: 'TrainerLibraryMemberships',
-    component: LibraryView,
+    component: () => import('./features/trainer/LibraryView.vue'),
     meta: { requiresAuth: true, role: 'trainer' },
   },
   {
     path: '/trainer/library/diets',
     name: 'TrainerLibraryDiets',
-    component: LibraryView,
+    component: () => import('./features/trainer/LibraryView.vue'),
     meta: { requiresAuth: true, role: 'trainer' },
   },
   {
     path: '/trainer/settings',
     name: 'TrainerSettings',
-    component: TrainerSettingsView,
+    component: () => import('./features/trainer/TrainerSettingsView.vue'),
     meta: { requiresAuth: true, role: 'trainer' },
   },
   {
     path: '/trainer/exercises',
     name: 'ExercisesCatalog',
-    component: ExercisesCatalogView,
+    component: () => import('./features/trainer/ExercisesCatalogView.vue'),
     meta: { requiresAuth: true, role: 'trainer' },
   },
   {
     path: '/backoffice',
     name: 'SuperAdminBackoffice',
-    component: SuperAdminDashboardView,
+    component: () => import('./features/saas/SuperAdminDashboardView.vue'),
     meta: { requiresAuth: true, requiresSuperAdmin: true },
   },
   {
     path: '/admin/exercises/tagger',
     name: 'ExerciseTagger',
-    component: ExerciseTaggerView,
+    component: () => import('./features/admin/ExerciseTaggerView.vue'),
     meta: { requiresAuth: true, requiresSuperAdmin: true },
   },
 ];

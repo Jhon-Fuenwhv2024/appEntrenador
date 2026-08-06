@@ -1,9 +1,15 @@
 <script setup>
-import { onMounted, shallowRef } from 'vue';
+import { defineAsyncComponent, onMounted, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
-import TrainerDashboardView from '../features/trainer/TrainerDashboardView.vue';
-import ClientDashboardView from '../features/client/ClientDashboardView.vue';
 import { getSessionUser, isAuthenticated } from '../shared/auth/session.js';
+
+// Optimización: solo descarga el dashboard del rol activo (Feature 089).
+const TrainerDashboardView = defineAsyncComponent(() => (
+  import('../features/trainer/TrainerDashboardView.vue')
+));
+const ClientDashboardView = defineAsyncComponent(() => (
+  import('../features/client/ClientDashboardView.vue')
+));
 
 const router = useRouter();
 const userRole = shallowRef('');

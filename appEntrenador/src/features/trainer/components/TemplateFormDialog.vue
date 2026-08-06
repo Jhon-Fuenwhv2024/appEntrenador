@@ -1,9 +1,8 @@
 <script setup>
-import { computed, reactive, ref, shallowRef, watch } from 'vue';
+import { computed, reactive, shallowRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../../shared/api/http.js';
 import ExerciseMuscleFilter from '../../../shared/components/ExerciseMuscleFilter.vue';
-import { exerciseMatchesMuscleFilter } from '../../../shared/constants/muscles.js';
 import {
   displayExerciseDescription,
   displayExerciseMuscle,
@@ -14,6 +13,7 @@ import {
   setPrescriptionForPayload,
 } from '../../../shared/routines/setPrescription.js';
 import { createExercise, getAllExercises } from '../api/exercisesApi.js';
+import { useExercisePickerSearch } from '../composables/useExercisePickerSearch.js';
 
 const DEFAULT_REST_SECONDS = 90;
 const DEFAULT_TARGET_MUSCLE = 'Full Body';
@@ -62,7 +62,8 @@ const emit = defineEmits(['update:modelValue', 'submit']);
 
 const router = useRouter();
 
-const catalogExercises = ref([]);
+// Optimización: índice slim + menú picker acotado (Feature 089).
+const catalogExercises = shallowRef([]);
 const muscleFilter = shallowRef(null);
 const onlyWarmup = shallowRef(false);
 const catalogLoading = shallowRef(false);
@@ -72,6 +73,16 @@ const localSnack = reactive({
   text: '',
   color: 'success',
 });
+
+const {
+  pickerItems,
+  scheduleSearch,
+  runSearch,
+} = useExercisePickerSearch(() => ({
+  muscle: muscleFilter.value,
+  warmup: onlyWarmup.value,
+  enriched: true,
+}));
 
 const form = reactive({
   name: '',
@@ -102,12 +113,6 @@ const catalogByName = computed(() => {
   }
   return map;
 });
-
-const filteredCatalogExercises = computed(() => (
-  catalogExercises.value.filter((item) => (
-    exerciseMatchesMuscleFilter(item, muscleFilter.value, onlyWarmup.value)
-  ))
-));
 
 function catalogItemSubtitle(item) {
   const muscle = displayExerciseMuscle(item) || 'Sin etiquetar';
@@ -195,13 +200,15 @@ const fillFromTemplate = (template) => {
 const loadCatalog = async () => {
   try {
     catalogLoading.value = true;
-    const items = await getAllExercises({ enriched: true });
+    // Optimización: índice slim sin description* (Feature 089).
+    const items = await getAllExercises({ enriched: true, fields: 'summary' });
     catalogExercises.value = items
       .filter((item) => Boolean(item.local_media_path?.trim()))
       .map((item) => ({
         ...item,
         display_name: displayExerciseName(item),
       }));
+    await runSearch('');
   } catch (error) {
     console.error('Error cargando catálogo:', error);
     catalogExercises.value = [];
@@ -372,7 +379,7 @@ const handleSubmit = () => {
 
           <v-autocomplete
             :model-value="ex.nombre"
-            :items="filteredCatalogExercises"
+            :items="pickerItems"
             item-title="display_name"
             item-value="name"
             label="Nombre (catálogo o texto libre)"
@@ -384,6 +391,7 @@ const handleSubmit = () => {
             free-solo
             :menu-props="{ contentClass: 'tf-overlay-menu', maxHeight: 280 }"
             :list-props="{ bgColor: 'surface', color: undefined }"
+            @update:search="scheduleSearch"
             @update:model-value="(value) => onExerciseNameUpdate(index, value)"
           >
             <template #item="{ props: itemProps, item }">

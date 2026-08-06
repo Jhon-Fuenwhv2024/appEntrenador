@@ -97,12 +97,14 @@ const embedSrc = computed(() => (
       muted
       playsinline
       :controls="!compact"
+      :preload="compact ? 'none' : 'auto'"
     />
     <img
       v-else-if="kind === 'gif' || kind === 'image'"
       class="workout-media__frame"
       :src="resolvedSrc"
       :alt="exerciseName || 'Ejercicio'"
+      :loading="compact ? 'lazy' : 'eager'"
     />
     <div v-else class="workout-media__fallback">
       <v-icon

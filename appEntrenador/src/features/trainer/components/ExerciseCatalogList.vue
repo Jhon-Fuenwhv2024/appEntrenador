@@ -212,6 +212,7 @@ function hasLocalMedia(item) {
               loop
               muted
               playsinline
+              preload="none"
             />
             <img
               v-else-if="mediaKind(item) === 'gif' || mediaKind(item) === 'image'"

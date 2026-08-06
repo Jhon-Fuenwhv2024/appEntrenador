@@ -17,6 +17,14 @@ const EXERCISE_SELECT_COLS = `
   created_by_trainer_id
 `;
 
+// Optimización: listados/autocomplete sin TEXT de descripción (Feature 089).
+const EXERCISE_SUMMARY_SELECT_COLS = `
+  id, name, name_es,
+  target_muscle, target_muscle_es, primary_muscle, secondary_muscles, is_warmup,
+  media_type, media_url, local_media_path,
+  created_by_trainer_id
+`;
+
 function parseSecondaryMuscles(raw) {
   if (Array.isArray(raw)) {
     return raw.filter((m) => typeof m === 'string' && m.trim()).map((m) => m.trim());
@@ -32,13 +40,18 @@ function parseSecondaryMuscles(raw) {
   }
 }
 
-function mapExerciseRow(row) {
+/**
+ * @param {object} row
+ * @param {{ summary?: boolean }} [opts]
+ */
+function mapExerciseRow(row, opts = {}) {
+  const summary = Boolean(opts.summary);
   return {
     id: row.id,
     name: row.name,
     name_es: row.name_es ?? null,
-    description: row.description,
-    description_es: row.description_es ?? null,
+    description: summary ? null : row.description,
+    description_es: summary ? null : (row.description_es ?? null),
     target_muscle: row.target_muscle,
     target_muscle_es: row.target_muscle_es ?? null,
     primary_muscle: row.primary_muscle ?? null,
@@ -50,6 +63,12 @@ function mapExerciseRow(row) {
     created_by_trainer_id: row.created_by_trainer_id,
     is_global: row.created_by_trainer_id == null,
   };
+}
+
+function parseFieldsSummaryFlag(raw) {
+  if (raw == null || raw === '') return false;
+  const v = String(raw).trim().toLowerCase();
+  return v === 'summary' || v === 'list' || v === '1' || v === 'true';
 }
 
 function normalizeExercisePayload(payload) {
@@ -298,8 +317,8 @@ function parseTruthyQueryFlag(raw) {
 
 /**
  * Lists global exercises + those owned by the trainer.
- * Optional `q`, `muscle` (primary/secondary HITL), `warmup=1`, `enriched=1`.
- * @returns {{ items: object[], total: number, limit: number, page: number, totalPages: number }}
+ * Optional `q`, `muscle` (primary/secondary HITL), `warmup=1`, `enriched=1`, `fields=summary`.
+ * @returns {{ items: object[], total: number, limit: number, page: number, totalPages: number, fields: string }}
  */
 async function listExercisesForTrainer(
   trainerId,
@@ -309,11 +328,14 @@ async function listExercisesForTrainer(
   enrichedRaw,
   muscleRaw,
   warmupRaw,
+  fieldsRaw,
 ) {
   const limit = parseListLimit(limitRaw);
   const pageRequested = parseListPage(pageRaw);
   const onlyEnriched = parseTruthyQueryFlag(enrichedRaw);
   const onlyWarmup = parseTruthyQueryFlag(warmupRaw);
+  // Optimización: proyección slim para listados (ADR-0012).
+  const summary = parseFieldsSummaryFlag(fieldsRaw);
   const muscle = typeof muscleRaw === 'string' ? muscleRaw.trim() : '';
   const params = [trainerId];
   let whereSql = `
@@ -365,9 +387,11 @@ async function listExercisesForTrainer(
   const page = Math.min(pageRequested, totalPages);
   const offset = (page - 1) * limit;
 
+  const selectCols = summary ? EXERCISE_SUMMARY_SELECT_COLS : EXERCISE_SELECT_COLS;
+
   // limit/offset are sanitized integers (not user strings) — safe to embed.
   const [rows] = await db.query(
-    `SELECT ${EXERCISE_SELECT_COLS}
+    `SELECT ${selectCols}
      FROM exercises
      ${whereSql}
      ORDER BY COALESCE(name_es, name) ASC
@@ -376,11 +400,12 @@ async function listExercisesForTrainer(
   );
 
   return {
-    items: rows.map(mapExerciseRow),
+    items: rows.map((row) => mapExerciseRow(row, { summary })),
     total,
     limit,
     page,
     totalPages,
+    fields: summary ? 'summary' : 'full',
   };
 }
 

@@ -41,7 +41,8 @@ const props = defineProps({
 const emit = defineEmits(['notify']);
 
 const routines = ref([]);
-const catalogExercises = ref([]);
+// Optimización: índice slim sin deep proxy (Feature 089).
+const catalogExercises = shallowRef([]);
 const loading = shallowRef(true);
 const saving = shallowRef(false);
 const savingCatalogIndex = shallowRef(null);
@@ -228,7 +229,8 @@ const setRestSeconds = ({ index, value }) => {
 };
 
 const loadCatalog = async () => {
-  const items = await getAllExercises({ enriched: true });
+  // Optimización: índice completo slim (sin description*) para lookups/preview.
+  const items = await getAllExercises({ enriched: true, fields: 'summary' });
   catalogExercises.value = items
     .filter((item) => Boolean(item.local_media_path?.trim()))
     .map((item) => ({

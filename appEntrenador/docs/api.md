@@ -835,8 +835,9 @@ Query:
 - `?limit=6` — tamaño de página (default **6**, máximo **100**)
 - `?page=1` — página actual (1-based)
 - `?enriched=1` — solo ejercicios con `name_es` o `local_media_path` (Feature 044)
+- `?fields=summary` — **Feature 089:** omite `description` / `description_es` (respuesta los deja en `null`). Sin este flag = payload completo (compat).
 
-**Nota FE:** el catálogo paginado del trainer usa `limit=6`. Los autocompletes de programación/plantillas usan `getAllExercises()` (páginas de 100) para cargar el diccionario completo.
+**Nota FE (089):** el catálogo paginado del trainer usa `limit=6` + `fields=summary`. Los builders de programación/plantillas cargan un **índice slim** (`getAllExercises({ fields: 'summary', enriched: true })`) para lookups/preview y alimentan el menú del autocomplete con búsqueda server (`q`, `limit=40`, `fields=summary`) — no montan ~900 ítems en el DOM.
 
 Respuesta:
 
@@ -869,10 +870,13 @@ Respuesta:
     "totalPages": 150,
     "returned": 6,
     "muscle": null,
-    "warmup": false
+    "warmup": false,
+    "fields": "full"
   }
 }
 ```
+
+Con `fields=summary`, `meta.fields` es `"summary"` y `description` / `description_es` son `null`.
 
 Media estática: `GET {API_ORIGIN}/uploads/exercises/...` (fuera de `/api`; **público**).
 Con env R2 (ADR-0005) Express hace proxy desde Cloudflare R2 (`exercises/…`); sin R2, disco `backend/public/uploads/exercises`. La DB solo guarda `local_media_path`.
@@ -1353,7 +1357,14 @@ Jerarquía: `diet_plans` → `diet_plan_days` (week_index + dia_semana) → `die
 
 ### `GET /trainer/diets` (trainer)
 
-Lista planes del entrenador con `days[]` anidados. Query opcional: `?clientId=` (valida ownership).
+Lista planes del entrenador. Query:
+
+- `?clientId=` — filtra por alumno (valida ownership).
+- `?summary=1` — **Feature 089:** solo headers del plan (`days: []`, `day_count`/`meal_count` en 0). Sin flag = árbol completo `days` → `meals` → `items` (compat).
+
+La UI de Client 360 lista con `summary=1` y carga el detalle con `GET /trainer/diets/:id` al editar.
+
+Respuesta incluye `meta.summary` (boolean).
 
 ### `POST /trainer/diets` (trainer)
 

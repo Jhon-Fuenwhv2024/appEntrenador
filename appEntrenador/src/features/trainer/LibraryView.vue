@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue';
+import { computed, defineAsyncComponent, onMounted, reactive, ref, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { getSessionUser } from '../../shared/auth/session.js';
@@ -16,8 +16,12 @@ import AssignTemplateDialog from './components/AssignTemplateDialog.vue';
 import ExercisesCatalogPanel from './components/ExercisesCatalogPanel.vue';
 import LibraryDietsStub from './components/LibraryDietsStub.vue';
 import MembershipTypesPanel from './components/MembershipTypesPanel.vue';
-import TemplateFormDialog from './components/TemplateFormDialog.vue';
 import TemplateList from './components/TemplateList.vue';
+
+// Optimización: dialog pesado solo al abrir el formulario (Feature 089).
+const TemplateFormDialog = defineAsyncComponent(() => (
+  import('./components/TemplateFormDialog.vue')
+));
 
 const TAB_PATH = {
   templates: '/trainer/library',

@@ -271,6 +271,17 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 7. Presencia: `AppShell` envía heartbeat mientras `document.visibilityState === 'visible'`; al ocultar/logout limpia con `DELETE /push/presence`. El chat pausa el EventSource al pasar a `hidden` y lo reabre al volver a `visible`.
 8. **Feature 086:** al volver a `visible`, re-bind soft de la suscripción push (throttle 15s) sin pedir permiso de nuevo.
 
+## Catálogo / programación (Feature 089)
+
+1. Router: Login eager; resto de vistas con `() => import(...)`. `Dashboard.vue` carga async solo trainer o client según rol.
+2. Client 360 / Library: paneles pesados (`Programming`, dietas, chat, `TemplateFormDialog`, etc.) vía `defineAsyncComponent`.
+3. Programación / plantillas:
+   - Índice slim: `getAllExercises({ enriched: true, fields: 'summary' })` → `shallowRef` para lookups y preview en vivo.
+   - Picker: `searchExercisesForPicker` (`q`, `limit=40`, `fields=summary`) alimenta `:items` del autocomplete (≤40 nodos DOM).
+4. Dietas Client 360: `listDietPlans(clientId, { summary: true })` → al editar `getDietPlan(id)` con árbol completo.
+5. Media offscreen: `loading="lazy"` / `preload="none"` en thumbs; player activo sin diferir carga.
+6. Guías: [ADR-0012](decisions/ADR-0012-web-vitals-performance.md), [performance-web-vitals.md](performance-web-vitals.md).
+
 ## Resiliencia en segundo plano (Feature 086)
 
 1. Wake Lock de pantalla en el Workout Player mientras hay series/descanso activos.

@@ -4,6 +4,9 @@ import http from '../../../shared/api/http.js';
 const EXERCISES_PAGE_LIMIT = 100;
 const MAX_CATALOG_PAGES = 50;
 
+/** Optimización: menú del picker ≤40 filas (Feature 089). */
+export const EXERCISE_PICKER_LIMIT = 40;
+
 /**
  * @param {string|{
  *   q?: string,
@@ -12,6 +15,7 @@ const MAX_CATALOG_PAGES = 50;
  *   enriched?: boolean,
  *   muscle?: string|null,
  *   warmup?: boolean,
+ *   fields?: 'summary'|'full'|string,
  * }} [options]
  */
 export function getExercises(options) {
@@ -25,6 +29,8 @@ export function getExercises(options) {
     if (options.enriched) params.enriched = 1;
     if (options.muscle) params.muscle = options.muscle;
     if (options.warmup) params.warmup = 1;
+    // Optimización: proyección slim sin description* (ADR-0012).
+    if (options.fields) params.fields = options.fields;
   }
   return http.get('/exercises', {
     params: Object.keys(params).length ? params : undefined,
@@ -32,9 +38,9 @@ export function getExercises(options) {
 }
 
 /**
- * Fetches the full trainer catalog by paging (API caps limit at 100).
- * Used by routine/template autocompletes that need every exercise.
- * @param {{ q?: string, enriched?: boolean, muscle?: string|null, warmup?: boolean }} [options]
+ * Fetches the trainer catalog by paging (API caps limit at 100).
+ * Prefer `fields: 'summary'` for índices / autocomplete lookups.
+ * @param {{ q?: string, enriched?: boolean, muscle?: string|null, warmup?: boolean, fields?: string }} [options]
  * @returns {Promise<object[]>}
  */
 export async function getAllExercises(options = {}) {
@@ -48,6 +54,7 @@ export async function getAllExercises(options = {}) {
       enriched: options.enriched,
       muscle: options.muscle,
       warmup: options.warmup,
+      fields: options.fields,
       limit: EXERCISES_PAGE_LIMIT,
       page,
     });
@@ -68,6 +75,30 @@ export async function getAllExercises(options = {}) {
   } while (page <= totalPages && page <= MAX_CATALOG_PAGES);
 
   return items;
+}
+
+/**
+ * Optimización: resultados acotados para el menú del picker (Feature 089).
+ * @param {{
+ *   q?: string,
+ *   enriched?: boolean,
+ *   muscle?: string|null,
+ *   warmup?: boolean,
+ *   limit?: number,
+ * }} [options]
+ * @returns {Promise<object[]>}
+ */
+export async function searchExercisesForPicker(options = {}) {
+  const res = await getExercises({
+    q: options.q,
+    enriched: options.enriched,
+    muscle: options.muscle,
+    warmup: options.warmup,
+    fields: 'summary',
+    limit: options.limit ?? EXERCISE_PICKER_LIMIT,
+    page: 1,
+  });
+  return Array.isArray(res.data?.data) ? res.data.data : [];
 }
 
 export function createExercise(payload) {

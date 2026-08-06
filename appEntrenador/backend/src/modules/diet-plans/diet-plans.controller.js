@@ -18,14 +18,23 @@ function sendError(res, error, context) {
 
 async function list(req, res) {
   try {
+    const summaryFlag = req.query.summary;
+    const summary = summaryFlag === '1'
+      || summaryFlag === 'true'
+      || summaryFlag === true;
+
     const plans = await dietPlansService.listDietPlans(
       req.user.id,
       req.query.clientId,
+      { summary },
     );
 
     return res.json({
       success: true,
       data: plans,
+      meta: {
+        summary: Boolean(summary),
+      },
     });
   } catch (error) {
     return sendError(res, error, 'Error listando planes de dieta:');

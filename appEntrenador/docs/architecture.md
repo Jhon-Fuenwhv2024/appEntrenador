@@ -19,7 +19,8 @@ Trainfit usa una migración modular gradual. La estructura actual mantiene compa
   - Descanso resiliente (Feature 028): `composables/useTimer.js` (timestamp + Page Visibility + beep `assets/sounds/rest-complete.wav`) integrado en `useWorkoutSession`.
   - **Feature 086 (segundo plano):** `useWakeLock` en player; notificación local al fin de descanso oculto; cola IndexedDB de sesión (`offlineWorkoutQueue` + `useOfflineWorkoutSync`); re-bind push al volver visible (ADR-0009).
 - `src/shared/components/WorkoutSessionHistoryList.vue`: historial expandible de sesiones (cliente + ficha trainer).
-- `src/components/Dashboard.vue`: composición por rol; enruta a trainer o client sin contener lógica de feature.
+- `src/components/Dashboard.vue`: composición por rol con `defineAsyncComponent` (solo descarga la vista del rol activo — Feature 089).
+- **Performance (Feature 089):** `src/router.js` lazy-by-default (Login eager); paneles Client360/Library async; índices de catálogo en `shallowRef` + picker search server. Ver [ADR-0012](decisions/ADR-0012-web-vitals-performance.md) y [performance-web-vitals.md](performance-web-vitals.md).
 
 Los componentes legacy `src/components/Login.vue`, `src/components/Register.vue`, `src/components/TrainerDashboard.vue` y `src/components/ClientDashboard.vue` quedan como wrappers cuando aplica.
 
@@ -50,7 +51,8 @@ El backend monta módulos bajo `/api` desde `backend/src/server.js`.
 - `backend/src/modules/consistency/`: rachas y score (Feature 042) — `GET /me/consistency`, `GET/PUT /clients/:id/consistency` (meta semanal); recalculo al cerrar sesión.
 - `backend/src/modules/routines/`: CRUD de rutinas/ejercicios (líneas de rutina) con ownership.
 - `backend/src/modules/templates/`: CRUD de plantillas + `POST /templates/:id/assign` (deep copy a `rutinas`/`ejercicios`; Feature 018).
-- `backend/src/modules/exercises/`: catálogo `exercises` — `GET/POST /api/exercises` (trainer: globales + propios). Seed (`backend/scripts/seedExercises.js`) desde clone local de wrkout/exercises.json; `media_url` = raw GitHub. Las líneas de rutina/plantilla pueden vincularse con `exercise_id` + `nombre` denormalizado (Feature 022). Ver [`docs/database-schema.md`](database-schema.md).
+- `backend/src/modules/exercises/`: catálogo `exercises` — `GET/POST /api/exercises` (trainer: globales + propios). Listados admiten `?fields=summary` (Feature 089 / ADR-0012) sin TEXT de descripción. Seed (`backend/scripts/seedExercises.js`) desde clone local de wrkout/exercises.json; `media_url` = raw GitHub. Las líneas de rutina/plantilla pueden vincularse con `exercise_id` + `nombre` denormalizado (Feature 022). Ver [`docs/database-schema.md`](database-schema.md).
+- `backend/src/modules/diet-plans/`: planes de dieta — `GET /trainer/diets?summary=1` lista headers sin árbol anidado (Feature 089); detalle por id sigue completo.
 - `backend/src/modules/admin-exercises/`: HITL superadmin — `GET /api/admin/exercises/untagged`, `PATCH /api/admin/exercises/:id/tag` (`primary_muscle` / `secondary_muscles`). UI: `/admin/exercises/tagger`. Ver [`docs/exercise-muscle-tagger.md`](exercise-muscle-tagger.md).
 - `backend/src/modules/workout-sessions/`: `POST/GET /me/workout-sessions` (client, array) y `GET /clients/:id/workout-sessions` (trainer, paginado `{ sessions, hasMore, total }` — Feature 060). Feature 012 + 021.
 - `backend/src/modules/body-composition/`: historial antropométrico (Feature 026).

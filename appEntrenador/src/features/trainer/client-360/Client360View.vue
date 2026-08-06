@@ -16,24 +16,37 @@ import ConfirmActionDialog from '../../../shared/components/ConfirmActionDialog.
 import AppShell from '../../../shared/layout/AppShell.vue';
 import SessionHeaderActions from '../../../shared/layout/SessionHeaderActions.vue';
 import ProfileFormCard from '../../../shared/components/ProfileFormCard.vue';
-import ChatThread from '../../messaging/components/ChatThread.vue';
 import { getClientOverview, deleteClient } from '../api/clientsApi.js';
 import { getClientRoutines } from '../api/routinesApi.js';
 import { getClientWorkoutSessions } from '../api/workoutSessionsApi.js';
 import BodyCompositionPanel from '../components/BodyCompositionPanel.vue';
-import CheckinsHistoryPanel from '../components/CheckinsHistoryPanel.vue';
 import DailyHabitsPanel from '../components/DailyHabitsPanel.vue';
 import ConsistencyPanel from '../components/ConsistencyPanel.vue';
-import MembershipPanel from '../components/MembershipPanel.vue';
-import DietPlanPanel from '../components/DietPlanPanel.vue';
-import NutritionTargetsPanel from '../components/NutritionTargetsPanel.vue';
 import Client360Header from './Client360Header.vue';
 import Client360Overview from './Client360Overview.vue';
-import Client360Programming from './Client360Programming.vue';
 import { CLIENT_360_TABS, normalizeClient360Tab } from './client360Tabs.js';
 
 const ProgressChartsPanel = defineAsyncComponent(() => (
   import('../../../shared/components/ProgressChartsPanel.vue')
+));
+// Optimización: paneles pesados solo al abrir la pestaña (Feature 089).
+const CheckinsHistoryPanel = defineAsyncComponent(() => (
+  import('../components/CheckinsHistoryPanel.vue')
+));
+const MembershipPanel = defineAsyncComponent(() => (
+  import('../components/MembershipPanel.vue')
+));
+const DietPlanPanel = defineAsyncComponent(() => (
+  import('../components/DietPlanPanel.vue')
+));
+const NutritionTargetsPanel = defineAsyncComponent(() => (
+  import('../components/NutritionTargetsPanel.vue')
+));
+const Client360Programming = defineAsyncComponent(() => (
+  import('./Client360Programming.vue')
+));
+const ChatThread = defineAsyncComponent(() => (
+  import('../../messaging/components/ChatThread.vue')
 ));
 
 const route = useRoute();

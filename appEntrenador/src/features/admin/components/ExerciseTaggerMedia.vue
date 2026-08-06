@@ -34,6 +34,7 @@ const kind = computed(() => (
       loop
       muted
       playsinline
+      preload="metadata"
     />
     <img
       v-else-if="kind === 'gif' || kind === 'image'"
@@ -41,6 +42,7 @@ const kind = computed(() => (
       class="tagger-media__frame"
       :src="resolvedSrc"
       :alt="title || 'Ejercicio'"
+      loading="lazy"
     />
     <div
       v-else

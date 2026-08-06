@@ -90,6 +90,8 @@ export function useExercisesCatalog() {
         enriched: Boolean(enriched),
         muscle: muscle || null,
         warmup: Boolean(warmup),
+        // Optimización: grid de catálogo no necesita description* (Feature 089).
+        fields: 'summary',
       });
       if (seq !== loadSeq) return;
 

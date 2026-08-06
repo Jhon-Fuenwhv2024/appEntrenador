@@ -3,11 +3,10 @@
  * Day routine builder with progressive disclosure (Feature 061).
  * Props: form model (reactive), catalog, editing state. Emits save/cancel/catalog actions.
  */
-import { computed, shallowRef } from 'vue';
+import { computed, onMounted, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import WorkoutExerciseMedia from '../../client/components/WorkoutExerciseMedia.vue';
 import ExerciseMuscleFilter from '../../../shared/components/ExerciseMuscleFilter.vue';
-import { exerciseMatchesMuscleFilter } from '../../../shared/constants/muscles.js';
 import {
   buildCatalogLookups,
   enrichDraftExercise,
@@ -19,6 +18,7 @@ import {
 import {
   displayExerciseMuscle,
 } from '../../../shared/utils/exerciseDisplay.js';
+import { useExercisePickerSearch } from '../composables/useExercisePickerSearch.js';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const SUPERSET_LETTER_OPTIONS = ['A', 'B', 'C', 'D', 'E'];
@@ -65,6 +65,21 @@ const expandedExtras = shallowRef(new Set());
 /** Per-row expand for per-set prescription (Feature 085). */
 const expandedSets = shallowRef(new Set());
 
+// Optimización: menú ≤40 vía API q (no 900 :items).
+const {
+  pickerItems,
+  scheduleSearch,
+  runSearch,
+} = useExercisePickerSearch(() => ({
+  muscle: muscleFilter.value,
+  warmup: onlyWarmup.value,
+  enriched: true,
+}));
+
+onMounted(() => {
+  runSearch('');
+});
+
 const catalogByName = computed(() => {
   const map = new Map();
   for (const item of props.catalogExercises) {
@@ -75,12 +90,6 @@ const catalogByName = computed(() => {
   }
   return map;
 });
-
-const filteredCatalogExercises = computed(() => (
-  props.catalogExercises.filter((item) => (
-    exerciseMatchesMuscleFilter(item, muscleFilter.value, onlyWarmup.value)
-  ))
-));
 
 const catalogLookups = computed(() => buildCatalogLookups(props.catalogExercises));
 
@@ -301,7 +310,7 @@ const moveExercise = (index, delta) => {
           <v-autocomplete
             class="exercise-pick-row__input"
             :model-value="ex.nombre"
-            :items="filteredCatalogExercises"
+            :items="pickerItems"
             item-title="display_name"
             item-value="name"
             placeholder="Catálogo o texto libre"
@@ -315,6 +324,7 @@ const moveExercise = (index, delta) => {
             color="primary"
             :menu-props="{ contentClass: 'tf-overlay-menu', maxHeight: 280 }"
             :list-props="{ bgColor: 'surface', color: undefined }"
+            @update:search="scheduleSearch"
             @update:model-value="(value) => emit('exercise-name-update', { index, value })"
           >
             <template #item="{ props: itemProps, item }">
