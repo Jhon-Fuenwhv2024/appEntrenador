@@ -1,12 +1,30 @@
 /**
  * Local OS notification when rest ends while the app is hidden (Feature 086).
  * Reuses Notification permission (same as Web Push). Soft-fails if denied.
+ * Feature 088: actionUrl always includes resume=1 so remount hydrates the draft.
  */
 
 const REST_TAG = 'trainfit-rest-complete';
 
 function isSafeActionUrl(url) {
   return typeof url === 'string' && url.startsWith('/') && !url.startsWith('//');
+}
+
+/**
+ * Keep path + query, force resume=1 for crash-recovery hydrate on remount.
+ * @param {string} pathWithSearch
+ */
+export function withWorkoutResumeQuery(pathWithSearch) {
+  if (!isSafeActionUrl(pathWithSearch)) return '/';
+  try {
+    const url = new URL(pathWithSearch, 'https://trainfit.local');
+    url.searchParams.set('resume', '1');
+    return `${url.pathname}${url.search}`;
+  } catch {
+    const base = pathWithSearch.split('#')[0];
+    if (base.includes('resume=')) return base;
+    return base.includes('?') ? `${base}&resume=1` : `${base}?resume=1`;
+  }
 }
 
 /**
@@ -24,11 +42,10 @@ export async function notifyRestComplete(opts = {}) {
 
   const title = opts.title || 'Descanso terminado';
   const body = opts.body || 'Toca para volver al entrenamiento';
-  const actionUrl = isSafeActionUrl(opts.actionUrl)
+  const rawAction = isSafeActionUrl(opts.actionUrl)
     ? opts.actionUrl
-    : (typeof window !== 'undefined'
-      ? `${window.location.pathname}${window.location.search || ''}`
-      : '/');
+    : `${window.location.pathname}${window.location.search || ''}`;
+  const actionUrl = withWorkoutResumeQuery(rawAction);
 
   try {
     if ('serviceWorker' in navigator) {

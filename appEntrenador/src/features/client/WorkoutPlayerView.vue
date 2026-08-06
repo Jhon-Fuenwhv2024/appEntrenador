@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, shallowRef, watch } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   getApiErrorMessage,
@@ -98,6 +98,7 @@ const {
   postponeExercise,
   reset,
   unlockAudio,
+  syncRestFromTimestamp,
 } = useWorkoutSession();
 
 useWakeLock(phase);
@@ -509,6 +510,27 @@ watch(nextExercisePreview, (preview) => {
   if (!preview) showNextTechSheet.value = false;
 });
 
+/**
+ * Feature 088: notification tap while still on this route — keep the live session,
+ * just re-sync wall-clock rest (do not remount / "Comenzar" again).
+ */
+function onWorkoutFocusFromNotification() {
+  if (phase.value === 'resting') {
+    syncRestFromTimestamp();
+    return;
+  }
+  if (phase.value === 'working' || phase.value === 'finished') {
+    return;
+  }
+  // Rare: remount raced and left us idle — hydrate draft for this routine.
+  const routineId = Number(route.params.routineId);
+  if (Number.isInteger(routineId) && routineId > 0) {
+    tryRestoreDraft(routineId).catch((error) => {
+      console.warn('[workoutRecovery] focus restore failed:', error);
+    });
+  }
+}
+
 onMounted(() => {
   const user = getSessionUser();
   if (!user || user.rol !== 'client') {
@@ -516,7 +538,12 @@ onMounted(() => {
     return;
   }
   sessionUser.value = user;
+  window.addEventListener('trainfit:workout-focus', onWorkoutFocusFromNotification);
   loadRoutine();
+});
+
+onUnmounted(() => {
+  window.removeEventListener('trainfit:workout-focus', onWorkoutFocusFromNotification);
 });
 </script>
 

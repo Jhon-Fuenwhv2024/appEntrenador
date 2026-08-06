@@ -15,6 +15,17 @@ function isSafeActionUrl(url) {
   return typeof url === 'string' && url.startsWith('/') && !url.startsWith('//')
 }
 
+/** Compare pathnames only (ignore query) so ?resume=1 does not force remount. */
+function pathnamesMatch(a, b, scope) {
+  try {
+    const left = new URL(a, scope).pathname.replace(/\/$/, '') || '/'
+    const right = new URL(b, scope).pathname.replace(/\/$/, '') || '/'
+    return left === right
+  } catch {
+    return false
+  }
+}
+
 function openPushDb() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(PUSH_DB, 1)
@@ -121,6 +132,7 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
   const rawUrl = event.notification?.data?.actionUrl
+  const notifType = event.notification?.data?.type || 'system'
   const targetUrl = isSafeActionUrl(rawUrl) ? rawUrl : '/'
   const absoluteUrl = new URL(targetUrl, self.registration.scope).href
 
@@ -144,6 +156,27 @@ self.addEventListener('notificationclick', (event) => {
         if ('focus' in client) {
           await client.focus()
         }
+
+        // Feature 088: if already on the workout player, only focus — do NOT
+        // client.navigate() (that remounts Vue and starts a "new" session).
+        const alreadyOnTarget = pathnamesMatch(
+          client.url,
+          absoluteUrl,
+          self.registration.scope,
+        )
+        if (alreadyOnTarget) {
+          try {
+            client.postMessage({
+              type: 'TRAINFIT_WORKOUT_FOCUS',
+              reason: notifType,
+              url: targetUrl,
+            })
+          } catch {
+            // ignore
+          }
+          return
+        }
+
         // iOS / older Chromium: navigate may be missing — postMessage fallback.
         if (typeof client.navigate === 'function') {
           try {

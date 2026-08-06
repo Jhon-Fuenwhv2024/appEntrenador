@@ -118,6 +118,7 @@ export function useWorkoutSession(options = {}) {
     adjust: adjustTimer,
     unlockAudio,
     targetEndTime,
+    syncFromTimestamp: syncRestFromTimestamp,
   } = useTimer();
 
   const exercises = computed(() => routine.value?.ejercicios ?? []);
@@ -822,6 +823,16 @@ export function useWorkoutSession(options = {}) {
       clearPersistedDraft().catch((error) => {
         console.warn('[workoutSession] clear draft on finish:', error);
       });
+      return;
+    }
+    // Persist immediately on phase changes (rest → working) so notification
+    // remounts do not hydrate a stale resting draft.
+    if (next === 'working' || next === 'resting') {
+      if (draftSaveTimer != null) {
+        clearTimeout(draftSaveTimer);
+        draftSaveTimer = null;
+      }
+      flushDraftNow();
     }
   });
 
@@ -849,12 +860,14 @@ export function useWorkoutSession(options = {}) {
   });
 
   onUnmounted(() => {
-    cancelTimer();
-    stopElapsedTick();
+    // Flush before tearing down so remount can restore the latest session.
     if (draftSaveTimer != null) {
       clearTimeout(draftSaveTimer);
       draftSaveTimer = null;
     }
+    flushDraftNow();
+    cancelTimer();
+    stopElapsedTick();
     if (typeof document !== 'undefined') {
       document.removeEventListener('visibilitychange', onVisibilityFlush);
     }
@@ -898,5 +911,6 @@ export function useWorkoutSession(options = {}) {
     postponeExercise,
     reset,
     unlockAudio,
+    syncRestFromTimestamp,
   };
 }
