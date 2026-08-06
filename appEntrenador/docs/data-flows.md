@@ -276,3 +276,10 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 1. Wake Lock de pantalla en el Workout Player mientras hay series/descanso activos.
 2. Fin de descanso oculto → notificación local `rest_complete` si el usuario ya concedió notificaciones.
 3. Cierre de sesión sin red → IndexedDB → flush automático al recuperar conectividad (ADR-0009).
+
+## Recuperación de entrenamiento en curso (Feature 088)
+
+1. Durante `working` / `resting`, `useWorkoutSession` escribe un draft en IndexedDB (`trainfit-offline` / `active_workout_draft`, key `clientId`) con índices, logs, `startedAt`, snapshot de rutina y `restEndsAt` si aplica (ADR-0011).
+2. Al abrir Home (`ClientDashboardView`) o el Player: si hay draft → modal Reanudar / Descartar.
+3. Reanudar hidrata el composable (`restore`) y salta «Comenzar»; descanso futuro reanuda wall-clock; descanso vencido avanza sin beep.
+4. Al completar (POST OK o enqueue 086), Cancelar o Descartar → se borra el draft (evita recuperación fantasma).

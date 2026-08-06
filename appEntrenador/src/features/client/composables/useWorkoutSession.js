@@ -1,8 +1,12 @@
-import { computed, onUnmounted, ref, shallowRef } from 'vue';
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 import {
   parseSetPrescription,
   resolveSetPrefill,
 } from '../../../shared/routines/setPrescription.js';
+import {
+  clearActiveWorkoutDraft,
+  saveActiveWorkoutDraft,
+} from '../utils/activeWorkoutDraft.js';
 import { useTimer } from './useTimer.js';
 
 export const DEFAULT_REST_SECONDS = 90;
@@ -72,6 +76,7 @@ function formatElapsed(totalSeconds) {
  * (unless rest_time_seconds is 0).
  * Feature 059: sets checklist, rest ±15, session elapsed, Up next preview.
  * Feature 087: postponeExercise requeues without completing; rest tech-sheet preview.
+ * Feature 088: IndexedDB draft autosave + restore after unexpected close.
  * @param {{ restSeconds?: number }} [options]
  */
 export function useWorkoutSession(options = {}) {
@@ -96,13 +101,23 @@ export function useWorkoutSession(options = {}) {
   const nowMs = shallowRef(Date.now());
   let elapsedTickId = null;
 
+  /** Feature 088 persistence meta (set by player). */
+  const persistClientId = shallowRef(null);
+  const persistRoutineId = shallowRef(null);
+  const persistRoutineName = shallowRef('');
+  let persistEnabled = false;
+  let draftSaveTimer = null;
+  let skipAutosave = false;
+
   const {
     secondsLeft: restSecondsLeft,
     formattedTime: restFormattedTime,
     start: startTimer,
+    resumeAt: resumeTimerAt,
     cancel: cancelTimer,
     adjust: adjustTimer,
     unlockAudio,
+    targetEndTime,
   } = useTimer();
 
   const exercises = computed(() => routine.value?.ejercicios ?? []);
@@ -524,6 +539,149 @@ export function useWorkoutSession(options = {}) {
     restTarget.value = null;
     syncInputDefaults();
     startElapsedTick();
+    scheduleDraftSave();
+  }
+
+  /**
+   * Feature 088: wire IndexedDB autosave for the active client/routine.
+   * @param {{ clientId: number, routineId: number, routineName?: string }} meta
+   */
+  function configurePersistence(meta = {}) {
+    const clientId = Number(meta.clientId);
+    const routineId = Number(meta.routineId);
+    if (!Number.isInteger(clientId) || clientId < 1) {
+      persistEnabled = false;
+      return;
+    }
+    if (!Number.isInteger(routineId) || routineId < 1) {
+      persistEnabled = false;
+      return;
+    }
+    persistClientId.value = clientId;
+    persistRoutineId.value = routineId;
+    persistRoutineName.value = typeof meta.routineName === 'string' ? meta.routineName : '';
+    persistEnabled = true;
+  }
+
+  function buildDraftPayload() {
+    if (!persistEnabled) return null;
+    if (phase.value !== 'working' && phase.value !== 'resting') return null;
+    if (!routine.value?.ejercicios?.length) return null;
+
+    const endMs = targetEndTime.value;
+    return {
+      clientId: persistClientId.value,
+      routineId: persistRoutineId.value,
+      routineName: persistRoutineName.value || routine.value.nombre_rutina || '',
+      routineSnapshot: routine.value,
+      exerciseIndex: exerciseIndex.value,
+      setIndex: setIndex.value,
+      phase: phase.value,
+      logs: logs.value.map((entry) => ({ ...entry })),
+      startedAt: startedAt.value || new Date().toISOString(),
+      restEndsAt: phase.value === 'resting' && endMs != null
+        ? new Date(endMs).toISOString()
+        : null,
+      restDuration: phase.value === 'resting' ? Number(restDuration.value) || null : null,
+      restTarget: restTarget.value
+        ? {
+          exerciseIndex: restTarget.value.exerciseIndex,
+          setIndex: restTarget.value.setIndex,
+        }
+        : null,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  async function flushDraftNow() {
+    if (skipAutosave) return;
+    const payload = buildDraftPayload();
+    if (!payload) return;
+    try {
+      await saveActiveWorkoutDraft(payload);
+    } catch (error) {
+      console.warn('[workoutSession] draft save failed:', error);
+    }
+  }
+
+  function scheduleDraftSave() {
+    if (!persistEnabled || skipAutosave) return;
+    if (draftSaveTimer != null) clearTimeout(draftSaveTimer);
+    draftSaveTimer = setTimeout(() => {
+      draftSaveTimer = null;
+      flushDraftNow();
+    }, 400);
+  }
+
+  async function clearPersistedDraft() {
+    if (draftSaveTimer != null) {
+      clearTimeout(draftSaveTimer);
+      draftSaveTimer = null;
+    }
+    const clientId = persistClientId.value;
+    if (clientId == null) return;
+    await clearActiveWorkoutDraft(clientId);
+  }
+
+  /**
+   * Feature 088: hydrate an in-progress session from IndexedDB draft.
+   * Rest that already expired advances silently (no beep).
+   * @param {import('../utils/activeWorkoutDraft.js').ActiveWorkoutDraft} draft
+   */
+  function restore(draft) {
+    if (!draft?.routineSnapshot?.ejercicios?.length) {
+      throw new Error('Draft de entrenamiento inválido.');
+    }
+
+    skipAutosave = true;
+    cancelTimer();
+    stopElapsedTick();
+
+    configurePersistence({
+      clientId: draft.clientId,
+      routineId: draft.routineId,
+      routineName: draft.routineName,
+    });
+
+    routine.value = draft.routineSnapshot;
+    exerciseIndex.value = Math.max(0, Number(draft.exerciseIndex) || 0);
+    setIndex.value = Math.max(0, Number(draft.setIndex) || 0);
+    logs.value = Array.isArray(draft.logs) ? draft.logs.map((entry) => ({ ...entry })) : [];
+    startedAt.value = draft.startedAt || new Date().toISOString();
+    restDuration.value = draft.restDuration != null
+      ? Number(draft.restDuration)
+      : defaultRestSeconds;
+    restTarget.value = draft.restTarget
+      ? {
+        exerciseIndex: Number(draft.restTarget.exerciseIndex) || 0,
+        setIndex: Number(draft.restTarget.setIndex) || 0,
+      }
+      : null;
+
+    startElapsedTick();
+
+    if (draft.phase === 'resting') {
+      const endMs = draft.restEndsAt ? new Date(draft.restEndsAt).getTime() : NaN;
+      phase.value = 'resting';
+      const result = Number.isFinite(endMs)
+        ? resumeTimerAt(endMs, {
+          onComplete: () => {
+            if (phase.value !== 'resting') return;
+            advanceAfterRest();
+          },
+        })
+        : { expired: true };
+
+      if (result.expired) {
+        advanceAfterRest();
+      }
+    } else {
+      phase.value = 'working';
+      syncInputDefaults();
+    }
+
+    skipAutosave = false;
+    scheduleDraftSave();
   }
 
   function skipRest() {
@@ -626,6 +784,11 @@ export function useWorkoutSession(options = {}) {
   function reset() {
     cancelTimer();
     stopElapsedTick();
+    if (draftSaveTimer != null) {
+      clearTimeout(draftSaveTimer);
+      draftSaveTimer = null;
+    }
+    const clientIdToClear = persistClientId.value;
     routine.value = null;
     exerciseIndex.value = 0;
     setIndex.value = 0;
@@ -636,11 +799,68 @@ export function useWorkoutSession(options = {}) {
     startedAt.value = null;
     restDuration.value = defaultRestSeconds;
     restTarget.value = null;
+    if (clientIdToClear != null) {
+      clearActiveWorkoutDraft(clientIdToClear).catch((error) => {
+        console.warn('[workoutSession] clear draft on reset:', error);
+      });
+    }
   }
+
+  watch(
+    [phase, exerciseIndex, setIndex, logs, restTarget, routine],
+    () => {
+      if (phase.value === 'finished' || phase.value === 'idle') {
+        return;
+      }
+      scheduleDraftSave();
+    },
+    { deep: true },
+  );
+
+  watch(phase, (next) => {
+    if (next === 'finished') {
+      clearPersistedDraft().catch((error) => {
+        console.warn('[workoutSession] clear draft on finish:', error);
+      });
+    }
+  });
+
+  function onPageHideFlush() {
+    if (draftSaveTimer != null) {
+      clearTimeout(draftSaveTimer);
+      draftSaveTimer = null;
+    }
+    flushDraftNow();
+  }
+
+  function onVisibilityFlush() {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+      onPageHideFlush();
+    }
+  }
+
+  onMounted(() => {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibilityFlush);
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pagehide', onPageHideFlush);
+    }
+  });
 
   onUnmounted(() => {
     cancelTimer();
     stopElapsedTick();
+    if (draftSaveTimer != null) {
+      clearTimeout(draftSaveTimer);
+      draftSaveTimer = null;
+    }
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', onVisibilityFlush);
+    }
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('pagehide', onPageHideFlush);
+    }
   });
 
   return {
@@ -668,6 +888,10 @@ export function useWorkoutSession(options = {}) {
     nextExercisePreview,
     canPostpone,
     start,
+    restore,
+    configurePersistence,
+    clearPersistedDraft,
+    flushDraftNow,
     completeSet,
     skipRest,
     adjustRest,

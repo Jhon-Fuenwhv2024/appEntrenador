@@ -3,40 +3,10 @@
  * No MySQL schema change: dedup by routine_id + started_at on flush.
  */
 
-const DB_NAME = 'trainfit-offline';
-const DB_VERSION = 1;
-const STORE = 'pending_workout_sessions';
-
-function openDb() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onerror = () => reject(request.error || new Error('idb open failed'));
-    request.onsuccess = () => resolve(request.result);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE)) {
-        const store = db.createObjectStore(STORE, { keyPath: 'id' });
-        store.createIndex('by_routine_started', ['routine_id', 'started_at'], { unique: false });
-      }
-    };
-  });
-}
-
-function withStore(mode, fn) {
-  return openDb().then((db) => new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, mode);
-    tx.oncomplete = () => {
-      db.close();
-    };
-    tx.onerror = () => {
-      db.close();
-      reject(tx.error);
-    };
-    Promise.resolve(fn(tx.objectStore(STORE)))
-      .then(resolve)
-      .catch(reject);
-  }));
-}
+import {
+  PENDING_SESSIONS_STORE,
+  withOfflineStore,
+} from './offlineDb.js';
 
 function makeId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -62,7 +32,7 @@ export async function enqueueWorkoutSession(payload) {
     },
   };
 
-  await withStore('readwrite', (store) => new Promise((resolve, reject) => {
+  await withOfflineStore(PENDING_SESSIONS_STORE, 'readwrite', (store) => new Promise((resolve, reject) => {
     const req = store.put(entry);
     req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
@@ -73,7 +43,7 @@ export async function enqueueWorkoutSession(payload) {
 
 /** @returns {Promise<Array<{ id: string, queued_at: string, payload: object }>>} */
 export async function listPendingWorkoutSessions() {
-  return withStore('readonly', (store) => new Promise((resolve, reject) => {
+  return withOfflineStore(PENDING_SESSIONS_STORE, 'readonly', (store) => new Promise((resolve, reject) => {
     const req = store.getAll();
     req.onsuccess = () => resolve(Array.isArray(req.result) ? req.result : []);
     req.onerror = () => reject(req.error);
@@ -83,7 +53,7 @@ export async function listPendingWorkoutSessions() {
 /** @param {string} id */
 export async function removePendingWorkoutSession(id) {
   if (!id) return;
-  await withStore('readwrite', (store) => new Promise((resolve, reject) => {
+  await withOfflineStore(PENDING_SESSIONS_STORE, 'readwrite', (store) => new Promise((resolve, reject) => {
     const req = store.delete(id);
     req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);

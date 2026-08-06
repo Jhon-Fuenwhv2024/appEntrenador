@@ -16,17 +16,24 @@ import {
   isNetworkError,
   useOfflineWorkoutSync,
 } from './composables/useOfflineWorkoutSync.js';
+import { useActiveWorkoutRecovery } from './composables/useActiveWorkoutRecovery.js';
 import { useWakeLock } from './composables/useWakeLock.js';
 import { useWorkoutSession } from './composables/useWorkoutSession.js';
 import { enqueueWorkoutSession } from './utils/offlineWorkoutQueue.js';
+import {
+  clearActiveWorkoutDraft,
+  getActiveWorkoutDraft,
+} from './utils/activeWorkoutDraft.js';
 import MembershipLockedState from './components/MembershipLockedState.vue';
 import NextExerciseTechSheetDialog from './components/NextExerciseTechSheetDialog.vue';
 import PrCelebrationOverlay from './components/PrCelebrationOverlay.vue';
 import WorkoutExerciseMedia from './components/WorkoutExerciseMedia.vue';
 import WorkoutFinishedSummary from './components/WorkoutFinishedSummary.vue';
 import WorkoutHintExpandable from './components/WorkoutHintExpandable.vue';
+import WorkoutRecoveryDialog from './components/WorkoutRecoveryDialog.vue';
 import WorkoutRestRing from './components/WorkoutRestRing.vue';
 import WorkoutSetsChecklist from './components/WorkoutSetsChecklist.vue';
+import ConfirmActionDialog from '../../shared/components/ConfirmActionDialog.vue';
 import { isMembershipAccessBlocked } from './utils/membershipUi.js';
 
 const MEMBERSHIP_BLOCKED_MSG = 'Tu membresía venció — habla con tu entrenador.';
@@ -53,6 +60,8 @@ const newPrs = shallowRef([]);
 const showPrCelebration = shallowRef(false);
 const streakMessage = shallowRef('');
 const showNextTechSheet = shallowRef(false);
+const cancelDialogOpen = shallowRef(false);
+const discardingDraft = shallowRef(false);
 const snackbar = reactive({
   show: false,
   text: '',
@@ -80,15 +89,43 @@ const {
   nextExercisePreview,
   canPostpone,
   start,
+  restore,
+  configurePersistence,
+  clearPersistedDraft,
   completeSet,
   skipRest,
   adjustRest,
   postponeExercise,
+  reset,
   unlockAudio,
 } = useWorkoutSession();
 
 useWakeLock(phase);
 useOfflineWorkoutSync();
+
+const {
+  draft: recoveryDraft,
+  dialogOpen: recoveryDialogOpen,
+  refresh: refreshRecoveryDraft,
+  discard: discardRecoveryDraft,
+  resume: resumeRecoveryDraft,
+} = useActiveWorkoutRecovery({ checkOnMount: false, autoOpen: false });
+
+const sessionUser = shallowRef(null);
+
+const showCancelAction = computed(() => (
+  phase.value === 'working' || phase.value === 'resting'
+));
+
+function wirePersistence(routineId, routineName) {
+  const user = sessionUser.value || getSessionUser();
+  if (!user?.id) return;
+  configurePersistence({
+    clientId: user.id,
+    routineId: Number(routineId),
+    routineName: routineName || '',
+  });
+}
 
 function notify(text, color = 'surface') {
   snackbar.text = text;
@@ -185,6 +222,7 @@ async function persistSession() {
 
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       await enqueueWorkoutSession(payload);
+      await clearPersistedDraft();
       saved.value = true;
       savedOffline.value = true;
       saveError.value = '';
@@ -202,6 +240,7 @@ async function persistSession() {
     if (streak > 0 && prs.length === 0) {
       streakMessage.value = `Racha: ${streak} día${streak === 1 ? '' : 's'} consecutivos`;
     }
+    await clearPersistedDraft();
     saved.value = true;
     savedOffline.value = false;
   } catch (error) {
@@ -226,6 +265,7 @@ async function persistSession() {
             reps: entry.reps,
           })),
         });
+        await clearPersistedDraft();
         saved.value = true;
         savedOffline.value = true;
         saveError.value = '';
@@ -238,6 +278,48 @@ async function persistSession() {
   } finally {
     saving.value = false;
   }
+}
+
+/**
+ * Apply IndexedDB draft if it matches this route (or ?resume=1).
+ * @param {number} routineId
+ * @returns {Promise<boolean>} true if restored
+ */
+async function tryRestoreDraft(routineId) {
+  const draft = await refreshRecoveryDraft();
+  if (!draft) return false;
+
+  const wantResume = String(route.query.resume || '') === '1';
+  const sameRoutine = Number(draft.routineId) === Number(routineId);
+
+  if (sameRoutine || wantResume) {
+    if (!sameRoutine && wantResume) {
+      // resume=1 for another routine: navigate there instead
+      resumeRecoveryDraft(router);
+      return true;
+    }
+    try {
+      unlockAudio();
+      restore(draft);
+      sessionRoutineName.value = draft.routineName || sessionRoutineName.value;
+      pendingRoutine.value = null;
+      if (route.query.resume) {
+        router.replace({
+          name: 'WorkoutPlayer',
+          params: { routineId: draft.routineId },
+          query: {},
+        });
+      }
+      return true;
+    } catch (error) {
+      console.warn('[workoutRecovery] restore failed:', error);
+      return false;
+    }
+  }
+
+  // Draft belongs to another routine — prompt before starting a new one.
+  recoveryDialogOpen.value = true;
+  return false;
 }
 
 async function loadRoutine() {
@@ -275,6 +357,7 @@ async function loadRoutine() {
       return;
     }
     sessionRoutineName.value = routine.nombre_rutina || '';
+    wirePersistence(routineId, sessionRoutineName.value);
 
     const localDate = todayLocalDate();
     const sessions = sessionsRes?.data?.data ?? [];
@@ -291,6 +374,13 @@ async function loadRoutine() {
     });
     if (doneToday) {
       alreadyCompleted.value = true;
+      const user = sessionUser.value || getSessionUser();
+      if (user?.id) {
+        const draft = await getActiveWorkoutDraft(user.id);
+        if (draft && Number(draft.routineId) === Number(routineId)) {
+          await clearActiveWorkoutDraft(user.id);
+        }
+      }
       return;
     }
 
@@ -300,10 +390,14 @@ async function loadRoutine() {
       return;
     }
 
-    // Soft-lock: no preparar sesión si la membresía bloquea el entrenamiento.
-    if (!membershipBlocked.value) {
-      pendingRoutine.value = routine;
+    if (membershipBlocked.value) {
+      return;
     }
+
+    const restored = await tryRestoreDraft(routineId);
+    if (restored) return;
+
+    pendingRoutine.value = routine;
   } catch (error) {
     console.error('Error cargando rutina para el player:', error);
     if (isMembershipBlockedError(error)) {
@@ -332,6 +426,7 @@ function goToPreview() {
 function onBeginWorkout() {
   if (!pendingRoutine.value) return;
   unlockAudio();
+  wirePersistence(route.params.routineId, sessionRoutineName.value);
   start(pendingRoutine.value);
   pendingRoutine.value = null;
 }
@@ -373,6 +468,30 @@ function goBack() {
   router.push('/dashboard');
 }
 
+function openCancelDialog() {
+  cancelDialogOpen.value = true;
+}
+
+async function onConfirmCancelWorkout() {
+  cancelDialogOpen.value = false;
+  reset();
+  await clearPersistedDraft();
+  goBack();
+}
+
+function onResumeOtherDraft() {
+  resumeRecoveryDraft(router);
+}
+
+async function onDiscardOtherDraft() {
+  discardingDraft.value = true;
+  try {
+    await discardRecoveryDraft();
+  } finally {
+    discardingDraft.value = false;
+  }
+}
+
 watch(phase, async (next) => {
   if (next === 'finished') {
     await persistSession();
@@ -396,6 +515,7 @@ onMounted(() => {
     router.push('/');
     return;
   }
+  sessionUser.value = user;
   loadRoutine();
 });
 </script>
@@ -410,6 +530,15 @@ onMounted(() => {
         <div class="player-eyebrow">Entrenando</div>
         <div v-if="sessionRoutineName" class="player-routine">{{ sessionRoutineName }}</div>
       </div>
+      <button
+        v-if="showCancelAction"
+        type="button"
+        class="player-cancel"
+        aria-label="Cancelar entrenamiento"
+        @click="openCancelDialog"
+      >
+        Cancelar
+      </button>
       <div
         v-if="showSessionClock"
         class="player-elapsed"
@@ -609,6 +738,25 @@ onMounted(() => {
       :preview="nextExercisePreview"
     />
 
+    <WorkoutRecoveryDialog
+      v-model="recoveryDialogOpen"
+      :routine-name="recoveryDraft?.routineName || ''"
+      :started-at="recoveryDraft?.startedAt || ''"
+      :discarding="discardingDraft"
+      @resume="onResumeOtherDraft"
+      @discard="onDiscardOtherDraft"
+    />
+
+    <ConfirmActionDialog
+      v-model="cancelDialogOpen"
+      title="¿Cancelar entrenamiento?"
+      description="Se perderá el progreso de esta sesión y no se guardará."
+      confirm-label="Cancelar entrenamiento"
+      cancel-label="Seguir entrenando"
+      confirm-color="error"
+      @confirm="onConfirmCancelWorkout"
+    />
+
     <v-snackbar
       v-model="snackbar.show"
       :color="snackbar.color"
@@ -664,6 +812,24 @@ onMounted(() => {
   place-items: center;
   cursor: pointer;
   flex-shrink: 0;
+}
+
+.player-cancel {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.player-cancel:focus-visible {
+  outline: 2px solid #00E5FF;
+  outline-offset: 2px;
 }
 
 .player-top-text {

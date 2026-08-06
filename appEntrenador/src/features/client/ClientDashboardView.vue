@@ -13,12 +13,22 @@ import WeeklyCheckinDialog from './components/WeeklyCheckinDialog.vue';
 import ClientMembershipContactActions from './components/ClientMembershipContactActions.vue';
 import { useClientToday } from './composables/useClientToday.js';
 import { useClientHomeMode } from './composables/useClientHomeMode.js';
+import { useActiveWorkoutRecovery } from './composables/useActiveWorkoutRecovery.js';
+import WorkoutRecoveryDialog from './components/WorkoutRecoveryDialog.vue';
 
 const router = useRouter();
 const userName = shallowRef('');
 const heroReady = shallowRef(false);
 const checkinDialogOpen = shallowRef(false);
 const habitsCelebrate = shallowRef(false);
+const discardingDraft = shallowRef(false);
+
+const {
+  draft: recoveryDraft,
+  dialogOpen: recoveryDialogOpen,
+  discard: discardRecoveryDraft,
+  resume: resumeRecoveryDraft,
+} = useActiveWorkoutRecovery();
 
 const {
   loading,
@@ -111,6 +121,19 @@ function openCheckin() {
 
 function openChat() {
   router.push({ name: 'ClientMessages' });
+}
+
+function onResumeWorkout() {
+  resumeRecoveryDraft(router);
+}
+
+async function onDiscardWorkout() {
+  discardingDraft.value = true;
+  try {
+    await discardRecoveryDraft();
+  } finally {
+    discardingDraft.value = false;
+  }
 }
 
 async function onAdherenceChanged() {
@@ -314,6 +337,15 @@ onMounted(async () => {
     <WeeklyCheckinDialog
       v-model="checkinDialogOpen"
       @submitted="loadToday"
+    />
+
+    <WorkoutRecoveryDialog
+      v-model="recoveryDialogOpen"
+      :routine-name="recoveryDraft?.routineName || ''"
+      :started-at="recoveryDraft?.startedAt || ''"
+      :discarding="discardingDraft"
+      @resume="onResumeWorkout"
+      @discard="onDiscardWorkout"
     />
   </AppShell>
 </template>

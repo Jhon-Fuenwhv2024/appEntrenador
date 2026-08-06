@@ -144,6 +144,44 @@ export function useTimer(options = {}) {
     tickId = setInterval(syncFromTimestamp, 250);
   }
 
+  /**
+   * Resume a wall-clock rest from a persisted end timestamp (Feature 088).
+   * If already expired, does NOT fire beep/complete — caller advances silently.
+   * @param {number} endMs Absolute Date.now()-compatible deadline
+   * @param {{ onComplete?: () => void }} [startOptions]
+   * @returns {{ expired: boolean }}
+   */
+  function resumeAt(endMs, startOptions = {}) {
+    clearTick();
+    completedFired = false;
+
+    if (typeof startOptions.onComplete === 'function') {
+      completeHandler = startOptions.onComplete;
+    }
+
+    const end = Number(endMs);
+    if (!Number.isFinite(end)) {
+      secondsLeft.value = 0;
+      isRunning.value = false;
+      targetEndTime.value = null;
+      return { expired: true };
+    }
+
+    const remainingMs = end - Date.now();
+    if (remainingMs <= 0) {
+      secondsLeft.value = 0;
+      isRunning.value = false;
+      targetEndTime.value = null;
+      return { expired: true };
+    }
+
+    targetEndTime.value = end;
+    secondsLeft.value = Math.ceil(remainingMs / 1000);
+    isRunning.value = true;
+    tickId = setInterval(syncFromTimestamp, 250);
+    return { expired: false };
+  }
+
   /** Cancel without firing the completion alert. */
   function cancel() {
     clearTick();
@@ -195,6 +233,7 @@ export function useTimer(options = {}) {
     targetEndTime: readonly(targetEndTime),
     formattedTime,
     start,
+    resumeAt,
     cancel,
     adjust,
     unlockAudio,
