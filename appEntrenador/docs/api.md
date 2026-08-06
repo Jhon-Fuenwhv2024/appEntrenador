@@ -792,7 +792,9 @@ Cada ítem de `ejercicios[]` incluye (además de la prescripción):
 - `exercise_id` — vínculo al catálogo (nullable; Feature 022)
 - `rest_time_seconds` — descanso entre series prescrito por el trainer (Feature 028; default 90)
 - `superset_letter` — grupo superserie/circuito (nullable; Feature 029)
-- `media_type` / `media_url` — resueltos por `exercise_id` si existe; si no, por nombre (Features 008–009 / 022)
+- `media_type` / `media_url` / `local_media_path` — resueltos por `exercise_id` si existe; si no, por nombre (Features 008–009 / 022 / 044)
+- `name_es` / `description_es` — i18n del catálogo cuando hay match
+- `primary_muscle` / `target_muscle` / `target_muscle_es` — musculatura del catálogo (Feature 087, ficha técnica en descanso)
 - `last_log` — memoria de progresión (Feature 019):
 
 ```json

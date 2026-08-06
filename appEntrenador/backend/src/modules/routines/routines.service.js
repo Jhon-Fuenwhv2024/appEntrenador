@@ -264,20 +264,29 @@ async function enrichRoutinesWithCatalogMedia(routines, clientId) {
     local_media_path: null,
     name_es: null,
     description_es: null,
+    primary_muscle: null,
+    target_muscle: null,
+    target_muscle_es: null,
   };
 
   function mapCatalogMedia(row) {
     const localPath = typeof row.local_media_path === 'string'
       ? row.local_media_path.trim()
       : '';
+    const muscleFields = {
+      name_es: row.name_es ?? null,
+      description_es: row.description_es ?? null,
+      primary_muscle: row.primary_muscle ?? null,
+      target_muscle: row.target_muscle ?? null,
+      target_muscle_es: row.target_muscle_es ?? null,
+    };
     // Feature 044: demos only from hosted GIF — never fall back to wrkout JPG.
     if (!localPath) {
       return {
         media_type: 'none',
         media_url: null,
         local_media_path: null,
-        name_es: row.name_es ?? null,
-        description_es: row.description_es ?? null,
+        ...muscleFields,
       };
     }
 
@@ -291,8 +300,7 @@ async function enrichRoutinesWithCatalogMedia(routines, clientId) {
       media_type: mediaType,
       media_url: null,
       local_media_path: localPath,
-      name_es: row.name_es ?? null,
-      description_es: row.description_es ?? null,
+      ...muscleFields,
     };
   }
 
@@ -319,7 +327,8 @@ async function enrichRoutinesWithCatalogMedia(routines, clientId) {
     const idList = [...catalogIds];
     const idPlaceholders = idList.map(() => '?').join(',');
     const [byIdRows] = await db.query(
-      `SELECT id, name_es, description_es, media_type, media_url, local_media_path
+      `SELECT id, name_es, description_es, media_type, media_url, local_media_path,
+              primary_muscle, target_muscle, target_muscle_es
        FROM exercises
        WHERE id IN (${idPlaceholders})`,
       idList,
@@ -338,6 +347,7 @@ async function enrichRoutinesWithCatalogMedia(routines, clientId) {
 
     const [catalogRows] = await db.query(
       `SELECT name, name_es, description_es, media_type, media_url, local_media_path,
+              primary_muscle, target_muscle, target_muscle_es,
               created_by_trainer_id
        FROM exercises
        WHERE ${trainerClause}`,
@@ -384,6 +394,9 @@ async function enrichRoutinesWithCatalogMedia(routines, clientId) {
         local_media_path: media?.local_media_path || null,
         name_es: media?.name_es || null,
         description_es: media?.description_es || null,
+        primary_muscle: media?.primary_muscle || null,
+        target_muscle: media?.target_muscle || null,
+        target_muscle_es: media?.target_muscle_es || null,
       };
     }),
   }));

@@ -71,6 +71,7 @@ function formatElapsed(totalSeconds) {
  * Rest also runs after the last set of an exercise / group before the next exercise
  * (unless rest_time_seconds is 0).
  * Feature 059: sets checklist, rest ±15, session elapsed, Up next preview.
+ * Feature 087: postponeExercise requeues without completing; rest tech-sheet preview.
  * @param {{ restSeconds?: number }} [options]
  */
 export function useWorkoutSession(options = {}) {
@@ -194,7 +195,29 @@ export function useWorkoutSession(options = {}) {
     return rows;
   });
 
-  /** Up-next preview while resting (Feature 059). */
+  /**
+   * True when «Máquina ocupada» is allowed: only before any set of this exercise
+   * has been logged (and not mid-series). Not a casual skip.
+   */
+  const canPostpone = computed(() => {
+    if (phase.value !== 'working') return false;
+    if (exercises.value.length <= 1) return false;
+    if (exerciseIndex.value >= exercises.value.length - 1) return false;
+    if (setIndex.value > 0) return false;
+
+    const ex = currentExercise.value;
+    if (!ex) return false;
+
+    const started = logs.value.some((entry) => {
+      if (ex.id != null && entry.exerciseId != null) {
+        return Number(entry.exerciseId) === Number(ex.id);
+      }
+      return entry.exerciseName === ex.nombre;
+    });
+    return !started;
+  });
+
+  /** Up-next preview while resting (Feature 059 + 087 tech sheet). */
   const nextExercisePreview = computed(() => {
     if (phase.value !== 'resting') return null;
 
@@ -212,8 +235,14 @@ export function useWorkoutSession(options = {}) {
     if (metrics.weight > 0) metricsParts.push(`${metrics.weight} kg`);
     if (metrics.reps > 0) metricsParts.push(`${metrics.reps} reps`);
 
+    const indicaciones = typeof ex.indicaciones === 'string' ? ex.indicaciones.trim() : '';
+    const descriptionEs = typeof ex.description_es === 'string'
+      ? ex.description_es.trim()
+      : '';
+    const description = indicaciones || descriptionEs || '';
+
     return {
-      nombre: ex.nombre || 'Siguiente',
+      nombre: ex.name_es || ex.nombre || 'Siguiente',
       setNumber: nextSetNumber,
       totalSets: total,
       label: total > 0
@@ -225,6 +254,13 @@ export function useWorkoutSession(options = {}) {
       media_type: ex.media_type ?? null,
       media_url: ex.media_url ?? null,
       local_media_path: ex.local_media_path ?? null,
+      description,
+      indicaciones,
+      description_es: descriptionEs || null,
+      primary_muscle: ex.primary_muscle ?? null,
+      target_muscle: ex.target_muscle ?? null,
+      target_muscle_es: ex.target_muscle_es ?? null,
+      postponed: Boolean(ex.postponed),
     };
   });
 
@@ -324,11 +360,107 @@ export function useWorkoutSession(options = {}) {
     actualReps.value = metrics.reps;
   }
 
+  /**
+   * First set (0-based) without a log this session for the exercise.
+   * @param {{ id?: number|null, nombre?: string, series?: number }} ex
+   */
+  function firstIncompleteSetIndex(ex) {
+    if (!ex) return 0;
+    const total = Number(ex.series) || 0;
+    for (let i = 0; i < total; i += 1) {
+      const setNumber = i + 1;
+      const logged = logs.value.some((entry) => {
+        if (entry.setNumber !== setNumber) return false;
+        if (ex.id != null && entry.exerciseId != null) {
+          return Number(entry.exerciseId) === Number(ex.id);
+        }
+        return entry.exerciseName === ex.nombre;
+      });
+      if (!logged) return i;
+    }
+    return 0;
+  }
+
+  function isSetLogged(ex, setNumber) {
+    if (!ex) return false;
+    return logs.value.some((entry) => {
+      if (entry.setNumber !== setNumber) return false;
+      if (ex.id != null && entry.exerciseId != null) {
+        return Number(entry.exerciseId) === Number(ex.id);
+      }
+      return entry.exerciseName === ex.nombre;
+    });
+  }
+
   function goToExercise(nextIndex, nextSetIndex = 0) {
     exerciseIndex.value = nextIndex;
-    setIndex.value = nextSetIndex;
+    const ex = exercises.value[nextIndex];
+    let resolvedSet = Math.max(0, Number(nextSetIndex) || 0);
+    // Feature 087: if we land on a set already logged (postponed mid-exercise), skip ahead.
+    if (ex && isSetLogged(ex, resolvedSet + 1)) {
+      resolvedSet = firstIncompleteSetIndex(ex);
+    }
+    setIndex.value = resolvedSet;
     phase.value = 'working';
     syncInputDefaults();
+  }
+
+  /**
+   * Feature 087: mark exercise as postponed and insert it right after the next one.
+   * Example: [Press, Laterales, ...] → postpone Press → [Laterales, Press, ...].
+   * Does not complete or delete; advances immediately to the next exercise.
+   * @param {number|string|null} [exerciseId] Line id; defaults to current exercise.
+   * @returns {{ ok: boolean, reason?: string, postponedName?: string, nextName?: string }}
+   */
+  function postponeExercise(exerciseId = null) {
+    if (phase.value !== 'working') {
+      return { ok: false, reason: 'not_working' };
+    }
+    if (!routine.value?.ejercicios?.length) {
+      return { ok: false, reason: 'empty' };
+    }
+
+    const list = [...routine.value.ejercicios];
+    if (list.length < 2) {
+      return { ok: false, reason: 'last' };
+    }
+
+    let fromIndex = exerciseIndex.value;
+    if (exerciseId != null && exerciseId !== '') {
+      const found = list.findIndex((ex) => Number(ex.id) === Number(exerciseId));
+      if (found >= 0) fromIndex = found;
+    }
+
+    if (fromIndex < 0 || fromIndex >= list.length) {
+      return { ok: false, reason: 'not_found' };
+    }
+    if (fromIndex >= list.length - 1) {
+      return { ok: false, reason: 'last' };
+    }
+
+    const [moved] = list.splice(fromIndex, 1);
+    const postponed = {
+      ...moved,
+      postponed: true,
+      execution_status: 'pospuesto',
+    };
+    // After splice, the former "next" sits at fromIndex; insert postponed right after it.
+    list.splice(fromIndex + 1, 0, postponed);
+
+    // shallowRef(routine): replace root so ejercicios reorder is observed.
+    routine.value = {
+      ...routine.value,
+      ejercicios: list,
+    };
+
+    const nextEx = list[fromIndex];
+    goToExercise(fromIndex, firstIncompleteSetIndex(nextEx));
+
+    return {
+      ok: true,
+      postponedName: postponed.name_es || postponed.nombre || 'Ejercicio',
+      nextName: nextEx?.name_es || nextEx?.nombre || '',
+    };
   }
 
   function advanceAfterRest() {
@@ -534,10 +666,12 @@ export function useWorkoutSession(options = {}) {
     exercises,
     setsChecklist,
     nextExercisePreview,
+    canPostpone,
     start,
     completeSet,
     skipRest,
     adjustRest,
+    postponeExercise,
     reset,
     unlockAudio,
   };

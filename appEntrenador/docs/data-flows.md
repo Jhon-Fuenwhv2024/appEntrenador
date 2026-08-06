@@ -149,15 +149,16 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 2. Frontend carga `GET /me/routines` (incluye `last_log` por ejercicio si hay historial) y muestra **Comenzar entrenamiento**.
 3. En ese tap se desbloquea el audio HTML5 (`useTimer.unlockAudio`) y arranca `useWorkoutSession` (serie, descanso, auto-avance).
 4. **Feature 059 (UX híbrida):** fase `working` = media del ejercicio + checklist de series (Set | Anterior | kg×reps | estado) + CTA Completar serie; header con duración de sesión. Fase `resting` = anillo de progreso, controles ±15 s, Omitir y bloque **Up next** (respeta superseries 029).
-5. El descanso usa `targetEndTime` (wall clock) + `visibilitychange`: al volver del background se recalcula `targetEndTime - Date.now()`; si ya expiró, contador a 0, beep y avance de serie. No se confía en ticks que resten `1` cada segundo. `useTimer.adjust` mueve el deadline (±15) sin romper ADR-0002.
-6. **Feature 086:** Screen Wake Lock mientras `working`/`resting` (`useWakeLock`); si el descanso termina con la app oculta y hay permiso de notificaciones, notificación local `rest_complete`. Si `POST /me/workout-sessions` falla por red, el payload va a IndexedDB (`offlineWorkoutQueue`) y se hace flush al evento `online` / montaje del shell (ADR-0009).
-7. La columna **Anterior** del checklist usa `last_log` de forma informativa; **no** autocompleta los inputs con ese historial (inputs siguen el peso/reps prescritos de la rutina).
-8. Al terminar, `POST /me/workout-sessions` persiste peso/reps por serie (contrato sin cambios); offline → cola local hasta sync.
-9. Tras guardar (status `completed`): detección de PRs (041) → `new_prs[]` + notificación `pr_achieved`; recalculo de racha/score (042) → `consistency` en la respuesta; Player muestra overlay si hay PRs. (Si quedó en cola offline, PRs llegan al flush.)
-10. Al volver a Inicio, `todayCompleted` debe ser `true` (fecha civil TZ alumno) → hero **Completado** (sin CTA Repetir) — tras sync si estaba offline.
-11. En la siguiente sesión, ese log queda disponible como `last_log` (match por `client_id` + nombre de ejercicio; los ids de línea de deep copy no afectan).
-12. Trainer consulta `GET /clients/:id/workout-sessions` y ve el historial en la ficha del alumno; `GET /clients/:id/routines` también incluye `last_log` por ejercicio.
-13. Cliente consulta `GET /me/workout-sessions` en **Mi progreso** (`/client/progress`) — Feature 021; sección **Mis récords** vía `GET /me/personal-records`.
+5. **Feature 087:** **Máquina ocupada** inserta el ejercicio activo justo después del siguiente (`execution_status: pospuesto`, solo frontend; ej. Press → Laterales queda Laterales → Press). Copy del CTA evita el skip genérico. En descanso, tap en **Siguiente ejercicio** abre ficha técnica (media / descripción / músculos) sin pausar el wall-clock; el media se desmonta al cerrar el dialog.
+6. El descanso usa `targetEndTime` (wall clock) + `visibilitychange`: al volver del background se recalcula `targetEndTime - Date.now()`; si ya expiró, contador a 0, beep y avance de serie. No se confía en ticks que resten `1` cada segundo. `useTimer.adjust` mueve el deadline (±15) sin romper ADR-0002.
+7. **Feature 086:** Screen Wake Lock mientras `working`/`resting` (`useWakeLock`); si el descanso termina con la app oculta y hay permiso de notificaciones, notificación local `rest_complete`. Si `POST /me/workout-sessions` falla por red, el payload va a IndexedDB (`offlineWorkoutQueue`) y se hace flush al evento `online` / montaje del shell (ADR-0009).
+8. La columna **Anterior** del checklist usa `last_log` de forma informativa; **no** autocompleta los inputs con ese historial (inputs siguen el peso/reps prescritos de la rutina).
+9. Al terminar, `POST /me/workout-sessions` persiste peso/reps por serie (contrato sin cambios); offline → cola local hasta sync.
+10. Tras guardar (status `completed`): detección de PRs (041) → `new_prs[]` + notificación `pr_achieved`; recalculo de racha/score (042) → `consistency` en la respuesta; Player muestra overlay si hay PRs. (Si quedó en cola offline, PRs llegan al flush.)
+11. Al volver a Inicio, `todayCompleted` debe ser `true` (fecha civil TZ alumno) → hero **Completado** (sin CTA Repetir) — tras sync si estaba offline.
+12. En la siguiente sesión, ese log queda disponible como `last_log` (match por `client_id` + nombre de ejercicio; los ids de línea de deep copy no afectan).
+13. Trainer consulta `GET /clients/:id/workout-sessions` y ve el historial en la ficha del alumno; `GET /clients/:id/routines` también incluye `last_log` por ejercicio.
+14. Cliente consulta `GET /me/workout-sessions` en **Mi progreso** (`/client/progress`) — Feature 021; sección **Mis récords** vía `GET /me/personal-records`.
 
 ## PRs y celebraciones (Feature 041)
 

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, shallowRef, watch } from 'vue';
+import { computed, onMounted, reactive, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   getApiErrorMessage,
@@ -20,6 +20,7 @@ import { useWakeLock } from './composables/useWakeLock.js';
 import { useWorkoutSession } from './composables/useWorkoutSession.js';
 import { enqueueWorkoutSession } from './utils/offlineWorkoutQueue.js';
 import MembershipLockedState from './components/MembershipLockedState.vue';
+import NextExerciseTechSheetDialog from './components/NextExerciseTechSheetDialog.vue';
 import PrCelebrationOverlay from './components/PrCelebrationOverlay.vue';
 import WorkoutExerciseMedia from './components/WorkoutExerciseMedia.vue';
 import WorkoutFinishedSummary from './components/WorkoutFinishedSummary.vue';
@@ -51,6 +52,12 @@ const pendingRoutine = shallowRef(null);
 const newPrs = shallowRef([]);
 const showPrCelebration = shallowRef(false);
 const streakMessage = shallowRef('');
+const showNextTechSheet = shallowRef(false);
+const snackbar = reactive({
+  show: false,
+  text: '',
+  color: 'surface',
+});
 
 const {
   phase,
@@ -71,15 +78,23 @@ const {
   currentSetNumber,
   setsChecklist,
   nextExercisePreview,
+  canPostpone,
   start,
   completeSet,
   skipRest,
   adjustRest,
+  postponeExercise,
   unlockAudio,
 } = useWorkoutSession();
 
 useWakeLock(phase);
 useOfflineWorkoutSync();
+
+function notify(text, color = 'surface') {
+  snackbar.text = text;
+  snackbar.color = color;
+  snackbar.show = true;
+}
 
 const exerciseHint = computed(() => (
   currentExercise.value?.indicaciones?.trim() || ''
@@ -333,6 +348,27 @@ function onCompleteSet() {
   }
 }
 
+/** Feature 087: requeue because equipment is busy (not a casual skip). */
+function onPostponeExercise() {
+  formError.value = '';
+  const result = postponeExercise(currentExercise.value?.id ?? null);
+  if (!result.ok) {
+    if (result.reason === 'last') {
+      notify('Ya es el último ejercicio de la cola', 'warning');
+    }
+    return;
+  }
+  const next = result.nextName
+    ? ` Vuelve después de ${result.nextName}.`
+    : '';
+  notify(`Máquina ocupada: ${result.postponedName}.${next}`);
+}
+
+function openNextTechSheet() {
+  if (!nextExercisePreview.value) return;
+  showNextTechSheet.value = true;
+}
+
 function goBack() {
   router.push('/dashboard');
 }
@@ -341,10 +377,17 @@ watch(phase, async (next) => {
   if (next === 'finished') {
     await persistSession();
   }
+  if (next !== 'resting') {
+    showNextTechSheet.value = false;
+  }
 });
 
 watch(currentExercise, () => {
   formError.value = '';
+});
+
+watch(nextExercisePreview, (preview) => {
+  if (!preview) showNextTechSheet.value = false;
 });
 
 onMounted(() => {
@@ -447,7 +490,19 @@ onMounted(() => {
 
     <main v-else-if="phase === 'working' && currentExercise" class="player-main">
       <div class="player-scroll">
-        <p class="player-step">{{ exerciseCounter }}</p>
+        <div class="player-step-row">
+          <p class="player-step">{{ exerciseCounter }}</p>
+          <button
+            v-if="canPostpone"
+            type="button"
+            class="player-busy-equip"
+            aria-label="Máquina ocupada: hacer este ejercicio después del siguiente"
+            @click="onPostponeExercise"
+          >
+            <v-icon icon="mdi-account-clock-outline" size="18" aria-hidden="true" />
+            Máquina ocupada
+          </button>
+        </div>
         <div
           class="player-progress"
           role="progressbar"
@@ -526,6 +581,7 @@ onMounted(() => {
         :next-preview="nextExercisePreview"
         @adjust="adjustRest"
         @skip="skipRest"
+        @preview="openNextTechSheet"
       />
     </main>
 
@@ -547,6 +603,21 @@ onMounted(() => {
     </main>
 
     <PrCelebrationOverlay v-model="showPrCelebration" :prs="newPrs" />
+
+    <NextExerciseTechSheetDialog
+      v-model="showNextTechSheet"
+      :preview="nextExercisePreview"
+    />
+
+    <v-snackbar
+      v-model="snackbar.show"
+      :color="snackbar.color"
+      timeout="2800"
+      location="top"
+      multi-line
+    >
+      {{ snackbar.text }}
+    </v-snackbar>
   </div>
 </template>
 
@@ -670,6 +741,9 @@ onMounted(() => {
 .player-main--rest {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  justify-content: flex-start;
+  padding-top: 1.25rem;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
 }
 
 .player-cta--ready {
@@ -834,6 +908,49 @@ onMounted(() => {
   cursor: pointer;
   width: 100%;
   box-shadow: 0 8px 24px rgba(0, 229, 255, 0.22);
+}
+
+.player-step-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 4px;
+}
+
+.player-step-row .player-step {
+  margin: 0;
+  min-width: 0;
+}
+
+.player-busy-equip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 193, 7, 0.45);
+  background: rgba(255, 193, 7, 0.08);
+  color: #ffc107;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.player-busy-equip:active {
+  transform: scale(0.97);
+  background: rgba(255, 193, 7, 0.14);
+}
+
+.player-busy-equip:focus-visible {
+  outline: 2px solid #00e5ff;
+  outline-offset: 2px;
 }
 
 @media (min-width: 480px) {
