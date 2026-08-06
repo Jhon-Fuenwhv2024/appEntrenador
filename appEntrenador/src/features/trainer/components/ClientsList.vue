@@ -4,7 +4,7 @@
  * Props down / events up — filtering and fetching live in the parent view.
  */
 import { computed } from 'vue';
-import { resolveAvatarSrc } from '../../../shared/utils/avatar.js';
+import TfAvatar from '../../../shared/components/TfAvatar.vue';
 
 const searchQuery = defineModel('searchQuery', {
   type: String,
@@ -129,11 +129,11 @@ const onDeleteClick = (event, client) => {
         @keydown.enter="emit('selectClient', client)"
       >
         <div class="student-avatar" aria-hidden="true">
-          <img
-            :src="resolveAvatarSrc(client.foto_url)"
-            alt=""
-            class="student-avatar__img"
-          >
+          <TfAvatar
+            :foto-url="client.foto_url || ''"
+            fallback="default"
+            img-class="student-avatar__img"
+          />
         </div>
 
         <div class="student-info">

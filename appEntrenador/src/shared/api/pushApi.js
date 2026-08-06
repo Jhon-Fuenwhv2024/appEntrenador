@@ -14,7 +14,8 @@ export function deletePushSubscription(endpoint) {
 
 /** Heartbeat: app visible / foreground (suppress chat push while active). */
 export function touchPushPresence() {
-  return http.post('/push/presence', null, { softAuth: true });
+  // Empty object: express.json() strict mode rejects a bare `null` body.
+  return http.post('/push/presence', {}, { softAuth: true });
 }
 
 export function clearPushPresence() {

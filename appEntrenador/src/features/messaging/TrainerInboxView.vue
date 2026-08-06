@@ -9,7 +9,7 @@ import { useRouter } from 'vue-router';
 import { getApiErrorMessage } from '../../shared/api/http.js';
 import { getSessionUser } from '../../shared/auth/session.js';
 import AppShell from '../../shared/layout/AppShell.vue';
-import { resolveAvatarSrc } from '../../shared/utils/avatar.js';
+import TfAvatar from '../../shared/components/TfAvatar.vue';
 import { getClients } from '../trainer/api/clientsApi.js';
 import ChatThread from './components/ChatThread.vue';
 import { useUnreadMessages } from './composables/useUnreadMessages.js';
@@ -102,8 +102,6 @@ const clientInitial = (client) => {
   const name = String(client?.nombre || '?').trim();
   return name.charAt(0).toUpperCase() || '?';
 };
-
-const clientAvatarSrc = (client) => resolveAvatarSrc(client?.foto_url);
 
 const hasClientPhoto = (client) => {
   const url = String(client?.foto_url || '').trim();
@@ -233,13 +231,12 @@ onMounted(() => {
               :class="{ 'trainer-inbox__avatar--photo': hasClientPhoto(client) }"
               aria-hidden="true"
             >
-              <img
-                v-if="hasClientPhoto(client)"
-                class="trainer-inbox__avatar-img"
-                :src="clientAvatarSrc(client)"
-                alt=""
-              >
-              <span v-else>{{ clientInitial(client) }}</span>
+              <TfAvatar
+                :foto-url="client.foto_url || ''"
+                fallback="initials"
+                :initials="clientInitial(client)"
+                img-class="trainer-inbox__avatar-img"
+              />
             </div>
 
             <div class="trainer-inbox__body">

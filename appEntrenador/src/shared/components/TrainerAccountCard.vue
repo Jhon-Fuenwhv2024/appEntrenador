@@ -3,7 +3,7 @@
  * Trainer account profile: compact collapsible view + edit (nombre, telefono, foto).
  */
 import { computed, reactive, shallowRef, watch } from 'vue';
-import { resolveAvatarSrc } from '../utils/avatar.js';
+import { useAuthenticatedAvatar } from '../composables/useAuthenticatedAvatar.js';
 
 const props = defineProps({
   account: {
@@ -27,10 +27,13 @@ const form = reactive({
 const fotoFile = shallowRef(null);
 const previewObjectUrl = shallowRef('');
 
-const avatarSrc = computed(() => {
-  if (previewObjectUrl.value) return previewObjectUrl.value;
-  return resolveAvatarSrc(props.account?.foto_url);
-});
+const avatarSource = computed(
+  () => previewObjectUrl.value || props.account?.foto_url || '',
+);
+const { displaySrc: avatarSrc, onImgError: onAvatarError } = useAuthenticatedAvatar(
+  avatarSource,
+  { fallback: 'default' },
+);
 
 const displayName = computed(() => props.account?.nombre || 'Entrenador');
 
@@ -113,7 +116,12 @@ function onSubmit() {
           <v-expansion-panel-title class="account-exp-title">
             <div class="account-title-row">
               <v-avatar size="48" class="account-avatar">
-                <v-img :src="avatarSrc" :alt="`Foto de ${displayName}`" cover />
+                <v-img
+                  :src="avatarSrc"
+                  :alt="`Foto de ${displayName}`"
+                  cover
+                  @error="onAvatarError"
+                />
               </v-avatar>
               <div class="account-identity min-width-0">
                 <p class="account-eyebrow">Mi perfil</p>
@@ -168,7 +176,12 @@ function onSubmit() {
 
       <div class="account-edit__avatar-row">
         <v-avatar size="72" class="account-avatar">
-          <v-img :src="avatarSrc" :alt="`Foto de ${displayName}`" cover />
+          <v-img
+            :src="avatarSrc"
+            :alt="`Foto de ${displayName}`"
+            cover
+            @error="onAvatarError"
+          />
         </v-avatar>
         <v-file-input
           :model-value="fotoFile"

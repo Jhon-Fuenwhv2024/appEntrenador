@@ -28,9 +28,11 @@ R2 free tier permanente (Standard): 10 GB storage, 1M Class A, 10M Class B, egre
 - Redeploy de Render **no** borra fotos de perfil ya subidas a R2.
 - Tras activar R2 hay que **re-subir** avatares que solo existían en disco efímero.
 - Cuando se active Coolify + MinIO (068), la misma capa S3 puede apuntar a otro endpoint sin cambiar el contrato de `foto_url`.
+- La UI carga avatares con Bearer → blob URL ([ADR-0010](ADR-0010-authenticated-avatar-blob.md)); el proxy Express con JWT se mantiene.
 
 ## Referencias
 
 - Código: `backend/src/shared/storage/`, `uploadAvatar.js`, `authenticatePrivateUploads.js`
 - Deploy: `docs/deploy-render.md`
 - Feature futura: `spec/features/068-object-storage-coolify-media/`
+- Cliente: [ADR-0010](ADR-0010-authenticated-avatar-blob.md)

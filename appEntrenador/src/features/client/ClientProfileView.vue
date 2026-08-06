@@ -20,12 +20,14 @@ import ChangePasswordForm from '../../shared/components/ChangePasswordForm.vue';
 import ProfileFormCard from '../../shared/components/ProfileFormCard.vue';
 import PushOptInCard from '../../shared/components/PushOptInCard.vue';
 import TextScaleCard from '../../shared/components/TextScaleCard.vue';
+import { useSessionAccount } from '../../shared/composables/useSessionAccount.js';
 import { getMyMembership } from './api/membershipApi.js';
 import { getMyGymMembership } from './api/gymMembershipApi.js';
 import ClientProfileMembershipCard from './components/ClientProfileMembershipCard.vue';
 import ClientGymMembershipCard from './components/ClientGymMembershipCard.vue';
 
 const router = useRouter();
+const { loadAccount: refreshSessionHeader } = useSessionAccount({ role: 'client' });
 
 const userId = shallowRef(null);
 const profile = shallowRef(null);
@@ -99,6 +101,7 @@ async function onSave({ fields, fotoFile, done }) {
     const formData = buildProfileFormData(fields, fotoFile);
     const response = await updateProfile(userId.value, formData);
     profile.value = response.data.data ?? profile.value;
+    await refreshSessionHeader({ force: true });
     notify('Perfil actualizado');
     done?.(true);
   } catch (error) {

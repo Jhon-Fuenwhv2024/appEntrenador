@@ -5,7 +5,11 @@ import { logoutSession } from '../../features/auth/api/authApi.js';
 import { clearSession, getRefreshToken, getSessionUser } from '../auth/session.js';
 import { usePushNotifications } from './usePushNotifications.js';
 import { resolveEffectiveSaasPlan, toDateOnlyString } from '../saas/effectivePlan.js';
-import { resolveAvatarSrc } from '../utils/avatar.js';
+import {
+  clearAuthenticatedMediaCache,
+  invalidateAuthenticatedMedia,
+} from '../utils/authenticatedMedia.js';
+import { useAuthenticatedAvatar } from './useAuthenticatedAvatar.js';
 
 const ACCOUNT_PLAN_KEY = 'sessionSaasPlan';
 const ACCOUNT_FOTO_KEY = 'sessionFotoUrl';
@@ -17,6 +21,8 @@ const ACCOUNT_EXP_DATE_KEY = 'sessionSaasExpDate';
 const displayName = shallowRef('');
 const email = shallowRef('');
 const fotoUrl = shallowRef(null);
+/** Bumped after account fetch so same-path re-uploads refresh the blob. */
+const fotoRevision = shallowRef(0);
 /** Plan efectivo (PRO solo si no vencido). */
 const saasPlan = shallowRef('FREE');
 const saasIsExpired = shallowRef(false);
@@ -91,11 +97,13 @@ export function clearSessionAccountCache() {
   displayName.value = '';
   email.value = '';
   fotoUrl.value = null;
+  fotoRevision.value = 0;
   saasPlan.value = 'FREE';
   saasIsExpired.value = false;
   saasExpirationDate.value = null;
   loadedUserId.value = null;
   loadPromise = null;
+  clearAuthenticatedMediaCache();
   try {
     localStorage.removeItem(ACCOUNT_PLAN_KEY);
     localStorage.removeItem(ACCOUNT_FOTO_KEY);
@@ -116,7 +124,14 @@ export function useSessionAccount(options = {}) {
   const { role } = options;
   const router = useRouter();
 
-  const avatarSrc = computed(() => resolveAvatarSrc(fotoUrl.value));
+  const {
+    displaySrc: avatarSrc,
+    showPhoto: showAvatarPhoto,
+    onImgError: onAvatarError,
+  } = useAuthenticatedAvatar(fotoUrl, {
+    fallback: 'initials',
+    reloadToken: fotoRevision,
+  });
 
   const hasCustomFoto = computed(() => {
     const url = typeof fotoUrl.value === 'string' ? fotoUrl.value.trim() : '';
@@ -177,7 +192,12 @@ export function useSessionAccount(options = {}) {
         const data = response.data?.data;
         if (data?.nombre) displayName.value = data.nombre;
         email.value = data?.email || '';
-        fotoUrl.value = data?.foto_url ?? null;
+        const nextFoto = data?.foto_url ?? null;
+        fotoUrl.value = nextFoto;
+        if (force && nextFoto) {
+          invalidateAuthenticatedMedia(nextFoto);
+          fotoRevision.value += 1;
+        }
 
         let nextPlan = saasPlan.value;
         let nextExpired = false;
@@ -269,6 +289,8 @@ export function useSessionAccount(options = {}) {
     email,
     avatarSrc,
     hasCustomFoto,
+    showAvatarPhoto,
+    onAvatarError,
     initials,
     saasPlan,
     saasExpirationDate,

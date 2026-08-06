@@ -50,7 +50,9 @@ function authenticateSse(req, res, next) {
 
     return next();
   } catch (error) {
-    console.error('Error verificando JWT (SSE):', error.message);
+    // Log de diagnóstico al fallar jwt.verify en el stream SSE de chat.
+    // Comentado: ruido con access expirado. Descomentar si hay que depurar SSE/auth.
+    // console.error('Error verificando JWT (SSE):', error.message);
     return sendError(res, createHttpError('Token inválido o expirado.', 401), 'Token inválido.', 401);
   }
 }

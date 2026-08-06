@@ -44,7 +44,9 @@ function authenticate(req, res, next) {
 
     return next();
   } catch (error) {
-    console.error('Error verificando JWT:', error.message);
+    // Log de diagnóstico al fallar jwt.verify (p. ej. "jwt expired" con access corto).
+    // Comentado: ensucia la consola; el 401 sigue igual. Descomentar si hay que depurar auth.
+    // console.error('Error verificando JWT:', error.message);
     return sendAuthError(res, 'Token inválido o expirado.', 401);
   }
 }

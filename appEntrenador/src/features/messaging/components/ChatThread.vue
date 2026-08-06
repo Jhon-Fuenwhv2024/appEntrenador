@@ -6,7 +6,8 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 import { getApiErrorMessage } from '../../../shared/api/http.js';
 import { getSessionUser } from '../../../shared/auth/session.js';
-import { resolveAvatarSrc } from '../../../shared/utils/avatar.js';
+import TfAvatar from '../../../shared/components/TfAvatar.vue';
+import { isCustomFotoUrl } from '../../../shared/utils/authenticatedMedia.js';
 import { getConversation, getPartnerPresence, sendMessage } from '../api/messagesApi.js';
 import { useChatStream } from '../composables/useChatStream.js';
 import { useUnreadMessages } from '../composables/useUnreadMessages.js';
@@ -52,11 +53,7 @@ const partnerInitial = computed(() => {
   return name.charAt(0).toUpperCase() || '?';
 });
 
-const partnerAvatarSrc = computed(() => resolveAvatarSrc(resolvedPartnerFotoUrl.value));
-const hasPartnerPhoto = computed(() => {
-  const url = String(resolvedPartnerFotoUrl.value || '').trim();
-  return Boolean(url) && url !== 'default_avatar.png';
-});
+const hasPartnerPhoto = computed(() => isCustomFotoUrl(resolvedPartnerFotoUrl.value));
 
 const appendIfRelevant = (message) => {
   if (!message?.id) return;
@@ -215,13 +212,12 @@ onUnmounted(() => {
           :class="{ 'chat-thread__avatar--photo': hasPartnerPhoto }"
           aria-hidden="true"
         >
-          <img
-            v-if="hasPartnerPhoto"
-            class="chat-thread__avatar-img"
-            :src="partnerAvatarSrc"
-            alt=""
-          >
-          <span v-else>{{ partnerInitial }}</span>
+          <TfAvatar
+            :foto-url="resolvedPartnerFotoUrl || ''"
+            fallback="initials"
+            :initials="partnerInitial"
+            img-class="chat-thread__avatar-img"
+          />
         </div>
         <div class="chat-thread__meta">
           <h2 class="chat-thread__title">{{ resolvedPartnerName }}</h2>

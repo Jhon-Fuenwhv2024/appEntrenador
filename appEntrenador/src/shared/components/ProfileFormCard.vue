@@ -4,7 +4,7 @@
  * Default: compact collapsible summary; edit form only when requested.
  */
 import { computed, reactive, shallowRef, watch } from 'vue';
-import { resolveAvatarSrc } from '../utils/avatar.js';
+import { useAuthenticatedAvatar } from '../composables/useAuthenticatedAvatar.js';
 
 const SEX_OPTIONS = ['Masculino', 'Femenino', 'Otro'];
 
@@ -39,10 +39,13 @@ const form = reactive({
 const fotoFile = shallowRef(null);
 const previewObjectUrl = shallowRef('');
 
-const avatarSrc = computed(() => {
-  if (previewObjectUrl.value) return previewObjectUrl.value;
-  return resolveAvatarSrc(props.profile?.foto_url);
-});
+const avatarSource = computed(
+  () => previewObjectUrl.value || props.profile?.foto_url || '',
+);
+const { displaySrc: avatarSrc, onImgError: onAvatarError } = useAuthenticatedAvatar(
+  avatarSource,
+  { fallback: 'default' },
+);
 
 const displayName = computed(() => props.profile?.nombre || 'Alumno');
 
@@ -176,7 +179,12 @@ function onSubmit() {
           <v-expansion-panel-title class="profile-exp-title">
             <div class="profile-title-row">
               <v-avatar size="48" class="profile-view__avatar">
-                <v-img :src="avatarSrc" :alt="`Foto de ${displayName}`" cover />
+                <v-img
+                  :src="avatarSrc"
+                  :alt="`Foto de ${displayName}`"
+                  cover
+                  @error="onAvatarError"
+                />
               </v-avatar>
 
               <div class="profile-view__identity min-width-0">
@@ -281,7 +289,12 @@ function onSubmit() {
 
       <div class="profile-edit__avatar-row">
         <v-avatar size="72" class="profile-view__avatar">
-          <v-img :src="avatarSrc" :alt="`Foto de ${displayName}`" cover />
+          <v-img
+            :src="avatarSrc"
+            :alt="`Foto de ${displayName}`"
+            cover
+            @error="onAvatarError"
+          />
         </v-avatar>
         <v-file-input
           :model-value="fotoFile"

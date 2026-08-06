@@ -56,7 +56,9 @@ function authenticatePrivateUploads(req, res, next) {
     };
     return next();
   } catch (error) {
-    console.error('Error verificando JWT (uploads privados):', error.message);
+    // Log de diagnóstico al fallar jwt.verify en /uploads (photos|avatars).
+    // Comentado: ruido frecuente con access expirado. Descomentar si hay que depurar media auth.
+    // console.error('Error verificando JWT (uploads privados):', error.message);
     return res.status(401).json({
       success: false,
       error: 'Token inválido o expirado.',

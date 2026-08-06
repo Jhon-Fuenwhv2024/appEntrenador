@@ -17,7 +17,8 @@ const {
   displayName,
   email,
   avatarSrc,
-  hasCustomFoto,
+  showAvatarPhoto,
+  onAvatarError,
   initials,
   planLabel,
   isProPlan,
@@ -64,10 +65,11 @@ function confirmLogout() {
       >
         <span class="tf-account-trigger__avatar" aria-hidden="true">
           <img
-            v-if="hasCustomFoto"
+            v-if="showAvatarPhoto"
             :src="avatarSrc"
             alt=""
             class="tf-account-trigger__img"
+            @error="onAvatarError"
           >
           <span v-else class="tf-account-trigger__initials">{{ initials }}</span>
         </span>
@@ -86,10 +88,11 @@ function confirmLogout() {
       <div class="tf-account-panel__identity">
         <span class="tf-account-panel__avatar" aria-hidden="true">
           <img
-            v-if="hasCustomFoto"
+            v-if="showAvatarPhoto"
             :src="avatarSrc"
             alt=""
             class="tf-account-panel__img"
+            @error="onAvatarError"
           >
           <span v-else class="tf-account-panel__initials">{{ initials }}</span>
         </span>

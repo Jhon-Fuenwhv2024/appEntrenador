@@ -2,9 +2,10 @@ import defaultAvatar from '../../assets/foto_perfil.png';
 import { resolveMediaSrc } from './mediaUrl.js';
 
 /**
- * Resolve display URL for a profile photo.
+ * Resolve display URL for a profile photo (legacy sync helper).
+ * Prefer `useAuthenticatedAvatar` / `TfAvatar` for private `/uploads/avatars`
+ * so the short-lived access JWT is not embedded in `<img src>?token=`.
  * Uses uploaded `/uploads/...` URL when present; otherwise default asset.
- * Avatars require auth token query (see mediaUrl.js).
  * @param {string|null|undefined} fotoUrl
  * @returns {string}
  */

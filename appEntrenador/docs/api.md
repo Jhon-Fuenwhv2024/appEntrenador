@@ -557,7 +557,7 @@ UI client: `/client/profile` (`ChangePasswordForm`, Feature 045).
 
 ## Perfil alumno (`alumnos_info` · Feature 020)
 
-Tabla 1:1 con `usuarios` (rol client). Upsert al guardar. Avatares servidos en `/uploads/avatars/...` (fuera de `/api`; **requiere JWT** Bearer o `?token=`). Con env R2 (ADR-0004) el archivo vive en Cloudflare R2 y Express hace de proxy; sin R2, disco local `backend/public/uploads/avatars`.
+Tabla 1:1 con `usuarios` (rol client). Upsert al guardar. Avatares servidos en `/uploads/avatars/...` (fuera de `/api`; **requiere JWT** Bearer o `?token=`). Con env R2 (ADR-0004) el archivo vive en Cloudflare R2 y Express hace de proxy; sin R2, disco local `backend/public/uploads/avatars`. La app web carga avatares con Bearer → blob URL (ADR-0010), no con `?token=` en `<img>`.
 
 ### `GET /profile/:userId`
 

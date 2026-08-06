@@ -26,8 +26,9 @@
 2. `GET /profile/:userId` con ownership (client = propio; trainer = alumno suyo).
 3. Al guardar: `PUT /profile/:userId` con `FormData` (texto + opcional `foto`).
 4. Multer recibe `foto` (máx. 2 MB). Si hay env R2 → sube a Cloudflare R2 (`avatars/user_{id}.*`); si no → disco `backend/public/uploads/avatars`.
-5. Express sirve `/uploads/avatars/...` con JWT (`?token=`): proxy R2 o `express.static` local. La DB guarda solo la ruta relativa en `alumnos_info.foto_url`.
-6. Si `foto_url` es null, la UI usa `src/assets/foto_perfil.png`.
+5. Express sirve `/uploads/avatars/...` con JWT (`Bearer` o `?token=`): proxy R2 o `express.static` local. La DB guarda solo la ruta relativa en `alumnos_info.foto_url`.
+6. La UI **no** embebe el access JWT en `<img src>`: carga el avatar con `fetch` + `Authorization: Bearer` (refresco ante 401) y muestra un blob URL (`useAuthenticatedAvatar` / `TfAvatar`). Si falla, iniciales o asset por defecto.
+7. Si `foto_url` es null, la UI usa `src/assets/foto_perfil.png` o iniciales según el componente.
 
 Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 

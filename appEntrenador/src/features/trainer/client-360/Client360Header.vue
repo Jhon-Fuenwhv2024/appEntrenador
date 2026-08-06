@@ -4,7 +4,7 @@
  * plus null-safe slots for membership (040) and consistency (042).
  */
 import { computed } from 'vue';
-import { resolveAvatarSrc } from '../../../shared/utils/avatar.js';
+import { useAuthenticatedAvatar } from '../../../shared/composables/useAuthenticatedAvatar.js';
 import { coerceDate, formatShortDayMonth } from '../../../shared/utils/localDate.js';
 
 const props = defineProps({
@@ -48,7 +48,10 @@ defineEmits(['back']);
 const displayName = computed(() => props.client?.nombre || 'Alumno');
 const username = computed(() => props.client?.username || '');
 const objective = computed(() => props.profile?.objetivo?.trim() || 'Sin objetivo');
-const avatarSrc = computed(() => resolveAvatarSrc(props.profile?.foto_url));
+const { displaySrc: avatarSrc, onImgError: onAvatarError } = useAuthenticatedAvatar(
+  () => props.profile?.foto_url,
+  { fallback: 'default' },
+);
 
 const lastSessionLabel = computed(() => {
   const session = props.lastSession;
@@ -128,7 +131,7 @@ const membershipBadge = computed(() => {
 
     <div class="c360-header__main">
       <v-avatar size="48" class="c360-header__avatar">
-        <v-img :src="avatarSrc" alt="" cover />
+        <v-img :src="avatarSrc" alt="" cover @error="onAvatarError" />
       </v-avatar>
 
       <div class="c360-header__identity min-w-0">
