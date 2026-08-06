@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, reactive, shallowRef, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, reactive, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   getApiErrorMessage,
@@ -62,6 +62,7 @@ const streakMessage = shallowRef('');
 const showNextTechSheet = shallowRef(false);
 const cancelDialogOpen = shallowRef(false);
 const discardingDraft = shallowRef(false);
+const playerRootEl = shallowRef(null);
 const snackbar = reactive({
   show: false,
   text: '',
@@ -500,6 +501,9 @@ watch(phase, async (next) => {
   if (next !== 'resting') {
     showNextTechSheet.value = false;
   }
+  if (next === 'working') {
+    ensureWorkingCtaVisible();
+  }
 });
 
 watch(currentExercise, () => {
@@ -514,7 +518,26 @@ watch(nextExercisePreview, (preview) => {
  * Feature 088: notification tap while still on this route — keep the live session,
  * just re-sync wall-clock rest (do not remount / "Comenzar" again).
  */
+function syncPlayerViewportHeight() {
+  const el = playerRootEl.value;
+  if (!el || typeof window === 'undefined') return;
+  const vv = window.visualViewport;
+  const h = Math.round(vv?.height || window.innerHeight || 0);
+  if (h > 0) {
+    el.style.setProperty('--tf-player-height', `${h}px`);
+  }
+}
+
+function ensureWorkingCtaVisible() {
+  syncPlayerViewportHeight();
+  nextTick(() => {
+    const footer = playerRootEl.value?.querySelector?.('.player-footer');
+    footer?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  });
+}
+
 function onWorkoutFocusFromNotification() {
+  ensureWorkingCtaVisible();
   if (phase.value === 'resting') {
     syncRestFromTimestamp();
     return;
@@ -531,6 +554,12 @@ function onWorkoutFocusFromNotification() {
   }
 }
 
+function onVisibilityForViewport() {
+  if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+    ensureWorkingCtaVisible();
+  }
+}
+
 onMounted(() => {
   const user = getSessionUser();
   if (!user || user.rol !== 'client') {
@@ -539,16 +568,25 @@ onMounted(() => {
   }
   sessionUser.value = user;
   window.addEventListener('trainfit:workout-focus', onWorkoutFocusFromNotification);
+  document.addEventListener('visibilitychange', onVisibilityForViewport);
+  window.visualViewport?.addEventListener('resize', syncPlayerViewportHeight);
+  window.visualViewport?.addEventListener('scroll', syncPlayerViewportHeight);
+  window.addEventListener('resize', syncPlayerViewportHeight);
+  syncPlayerViewportHeight();
   loadRoutine();
 });
 
 onUnmounted(() => {
   window.removeEventListener('trainfit:workout-focus', onWorkoutFocusFromNotification);
+  document.removeEventListener('visibilitychange', onVisibilityForViewport);
+  window.visualViewport?.removeEventListener('resize', syncPlayerViewportHeight);
+  window.visualViewport?.removeEventListener('scroll', syncPlayerViewportHeight);
+  window.removeEventListener('resize', syncPlayerViewportHeight);
 });
 </script>
 
 <template>
-  <div class="player-bg">
+  <div ref="playerRootEl" class="player-bg">
     <header class="player-top">
       <button type="button" class="player-back" aria-label="Volver" @click="goBack">
         <v-icon icon="mdi-arrow-left" size="22" />
@@ -799,9 +837,17 @@ onUnmounted(() => {
 <style scoped>
 .player-bg {
   box-sizing: border-box;
-  height: 100%;
+  /* Prefer visualViewport var (set in script) → svh → dvh → vh.
+     After OS notification focus, 100dvh often exceeds the visible screen and
+     pushes Completar serie below the fold (footer is outside .player-scroll). */
+  height: 100vh;
+  max-height: 100vh;
   height: 100dvh;
   max-height: 100dvh;
+  height: 100svh;
+  max-height: 100svh;
+  height: var(--tf-player-height, 100svh);
+  max-height: var(--tf-player-height, 100svh);
   width: 100%;
   max-width: 100vw;
   overflow: hidden;
@@ -810,7 +856,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   font-family: 'Inter', system-ui, sans-serif;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Safe-area bottom lives on .player-footer only (avoid double inset). */
+  padding-bottom: 0;
   padding-top: env(safe-area-inset-top, 0px);
 }
 
@@ -1084,6 +1131,9 @@ onUnmounted(() => {
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
   background: linear-gradient(180deg, transparent, #0B0D12 28%);
   border-top: 1px solid rgba(255, 255, 255, 0.04);
+  /* Keep CTA in the visual viewport on mobile after focus/resume. */
+  position: relative;
+  z-index: 2;
 }
 
 .player-cta {
