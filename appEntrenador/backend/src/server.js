@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const { PORT, CORS_ORIGINS, NODE_ENV, isR2Configured, isVapidConfigured } = require('./config/env');
+const { PORT, CORS_ORIGINS, NODE_ENV, isR2Configured, isVapidConfigured, isRedisConfigured } = require('./config/env');
 const authRoutes = require('./modules/auth/auth.routes');
 const invitesRoutes = require('./modules/invites/invites.routes');
 const clientsRoutes = require('./modules/clients/clients.routes');
@@ -30,11 +30,13 @@ const foodLookupRoutes = require('./modules/food-lookup/food-lookup.routes');
 const adminExercisesRoutes = require('./modules/admin-exercises/admin-exercises.routes');
 const pushRoutes = require('./modules/push/push.routes');
 const notificationSettingsRoutes = require('./modules/notification-jobs/notification-settings.routes');
+const shadowModeRoutes = require('./modules/shadow-mode/shadow-mode.routes');
 const notificationJobsService = require('./modules/notification-jobs/notification-jobs.service');
 const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
 const { ensurePhotosDir } = require('./middleware/uploadProgressPhotos');
 const { ensureNotificationsTable } = require('./db/ensureNotificationsTable');
 const { ensureNotificationJobsTables } = require('./db/ensureNotificationJobsTables');
+const { ensureShadowModeColumn } = require('./db/ensureShadowModeColumn');
 const { ensurePushSubscriptionsTable } = require('./db/ensurePushSubscriptionsTable');
 const { ensureHabitsTables } = require('./db/ensureHabitsTables');
 const { ensureCheckinsTables } = require('./db/ensureCheckinsTables');
@@ -142,6 +144,7 @@ app.use('/api', progressRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api', notificationSettingsRoutes);
+app.use('/api', shadowModeRoutes);
 app.use('/api', nutritionRoutes);
 app.use('/api', habitsRoutes);
 app.use('/api', checkinsRoutes);
@@ -179,6 +182,12 @@ async function start() {
     await ensureNotificationJobsTables();
   } catch (error) {
     console.error('No se pudo asegurar tablas notification-jobs:', error.message);
+  }
+
+  try {
+    await ensureShadowModeColumn();
+  } catch (error) {
+    console.error('No se pudo asegurar shadow_mode_enabled:', error.message);
   }
 
   try {
@@ -288,6 +297,11 @@ async function start() {
       isVapidConfigured
         ? '[push] VAPID configurado — Web Push habilitado'
         : '[push] VAPID no configurado — Web Push deshabilitado (ver scripts/generateVapidKeys.js)',
+    );
+    console.log(
+      isRedisConfigured
+        ? '[shadow] Redis configurado — modo sombra habilitado'
+        : '[shadow] Redis no configurado — endpoints live 503',
     );
 
     // Feature 075: jobs de recordatorio / membresía / racha (no tumbar el server).

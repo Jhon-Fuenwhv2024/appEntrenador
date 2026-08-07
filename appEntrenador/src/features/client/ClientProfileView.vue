@@ -20,6 +20,7 @@ import ChangePasswordForm from '../../shared/components/ChangePasswordForm.vue';
 import ProfileFormCard from '../../shared/components/ProfileFormCard.vue';
 import PushOptInCard from '../../shared/components/PushOptInCard.vue';
 import TextScaleCard from '../../shared/components/TextScaleCard.vue';
+import ShadowModeCard from './components/ShadowModeCard.vue';
 import { useSessionAccount } from '../../shared/composables/useSessionAccount.js';
 import { getMyMembership } from './api/membershipApi.js';
 import { getMyGymMembership } from './api/gymMembershipApi.js';
@@ -215,6 +216,7 @@ onMounted(() => {
               Preferencias
             </h2>
             <TextScaleCard />
+            <ShadowModeCard @notify="notify" />
             <PushOptInCard show-workout-reminder @notify="notify" />
           </section>
 

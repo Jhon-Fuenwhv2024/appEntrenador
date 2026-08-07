@@ -912,5 +912,6 @@ export function useWorkoutSession(options = {}) {
     reset,
     unlockAudio,
     syncRestFromTimestamp,
+    targetEndTime,
   };
 }

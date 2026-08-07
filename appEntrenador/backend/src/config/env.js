@@ -98,6 +98,10 @@ const VAPID = {
   subject: VAPID_SUBJECT,
 };
 
+/** Upstash / Redis (Feature 076 shadow mode). rediss:// URL for ioredis. */
+const REDIS_URL = String(process.env.REDIS_URL || '').trim();
+const isRedisConfigured = Boolean(REDIS_URL);
+
 module.exports = {
   JWT_SECRET: JWT_SECRET || 'trainfit-dev-only-change-me',
   JWT_EXPIRES_IN,
@@ -112,4 +116,6 @@ module.exports = {
   USDA_FDC_API_KEY,
   VAPID,
   isVapidConfigured,
+  REDIS_URL,
+  isRedisConfigured,
 };

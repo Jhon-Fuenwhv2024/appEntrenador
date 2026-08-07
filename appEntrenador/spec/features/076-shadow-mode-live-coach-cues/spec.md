@@ -1,6 +1,6 @@
 # 076 · Modo sombra — presencia del coach sin videollamada
 
-**Estado:** especificado (sin implementar)  
+**Estado:** implementado (Redis efímero, ADR-0009)  
 **Depende de:** 011/059 (Workout Player), 012 (sesión persistida), 034 (chat), 051/075 (push in-app)  
 **Relacionada:** 039/060 (ficha 360), 025 (notificaciones)
 

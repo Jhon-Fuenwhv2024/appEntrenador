@@ -53,6 +53,7 @@
 49. **084 · Preview en vivo del builder de rutinas** — Split preview + media GIF/video al programar (Client 360). Spec: `084-routine-builder-live-preview`.
 50. **085 · Prescripción por serie** — Peso y reps distintos por serie (`set_prescription`); builder + player. Spec: `085-per-set-prescription`.
 51. **086 · Resiliencia en segundo plano** — Wake Lock + aviso descanso, hardening push/PWA, cola offline de sesión. Spec: `086-background-resilience`.
+52. **076 · Modo sombra** — Presencia live Redis + cues efímeros (sin historial); panel trainer + player. Spec: `076-shadow-mode-live-coach-cues`. ADR-0009.
 
 ## Siguiente (Epic Fitness)
 

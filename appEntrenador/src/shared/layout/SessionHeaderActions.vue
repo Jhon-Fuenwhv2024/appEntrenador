@@ -1,6 +1,7 @@
 <script setup>
 import NotificationBadge from '../../components/notifications/NotificationBadge.vue';
 import UserAccountMenu from './UserAccountMenu.vue';
+import LiveShadowBadge from '../../features/trainer/components/LiveShadowBadge.vue';
 
 defineProps({
   role: {
@@ -13,6 +14,7 @@ defineProps({
 
 <template>
   <div class="tf-session-actions">
+    <LiveShadowBadge v-if="role === 'trainer'" />
     <NotificationBadge />
     <UserAccountMenu :role="role" />
   </div>

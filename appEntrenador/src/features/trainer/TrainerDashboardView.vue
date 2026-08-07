@@ -286,6 +286,7 @@ onUnmounted(() => {
       </header>
 
       <div class="trainer-dash-body">
+
         <TrainerStatsSummary
           :clients-count="dashboardStats.clientsCount"
           :sessions-this-month="dashboardStats.sessionsThisMonth"

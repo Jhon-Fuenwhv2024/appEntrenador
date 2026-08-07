@@ -1751,3 +1751,49 @@ Body: `{ "receiverId": 5, "content": "Texto" }`. Persiste y, si el destinatario 
 }
 ```
 
+
+
+## Modo sombra (Feature 076)
+
+Telemetría y cues **efímeros en Redis** (sin historial MySQL). Requiere `REDIS_URL` (`rediss://`). Sin Redis → `503`.
+
+Preferencia opt-in en MySQL (`client_notification_settings.shadow_mode_enabled`, default `true`).
+
+### `PATCH /me/workout-live` (client)
+
+Upsert snapshot (TTL 45s). Throttle recomendado en FE: cambio de fase/serie o cada ≥5s.
+
+Body:
+
+```json
+{
+  "phase": "working",
+  "exerciseName": "Press banca",
+  "exerciseIndex": 2,
+  "setIndex": 1,
+  "routineName": "Push A",
+  "restEndsAt": null
+}
+```
+
+Respuesta: `{ success, data: { ok, cue } }`. Si hay `pendingCue`, se devuelve y se limpia del documento Redis.
+
+### `DELETE /me/workout-live` (client)
+
+Quita presencia live (fin / salir del player).
+
+### `GET /trainer/live-sessions` (trainer)
+
+Lista alumnos propios con live fresco. Poll recomendado ~8s; pausar si la pestaña no es visible.
+
+### `POST /trainer/live-sessions/:clientId/cues` (trainer)
+
+Body: `{ "body": "string ≤120", "tone": "tip|form|motivation|stop" }`. Rate-limit 1 cue / 10s por alumno. `429` si se excede. `403` si sombra off o no ownership. `404` si no hay live.
+
+### `GET /me/settings/shadow-mode` (client)
+
+`{ shadow_mode_enabled: boolean }`
+
+### `PATCH /me/settings/shadow-mode` (client)
+
+Body: `{ "shadow_mode_enabled": true|false }`

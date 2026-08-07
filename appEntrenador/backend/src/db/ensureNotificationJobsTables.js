@@ -10,6 +10,7 @@ async function ensureNotificationJobsTables() {
       workout_reminder_enabled BOOLEAN NOT NULL DEFAULT TRUE,
       workout_reminder_hour TINYINT NOT NULL DEFAULT 8,
       timezone VARCHAR(64) NOT NULL DEFAULT 'America/Bogota',
+      shadow_mode_enabled BOOLEAN NOT NULL DEFAULT TRUE,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (client_id),
       CONSTRAINT fk_client_notification_settings_client

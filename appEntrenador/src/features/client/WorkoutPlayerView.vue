@@ -19,12 +19,14 @@ import {
 import { useActiveWorkoutRecovery } from './composables/useActiveWorkoutRecovery.js';
 import { useWakeLock } from './composables/useWakeLock.js';
 import { useWorkoutSession } from './composables/useWorkoutSession.js';
+import { useShadowLive } from './composables/useShadowLive.js';
 import { enqueueWorkoutSession } from './utils/offlineWorkoutQueue.js';
 import {
   clearActiveWorkoutDraft,
   getActiveWorkoutDraft,
 } from './utils/activeWorkoutDraft.js';
 import MembershipLockedState from './components/MembershipLockedState.vue';
+import ShadowPresenceBanner from './components/ShadowPresenceBanner.vue';
 import NextExerciseTechSheetDialog from './components/NextExerciseTechSheetDialog.vue';
 import PrCelebrationOverlay from './components/PrCelebrationOverlay.vue';
 import WorkoutExerciseMedia from './components/WorkoutExerciseMedia.vue';
@@ -100,10 +102,42 @@ const {
   reset,
   unlockAudio,
   syncRestFromTimestamp,
+  targetEndTime,
+  setIndex,
 } = useWorkoutSession();
 
 useWakeLock(phase);
 useOfflineWorkoutSync();
+
+const {
+  shadowEnabled,
+  shadowAvailable,
+  activeCue,
+  dismissCue,
+  loadPreference: loadShadowPreference,
+} = useShadowLive({
+  phase,
+  exerciseIndex,
+  setIndex,
+  currentExercise,
+  restEndsAt: targetEndTime,
+  routineName: sessionRoutineName,
+});
+
+const showShadowIndicator = computed(() => (
+  shadowEnabled.value
+  && shadowAvailable.value
+  && (phase.value === 'working' || phase.value === 'resting')
+));
+
+const cueToneLabel = computed(() => {
+  const tone = activeCue.value?.tone;
+  if (tone === 'form') return 'Forma';
+  if (tone === 'motivation') return 'Motivación';
+  if (tone === 'stop') return 'Atención';
+  return 'Pista';
+});
+
 
 const {
   draft: recoveryDraft,
@@ -573,6 +607,7 @@ onMounted(() => {
   window.visualViewport?.addEventListener('scroll', syncPlayerViewportHeight);
   window.addEventListener('resize', syncPlayerViewportHeight);
   syncPlayerViewportHeight();
+  loadShadowPreference();
   loadRoutine();
 });
 
@@ -595,23 +630,44 @@ onUnmounted(() => {
         <div class="player-eyebrow">Entrenando</div>
         <div v-if="sessionRoutineName" class="player-routine">{{ sessionRoutineName }}</div>
       </div>
-      <button
-        v-if="showCancelAction"
-        type="button"
-        class="player-cancel"
-        aria-label="Cancelar entrenamiento"
-        @click="openCancelDialog"
-      >
-        Cancelar
-      </button>
-      <div
-        v-if="showSessionClock"
-        class="player-elapsed"
-        aria-label="Duración de la sesión"
-      >
-        {{ sessionElapsedFormatted }}
+      <div class="player-top-actions">
+        <button
+          v-if="showCancelAction"
+          type="button"
+          class="player-cancel"
+          aria-label="Cancelar entrenamiento"
+          @click="openCancelDialog"
+        >
+          Cancelar
+        </button>
+        <ShadowPresenceBanner v-if="showShadowIndicator" />
+        <div
+          v-if="showSessionClock"
+          class="player-elapsed"
+          aria-label="Duración de la sesión"
+        >
+          {{ sessionElapsedFormatted }}
+        </div>
       </div>
     </header>
+
+    <div
+      v-if="activeCue"
+      class="player-cue"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="player-cue__meta">{{ cueToneLabel }}</div>
+      <p class="player-cue__body">{{ activeCue.body }}</p>
+      <button
+        type="button"
+        class="player-cue__dismiss"
+        aria-label="Cerrar pista del entrenador"
+        @click="dismissCue"
+      >
+        <v-icon icon="mdi-close" size="18" aria-hidden="true" />
+      </button>
+    </div>
 
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mx-4" />
 
@@ -868,10 +924,18 @@ onUnmounted(() => {
 }
 
 .player-top {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px 8px;
+  column-gap: 0.65rem;
+  padding: 0.75rem 1rem 0.5rem;
+  flex-shrink: 0;
+}
+
+.player-top-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   flex-shrink: 0;
 }
 
@@ -908,7 +972,7 @@ onUnmounted(() => {
 
 .player-top-text {
   min-width: 0;
-  flex: 1;
+  overflow: hidden;
 }
 
 .player-eyebrow {
@@ -1209,5 +1273,46 @@ onUnmounted(() => {
     padding-left: 20px;
     padding-right: 20px;
   }
+}
+
+.player-cue {
+  margin: 0 1rem 0.5rem;
+  padding: 0.75rem 2.25rem 0.75rem 0.85rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, rgb(var(--v-theme-primary)) 18%, rgb(var(--v-theme-surface)));
+  border: 1px solid color-mix(in srgb, rgb(var(--v-theme-primary)) 45%, transparent);
+  position: relative;
+}
+.player-cue__meta {
+  font-size: var(--tf-text-caption, 0.75rem);
+  color: var(--tf-on-surface-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.2rem;
+}
+.player-cue__body {
+  margin: 0;
+  color: var(--tf-on-surface);
+  font-size: var(--tf-text-body, 1rem);
+  line-height: 1.35;
+}
+.player-cue__dismiss {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.35rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--tf-on-surface-muted);
+  cursor: pointer;
+  border-radius: 0.5rem;
+}
+.player-cue__dismiss:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: 2px;
 }
 </style>

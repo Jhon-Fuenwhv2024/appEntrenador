@@ -297,3 +297,16 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 3. Reanudar hidrata el composable (`restore`) y salta «Comenzar»; descanso futuro reanuda wall-clock; descanso vencido avanza sin beep.
 4. Al completar (POST OK o enqueue 086), Cancelar o Descartar → se borra el draft (evita recuperación fantasma).
 5. Notificación `rest_complete`: si la ventana ya está en `/client/workout/:id`, el SW solo hace **focus** (+ `TRAINFIT_WORKOUT_FOCUS`) sin `navigate`/remount; el `actionUrl` lleva `?resume=1` por si hace falta abrir de nuevo.
+
+
+## Modo sombra (Feature 076)
+
+1. Cliente en Workout Player (`working`/`resting`) hace `PATCH /me/workout-live` (throttle ≥5s).
+2. API escribe Redis `shadow:live:{clientId}` (SETEX 45s) + `SADD shadow:idx:{trainerId}`.
+3. Trainer en dashboard hace `GET /trainer/live-sessions` cada ~8s → `SMEMBERS` + pipeline `GET`; limpia ids stale.
+4. Trainer `POST .../cues` → rate-limit Redis + `pendingCue` en el live doc.
+5. Siguiente `PATCH` del cliente devuelve el cue en la respuesta (sin GET extra) y lo borra del doc.
+6. Al terminar/`DELETE /me/workout-live` se elimina la key y el índice.
+7. Preferencia sombra: solo MySQL; no historial de cues.
+
+Ver [ADR-0009](decisions/ADR-0009-shadow-mode-redis-ephemeral.md).
