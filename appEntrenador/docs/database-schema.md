@@ -42,6 +42,14 @@ erDiagram
   usuarios ||--o{ messages : "sender_id"
   usuarios ||--o{ messages : "receiver_id"
   usuarios ||--o{ refresh_tokens : "user_id"
+  usuarios ||--o{ training_programs : "trainer_id"
+  training_programs ||--o{ program_phases : "macro→meso"
+  program_phases ||--o{ program_weeks : "meso→micro"
+  program_weeks ||--o{ program_days : "micro→sesión"
+  program_days ||--o{ program_exercises : "contiene"
+  usuarios ||--o{ client_program_assignments : "client_id"
+  training_programs ||--o{ client_program_assignments : "program_id"
+  client_program_assignments ||--o{ rutinas : "materializa"
 
   usuarios {
     int id PK
@@ -332,6 +340,14 @@ npm run test:feature-033
 Chat 1:1 trainer↔cliente. `sender_id` / `receiver_id` → `usuarios`. `is_read` por defecto `FALSE`. Índices en ambos FKs. Tiempo real vía SSE in-process (no Pub/Sub).
 
 Migración: [`backend/db/migrations/017_messages.sql`](../backend/db/migrations/017_messages.sql). Al arrancar, `ensureMessagesTable` aplica `CREATE TABLE IF NOT EXISTS`.
+
+### Periodización (Feature 091)
+
+Jerarquía: `training_programs` (macrociclo) → `program_phases` (mesociclo) → `program_weeks` (microciclo) → `program_days` → `program_exercises`.
+
+Asignación: `client_program_assignments` (`progression_mode`: `template` | `same_as_last` | `last_plus`). Solo la semana activa se materializa en `rutinas` (columnas `assignment_id`, `program_day_id`, `source_week_index`).
+
+Migración: [`035_training_programs.sql`](../backend/db/migrations/035_training_programs.sql). Boot: `ensureTrainingProgramsTables`. ADR: [`ADR-0013`](decisions/ADR-0013-periodization-programs.md).
 
 ## Refresh tokens (Feature 083)
 

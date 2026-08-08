@@ -24,6 +24,7 @@ import {
 import { assignTemplate, createTemplate } from '../api/templatesApi.js';
 import ProgrammingAssignTemplateDialog from './ProgrammingAssignTemplateDialog.vue';
 import ProgrammingWeekBoard from './ProgrammingWeekBoard.vue';
+import Client360ProgramAssignment from './Client360ProgramAssignment.vue';
 import RoutineDayBuilder from './RoutineDayBuilder.vue';
 import RoutineDayPreview from './RoutineDayPreview.vue';
 
@@ -50,6 +51,8 @@ const savingTemplateId = shallowRef(null);
 const duplicatingId = shallowRef(null);
 const editingId = shallowRef(null);
 const builderOpen = shallowRef(false);
+/** Feature 091: asignación de periodización activa (la publica la card superior). */
+const activeAssignment = shallowRef(null);
 /** Mobile (<960px): collapsible live preview (Feature 084). */
 const mobilePreviewOpen = shallowRef(true);
 const builderSplitEl = ref(null);
@@ -490,8 +493,16 @@ onMounted(() => {
       </div>
     </section>
 
+    <Client360ProgramAssignment
+      :client-id="clientId"
+      @notify="(payload) => showNotification(payload.text, payload.color)"
+      @routines-changed="loadData"
+      @loaded="(assignment) => { activeAssignment = assignment; }"
+    />
+
     <ProgrammingWeekBoard
       :routines="routines"
+      :assignment="activeAssignment"
       :saving-template-id="savingTemplateId"
       :duplicating-id="duplicatingId"
       @create="openCreate"

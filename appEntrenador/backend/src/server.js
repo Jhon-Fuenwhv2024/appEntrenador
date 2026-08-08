@@ -31,6 +31,7 @@ const adminExercisesRoutes = require('./modules/admin-exercises/admin-exercises.
 const pushRoutes = require('./modules/push/push.routes');
 const notificationSettingsRoutes = require('./modules/notification-jobs/notification-settings.routes');
 const shadowModeRoutes = require('./modules/shadow-mode/shadow-mode.routes');
+const programsRoutes = require('./modules/programs/programs.routes');
 const notificationJobsService = require('./modules/notification-jobs/notification-jobs.service');
 const { ensureAvatarsDir } = require('./middleware/uploadAvatar');
 const { ensurePhotosDir } = require('./middleware/uploadProgressPhotos');
@@ -48,6 +49,7 @@ const { ensureTrainerMembershipTypesTable } = require('./db/ensureTrainerMembers
 const { ensurePersonalRecordsTable } = require('./db/ensurePersonalRecordsTable');
 const { ensureClientStreaksTable } = require('./db/ensureClientStreaksTable');
 const { ensureDietPlansTables } = require('./db/ensureDietPlansTables');
+const { ensureTrainingProgramsTables } = require('./db/ensureTrainingProgramsTables');
 const { ensureSetPrescriptionColumns } = require('./db/ensureSetPrescriptionColumns');
 const { ensureDietMealAdherenceTable } = require('./db/ensureDietMealAdherenceTable');
 const { ensureSaasColumns } = require('./db/ensureSaasColumns');
@@ -158,6 +160,7 @@ app.use('/api', consistencyRoutes);
 app.use('/api', dietPlansRoutes);
 app.use('/api', foodLookupRoutes);
 app.use('/api/admin', adminExercisesRoutes);
+app.use('/api', programsRoutes);
 
 async function start() {
   try {
@@ -254,6 +257,12 @@ async function start() {
     await ensureDietPlansTables();
   } catch (error) {
     console.error('No se pudo asegurar las tablas de planes de dieta:', error.message);
+  }
+
+  try {
+    await ensureTrainingProgramsTables();
+  } catch (error) {
+    console.error('No se pudo asegurar las tablas de periodización (091):', error.message);
   }
 
   try {

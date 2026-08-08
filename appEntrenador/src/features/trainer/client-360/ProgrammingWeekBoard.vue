@@ -29,6 +29,11 @@ const props = defineProps({
     type: [Number, null],
     default: null,
   },
+  /** Feature 091: asignación de periodización activa (null si no hay programa). */
+  assignment: {
+    type: Object,
+    default: null,
+  },
 });
 
 const emit = defineEmits([
@@ -57,9 +62,56 @@ const byDay = computed(() => {
 });
 
 const exerciseCount = (routine) => (routine.ejercicios || []).length;
+
+/** Microciclo mostrado: el de las rutinas materializadas o el de la asignación. */
+const currentWeek = computed(() => {
+  const fromRoutines = props.routines
+    .map((routine) => Number(routine.source_week_index))
+    .filter((week) => Number.isInteger(week) && week > 0);
+  if (fromRoutines.length) return Math.max(...fromRoutines);
+  const fromAssignment = Number(props.assignment?.current_week_index);
+  return Number.isInteger(fromAssignment) && fromAssignment > 0 ? fromAssignment : null;
+});
+
+const totalWeeks = computed(() => {
+  const total = Number(props.assignment?.duration_weeks);
+  return Number.isInteger(total) && total > 0 ? total : null;
+});
+
+const weekProgress = computed(() => {
+  if (!currentWeek.value || !totalWeeks.value) return 0;
+  return Math.min(100, Math.round((currentWeek.value / totalWeeks.value) * 100));
+});
+
+const isProgramRoutine = (routine) => Number.isInteger(Number(routine.source_week_index));
 </script>
 
 <template>
+  <div v-if="currentWeek" class="week-status" role="status">
+    <div class="week-status__top">
+      <span class="week-status__badge">
+        Microciclo {{ currentWeek }}<template v-if="totalWeeks"> de {{ totalWeeks }}</template>
+      </span>
+      <span v-if="assignment?.phase_name" class="week-status__phase">
+        {{ assignment.phase_name }}
+      </span>
+      <span v-if="assignment?.program_name" class="week-status__program">
+        {{ assignment.program_name }}
+      </span>
+    </div>
+    <div
+      v-if="totalWeeks"
+      class="week-status__bar"
+      role="progressbar"
+      :aria-valuenow="currentWeek"
+      aria-valuemin="1"
+      :aria-valuemax="totalWeeks"
+      :aria-label="`Microciclo ${currentWeek} de ${totalWeeks}`"
+    >
+      <span class="week-status__bar-fill" :style="{ width: `${weekProgress}%` }" />
+    </div>
+  </div>
+
   <section class="week-board" aria-label="Plan semanal">
     <div
       v-for="slot in byDay"
@@ -105,6 +157,11 @@ const exerciseCount = (routine) => (routine.ejercicios || []).length;
         >
           <span class="week-board__card-name">{{ routine.nombre_rutina }}</span>
           <span class="week-board__card-meta">
+            <span
+              v-if="isProgramRoutine(routine)"
+              class="week-board__week-chip"
+              :title="`Microciclo ${routine.source_week_index} del programa`"
+            >S{{ routine.source_week_index }}</span>
             {{ exerciseCount(routine) }} ej.
           </span>
         </button>
@@ -145,6 +202,74 @@ const exerciseCount = (routine) => (routine.ejercicios || []).length;
 </template>
 
 <style scoped>
+.week-status {
+  margin-bottom: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  background:
+    linear-gradient(135deg, rgba(0, 229, 255, 0.08), transparent 60%),
+    rgba(255, 255, 255, 0.02);
+}
+
+.week-status__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.week-status__badge {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #0b0d12;
+  background: #00e5ff;
+}
+
+.week-status__phase {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--tf-on-surface, #fff);
+}
+
+.week-status__program {
+  font-size: 0.72rem;
+  color: var(--tf-on-surface-muted, #a8b0bc);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.week-status__bar {
+  margin-top: 0.45rem;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.week-status__bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #00e5ff, #00e676);
+}
+
+.week-board__week-chip {
+  display: inline-block;
+  margin-right: 0.25rem;
+  padding: 0 0.3rem;
+  border-radius: 5px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.14);
+}
+
 .week-board {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));

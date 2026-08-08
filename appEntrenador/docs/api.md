@@ -605,6 +605,8 @@ Lista rutinas + ejercicios del cliente propio.
 
 Cada ejercicio incluye `last_log` (Feature 019): último peso/reps del alumno para ese **nombre** de ejercicio (no el id de línea; ver deep copy 018), o `null` si no hay historial.
 
+Cada rutina incluye además su linaje de periodización (Feature 091): `assignment_id` y `source_week_index` (ambos `null` en rutinas creadas a mano). El tablero semanal del trainer usa `source_week_index` para etiquetar el microciclo de cada día.
+
 ### `POST /clients/:clientId/routines` (trainer)
 
 Crea rutina con ejercicios (transacción).
@@ -698,6 +700,56 @@ Deep copy a `rutinas` / `ejercicios` del alumno. Body:
 `dia_semana` es opcional (default `Lunes`). Valida ownership del `clientId`. Respuesta `201` con la rutina creada (mismo shape que create de rutinas). Sin FK viva hacia la plantilla.
 
 UI: `/trainer/library` (`LibraryView` · hub **Recursos**); “Guardar en Recursos” desde ficha de alumno.
+
+## Programas / periodización (Feature 091)
+
+Trainer only. Ownership por `training_programs.trainer_id`.
+
+| Método | Path | Descripción |
+|--------|------|-------------|
+| GET | `/programs/presets` | Presets de mesociclo (hipertrofia, fuerza, descarga…) |
+| GET | `/programs` | Listar macrociclos del trainer |
+| POST | `/programs` | Crear macrociclo `{ name, goal?, planned_weeks?, notes? }` |
+| GET | `/programs/:id` | Detalle anidado (fases → semanas → días → ejercicios) |
+| PATCH | `/programs/:id` | Actualizar meta |
+| DELETE | `/programs/:id` | Borrar programa |
+| POST | `/programs/:id/phases` | Añadir mesociclo (preset + `seed_days` desde plantillas) |
+| POST | `/programs/:id/phases/:phaseId/propagate` | Semana 1 → resto con regla de progresión |
+| PUT | `/programs/:id/weeks/:weekId/days` | Reemplazar días de un microciclo |
+| POST | `/programs/:id/assign` | Asignar a alumno + materializar semana 1 |
+| GET | `/clients/:clientId/program-assignments` | Asignaciones del alumno |
+| POST | `/program-assignments/:assignmentId/advance-week` | Rematerializar siguiente microciclo |
+| GET | `/clients/:clientId/last-lifts` | Últimos peso/reps por ejercicio (`?names=a,b`) |
+
+### `POST /programs/:id/phases` (ejemplo)
+
+```json
+{
+  "preset": "hypertrophy",
+  "duration_weeks": 4,
+  "name": "Fase de volumen",
+  "seed_days": [
+    { "dia_semana": "Lunes", "template_id": 3 },
+    { "dia_semana": "Miércoles", "template_id": 4 }
+  ]
+}
+```
+
+### `POST /programs/:id/assign`
+
+```json
+{
+  "clientId": 12,
+  "phaseId": 5,
+  "start_date": "2026-08-10",
+  "progression_mode": "last_plus",
+  "progression_increment_kg": 2.5
+}
+```
+
+`progression_mode`: `template` (Rx del programa) | `same_as_last` | `last_plus` (último peso + kg). Materializa solo el microciclo 1 en `rutinas`.
+
+UI: Recursos → **Programas**; Client 360 → Programación → card periodización activa.
 
 ### `GET /me/today` (client) — Feature 038 + 083
 

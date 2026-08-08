@@ -143,6 +143,15 @@ Ver ADR-0004, ADR-0005 y `docs/deploy-render.md` (sección R2).
 3. Editar o borrar la plantilla después **no** cambia las rutinas ya asignadas.
 4. Desde el Catálogo (Recursos), el trainer puede **añadir un ejercicio** a una plantilla existente o a una rutina de alumno (`AssignCatalogExerciseDialog` → `PATCH /templates/:id` o `PUT /routines/:id` con la línea al final).
 
+## Periodización (Feature 091)
+
+1. Trainer crea un **macrociclo** en Recursos → Programas (wizard) y un **mesociclo** desde preset (hipertrofia/fuerza/descarga…).
+2. Semilla la **semana 1** con plantillas existentes (`seed_days`); el backend propaga a microciclos 2..N aplicando `progression_rule`.
+3. Al **asignar** (`POST /programs/:id/assign`): pausa otras asignaciones activas del alumno, crea `client_program_assignments` y **materializa solo la semana 1** en `rutinas`/`ejercicios` (linaje `assignment_id`).
+4. Memoria de progresión: por cada ejercicio se consulta el último `workout_set_logs` del alumno; según `progression_mode` se usa Rx del programa, mismo peso/reps, o último + `progression_increment_kg`.
+5. En Client 360 → Programación, **Avanzar semana** rematerializa el siguiente microciclo (borra rutinas del assignment y vuelve a insertar).
+6. El alumno sigue entrenando con el Player sobre `rutinas` (sin cambio de contrato).
+
 ## Ejecución de rutina (Workout Player)
 
 1. Cliente pulsa **Empezar** en el hero del dashboard → `/client/workout/:routineId` (solo si la rutina es del `dia_semana` de hoy).

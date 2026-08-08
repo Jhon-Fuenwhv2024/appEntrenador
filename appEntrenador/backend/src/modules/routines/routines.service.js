@@ -175,7 +175,7 @@ function mapExerciseRow(exercise) {
 
 async function fetchRoutinesWithExercises(alumnoId) {
   const [routines] = await db.query(
-    `SELECT id, alumno_id, dia_semana, nombre_rutina
+    `SELECT id, alumno_id, dia_semana, nombre_rutina, assignment_id, source_week_index
      FROM rutinas
      WHERE alumno_id = ?
      ORDER BY FIELD(dia_semana, 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'), id ASC`,
@@ -208,6 +208,9 @@ async function fetchRoutinesWithExercises(alumnoId) {
     alumno_id: routine.alumno_id,
     dia_semana: routine.dia_semana,
     nombre_rutina: routine.nombre_rutina,
+    // Feature 091: linaje de periodización (null en rutinas sueltas)
+    assignment_id: routine.assignment_id ?? null,
+    source_week_index: routine.source_week_index ?? null,
     ejercicios: byRoutine.get(routine.id) || [],
   }));
 }

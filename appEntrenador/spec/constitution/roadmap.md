@@ -54,6 +54,7 @@
 50. **085 · Prescripción por serie** — Peso y reps distintos por serie (`set_prescription`); builder + player. Spec: `085-per-set-prescription`.
 51. **086 · Resiliencia en segundo plano** — Wake Lock + aviso descanso, hardening push/PWA, cola offline de sesión. Spec: `086-background-resilience`.
 52. **076 · Modo sombra** — Presencia live Redis + cues efímeros (sin historial); panel trainer + player. Spec: `076-shadow-mode-live-coach-cues`. ADR-0009.
+53. **091 · Periodización (Macro/Meso/Micro)** — Programas + presets + asignación con memoria de progresión. Spec: `091-periodization-programs`. ADR-0013.
 
 ## Siguiente (Epic Fitness)
 

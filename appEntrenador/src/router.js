@@ -95,6 +95,12 @@ const routes = [
     meta: { requiresAuth: true, role: 'trainer' },
   },
   {
+    path: '/trainer/library/programs',
+    name: 'TrainerLibraryPrograms',
+    component: () => import('./features/trainer/LibraryView.vue'),
+    meta: { requiresAuth: true, role: 'trainer' },
+  },
+  {
     path: '/trainer/library/exercises',
     name: 'TrainerLibraryExercises',
     component: () => import('./features/trainer/LibraryView.vue'),

@@ -16,6 +16,7 @@ import AssignTemplateDialog from './components/AssignTemplateDialog.vue';
 import ExercisesCatalogPanel from './components/ExercisesCatalogPanel.vue';
 import LibraryDietsStub from './components/LibraryDietsStub.vue';
 import MembershipTypesPanel from './components/MembershipTypesPanel.vue';
+import ProgramsPanel from './components/ProgramsPanel.vue';
 import TemplateList from './components/TemplateList.vue';
 
 // Optimización: dialog pesado solo al abrir el formulario (Feature 089).
@@ -25,6 +26,7 @@ const TemplateFormDialog = defineAsyncComponent(() => (
 
 const TAB_PATH = {
   templates: '/trainer/library',
+  programs: '/trainer/library/programs',
   exercises: '/trainer/library/exercises',
   memberships: '/trainer/library/memberships',
   diets: '/trainer/library/diets',
@@ -47,10 +49,11 @@ const snackbar = reactive({
   color: 'success',
 });
 
-/** Hub tabs: plantillas | catálogo | membresías | dietas (Feature 079). */
+/** Hub tabs: plantillas | programas | catálogo | membresías | dietas (079 + 091). */
 const libraryTab = computed({
   get: () => {
     const path = route.path;
+    if (path.includes('/programs')) return 'programs';
     if (path.includes('/exercises')) return 'exercises';
     if (path.includes('/memberships')) return 'memberships';
     if (path.includes('/diets')) return 'diets';
@@ -181,7 +184,7 @@ watch(libraryTab, (tab) => {
         <div class="header-left">
           <h1 class="header-title">Recursos</h1>
           <p class="header-greeting text-medium-emphasis">
-            Plantillas, catálogo, membresías y dietas
+            Plantillas, programas, catálogo, membresías y dietas
           </p>
         </div>
 
@@ -200,6 +203,9 @@ watch(libraryTab, (tab) => {
         >
           <v-tab value="templates" prepend-icon="mdi-file-document-multiple-outline">
             Plantillas
+          </v-tab>
+          <v-tab value="programs" prepend-icon="mdi-chart-timeline-variant">
+            Programas
           </v-tab>
           <v-tab value="exercises" prepend-icon="mdi-dumbbell">
             Catálogo
@@ -227,6 +233,11 @@ watch(libraryTab, (tab) => {
             @delete="handleDelete"
           />
         </div>
+
+        <ProgramsPanel
+          v-else-if="libraryTab === 'programs'"
+          @notify="onPanelNotify"
+        />
 
         <ExercisesCatalogPanel
           v-else-if="libraryTab === 'exercises'"
